@@ -1,12 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { DragEvent, ReactNode } from "react";
+import type { DragEvent, KeyboardEvent, ReactNode } from "react";
 import JSZip from "jszip";
 import { Image as KonvaImage, Layer, Line, Rect, Stage, Text, Transformer, Group } from "react-konva";
 import type Konva from "konva";
 import listTemplate from "../templates/list.json";
 import {
-  ArrowDown,
-  ArrowUp,
   Copy,
   Download,
   FileJson,
@@ -789,7 +787,7 @@ function ColorField({
 }
 
 export default function App() {
-  const [slides, setSlides] = useState<Slide[]>(createSlidesFromListTemplate);
+  const [slides, setSlides] = useState<Slide[]>([createSlide(1)]);
   const [selectedSlideId, setSelectedSlideId] = useState(() => slides[0].id);
   const [selection, setSelection] = useState<Selection>(slides[0].layers[0]?.id ?? null);
   const [zoom, setZoom] = useState(0.36);
@@ -799,6 +797,8 @@ export default function App() {
   const [imageUploadMode, setImageUploadMode] = useState<ImageUploadMode>("free");
   const [draggingSlideId, setDraggingSlideId] = useState<string | null>(null);
   const [dragOverSlideId, setDragOverSlideId] = useState<string | null>(null);
+  const [draggingLayerId, setDraggingLayerId] = useState<string | null>(null);
+  const [dragOverLayerId, setDragOverLayerId] = useState<string | null>(null);
   const [activeSnapGuides, setActiveSnapGuides] = useState<SnapGuide[]>([]);
   const [textSelectionRange, setTextSelectionRange] = useState<TextSelectionRange | null>(null);
 
@@ -809,7 +809,6 @@ export default function App() {
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const selectedSlide = slides.find((slide) => slide.id === selectedSlideId) ?? slides[0];
-  const selectedSlideIndex = slides.findIndex((slide) => slide.id === selectedSlide.id);
   const selectedCanvas = normalizeCanvasPreset(selectedSlide.canvas);
   const selectedLayer =
     selection && selection !== "background"
@@ -1088,9 +1087,9 @@ export default function App() {
     setDragOverSlideId(null);
   };
 
-  const moveSelectedSlide = (direction: -1 | 1) => {
+  const moveSlide = (slideId: string, direction: -1 | 1) => {
     setSlides((current) => {
-      const index = current.findIndex((slide) => slide.id === selectedSlide.id);
+      const index = current.findIndex((slide) => slide.id === slideId);
       const nextIndex = index + direction;
       if (index < 0 || nextIndex < 0 || nextIndex >= current.length) return current;
 
@@ -1099,6 +1098,12 @@ export default function App() {
       nextSlides.splice(nextIndex, 0, movedSlide);
       return nextSlides;
     });
+  };
+
+  const handleSlideReorderKeyDown = (event: KeyboardEvent<HTMLButtonElement>, slideId: string) => {
+    if (!event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
+    event.preventDefault();
+    moveSlide(slideId, event.key === "ArrowUp" ? -1 : 1);
   };
 
   const moveLayer = (layerId: string, direction: -1 | 1) => {
@@ -1112,6 +1117,55 @@ export default function App() {
       nextLayers.splice(nextIndex, 0, movedLayer);
       return { ...slide, layers: nextLayers };
     });
+  };
+
+  const reorderLayers = (sourceLayerId: string, targetLayerId: string) => {
+    if (sourceLayerId === targetLayerId) return;
+
+    updateCurrentSlide((slide) => {
+      const sourceIndex = slide.layers.findIndex((layer) => layer.id === sourceLayerId);
+      const targetIndex = slide.layers.findIndex((layer) => layer.id === targetLayerId);
+      if (sourceIndex < 0 || targetIndex < 0) return slide;
+
+      const nextLayers = [...slide.layers];
+      const [movedLayer] = nextLayers.splice(sourceIndex, 1);
+      nextLayers.splice(targetIndex, 0, movedLayer);
+      return { ...slide, layers: nextLayers };
+    });
+  };
+
+  const handleLayerDragStart = (event: DragEvent<HTMLButtonElement>, layerId: string) => {
+    setDraggingLayerId(layerId);
+    event.dataTransfer.effectAllowed = "move";
+    event.dataTransfer.setData("text/plain", layerId);
+  };
+
+  const handleLayerDragOver = (event: DragEvent<HTMLButtonElement>, layerId: string) => {
+    const sourceLayerId = draggingLayerId || event.dataTransfer.getData("text/plain");
+    if (!sourceLayerId || sourceLayerId === layerId) return;
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = "move";
+    setDragOverLayerId(layerId);
+  };
+
+  const handleLayerDrop = (event: DragEvent<HTMLButtonElement>, targetLayerId: string) => {
+    event.preventDefault();
+    const sourceLayerId = draggingLayerId || event.dataTransfer.getData("text/plain");
+    if (sourceLayerId) reorderLayers(sourceLayerId, targetLayerId);
+    setDraggingLayerId(null);
+    setDragOverLayerId(null);
+  };
+
+  const clearLayerDragState = () => {
+    setDraggingLayerId(null);
+    setDragOverLayerId(null);
+  };
+
+  const handleLayerReorderKeyDown = (event: KeyboardEvent<HTMLButtonElement>, layerId: string) => {
+    if (!event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
+    event.preventDefault();
+    moveLayer(layerId, event.key === "ArrowUp" ? -1 : 1);
   };
 
   const getImageFiles = (files?: File | FileList | File[]) => {
@@ -1449,6 +1503,8 @@ export default function App() {
                   slide.id === dragOverSlideId ? "drag-over" : "",
                 ].filter(Boolean).join(" ")}
                 aria-current={slide.id === selectedSlide.id ? "true" : undefined}
+                aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
+                title="Drag to reorder. Press Alt+ArrowUp or Alt+ArrowDown to move with the keyboard."
                 draggable
                 onDragStart={(event) => handleSlideDragStart(event, slide.id)}
                 onDragOver={(event) => handleSlideDragOver(event, slide.id)}
@@ -1457,6 +1513,7 @@ export default function App() {
                 }}
                 onDrop={(event) => handleSlideDrop(event, slide.id)}
                 onDragEnd={clearSlideDragState}
+                onKeyDown={(event) => handleSlideReorderKeyDown(event, slide.id)}
                 onClick={() => {
                   setSelectedSlideId(slide.id);
                   setSelection(slide.layers[0]?.id ?? null);
@@ -1469,26 +1526,6 @@ export default function App() {
                 </span>
               </button>
             ))}
-          </div>
-          <div className="row-actions" role="group" aria-label="Slide order">
-            <button
-              title="Move selected slide up"
-              aria-label="Move selected slide up"
-              onClick={() => moveSelectedSlide(-1)}
-              disabled={selectedSlideIndex <= 0}
-            >
-              <ArrowUp size={16} />
-              Up
-            </button>
-            <button
-              title="Move selected slide down"
-              aria-label="Move selected slide down"
-              onClick={() => moveSelectedSlide(1)}
-              disabled={selectedSlideIndex < 0 || selectedSlideIndex >= slides.length - 1}
-            >
-              <ArrowDown size={16} />
-              Down
-            </button>
           </div>
           <div className="row-actions" role="group" aria-label="Slide actions">
             <button title="Add slide" onClick={addSlide}>
@@ -1513,6 +1550,49 @@ export default function App() {
             />
           </label>
 
+          <div className="panel-title layer-title">
+            <Layers size={17} />
+            Layers
+          </div>
+          <button
+            className={`layer-row ${selection === "background" ? "active" : ""}`}
+            onClick={() => setSelection("background")}
+          >
+            <span className="layer-dot background-dot" />
+            Background color
+          </button>
+          {selectedSlide.layers.map((layer, index) => (
+            <button
+              key={layer.id}
+              className={[
+                "layer-row",
+                "media-layer-row",
+                selection === layer.id ? "active" : "",
+                layer.id === draggingLayerId ? "dragging" : "",
+                layer.id === dragOverLayerId ? "drag-over" : "",
+              ].filter(Boolean).join(" ")}
+              aria-label={`${layer.name}, ${isImageLayer(layer) ? "image" : "text"}, layer ${index + 1} of ${selectedSlide.layers.length}`}
+              aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
+              title="Drag to reorder. Press Alt+ArrowUp or Alt+ArrowDown to move with the keyboard."
+              draggable
+              onDragStart={(event) => handleLayerDragStart(event, layer.id)}
+              onDragOver={(event) => handleLayerDragOver(event, layer.id)}
+              onDragLeave={() => {
+                if (dragOverLayerId === layer.id) setDragOverLayerId(null);
+              }}
+              onDrop={(event) => handleLayerDrop(event, layer.id)}
+              onDragEnd={clearLayerDragState}
+              onKeyDown={(event) => handleLayerReorderKeyDown(event, layer.id)}
+              onClick={() => setSelection(layer.id)}
+            >
+              <span className={`layer-dot ${isImageLayer(layer) ? "image-dot" : ""}`} />
+              <span>
+                <strong>{layer.name}</strong>
+                <small>{isImageLayer(layer) ? "image" : "text"}</small>
+              </span>
+            </button>
+          ))}
+
           <div className="panel-title template-title">
             <FileJson size={17} />
             Templates
@@ -1526,50 +1606,6 @@ export default function App() {
             <strong>{listTemplate.name}</strong>
             <small>{listTemplate.slides.length} slides · 1080×1350</small>
           </button>
-
-          <div className="panel-title layer-title">
-            <Layers size={17} />
-            Layers
-          </div>
-          <button
-            className={`layer-row ${selection === "background" ? "active" : ""}`}
-            onClick={() => setSelection("background")}
-          >
-            <span className="layer-dot background-dot" />
-            Background color
-          </button>
-          {selectedSlide.layers.map((layer, index) => (
-            <div key={layer.id} className="layer-row-group">
-              <button
-                className={`layer-row media-layer-row ${selection === layer.id ? "active" : ""}`}
-                onClick={() => setSelection(layer.id)}
-              >
-                <span className={`layer-dot ${isImageLayer(layer) ? "image-dot" : ""}`} />
-                <span>
-                  <strong>{layer.name}</strong>
-                  <small>{isImageLayer(layer) ? "image" : "text"}</small>
-                </span>
-              </button>
-              <button
-                className="layer-order-button"
-                title="Move layer earlier"
-                aria-label={`Move ${layer.name} earlier`}
-                onClick={() => moveLayer(layer.id, -1)}
-                disabled={index === 0}
-              >
-                <ArrowUp size={14} />
-              </button>
-              <button
-                className="layer-order-button"
-                title="Move layer later"
-                aria-label={`Move ${layer.name} later`}
-                onClick={() => moveLayer(layer.id, 1)}
-                disabled={index === selectedSlide.layers.length - 1}
-              >
-                <ArrowDown size={14} />
-              </button>
-            </div>
-          ))}
         </aside>
 
         <section
