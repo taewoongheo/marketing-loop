@@ -149,6 +149,9 @@ export type Slide = {
 export type ProjectFile = {
   type: "tiktok-slide-project";
   version: 2;
+  id?: string;
+  name?: string;
+  updatedAt?: string;
   preset: CanvasPreset;
   slides: Slide[];
 };
@@ -158,7 +161,9 @@ export type TemplateSlide = Omit<Slide, "id"> & { id?: string };
 export type TemplateFile = {
   type: "tiktok-slide-template";
   version: 2;
+  id?: string;
   name: string;
+  updatedAt?: string;
   preset: ProjectFile["preset"];
   slides: TemplateSlide[];
 };

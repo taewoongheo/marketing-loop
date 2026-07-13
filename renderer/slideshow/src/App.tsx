@@ -23,7 +23,6 @@ import {
 import {
   dataUrlToBlob,
   downloadDataUrl,
-  downloadTextFile,
   loadHtmlImage,
   readFileAsDataUrl,
   useLoadedImage,
@@ -94,11 +93,13 @@ type TemplateRuleProperty = {
   label: string;
 };
 
-const createSlidesFromListTemplate = (): Slide[] =>
-  listTemplate.slides.map((templateSlide, index) => ({
+const bundledListTemplate = listTemplate as unknown as TemplateFile;
+
+const createSlidesFromTemplate = (template: TemplateFile): Slide[] =>
+  template.slides.map((templateSlide, index) => ({
     id: uid("slide"),
     name: templateSlide.name || `Slide ${index + 1}`,
-    canvas: normalizeCanvasPreset(templateSlide.canvas),
+    canvas: normalizeCanvasPreset(templateSlide.canvas ?? template.preset),
     background: normalizeSlideBackground({ fill: templateSlide.background?.fill }),
     layers: templateSlide.layers.map((layer) => normalizeSlideLayer(layer)),
   }));
@@ -407,23 +408,6 @@ const areSnapGuidesEqual = (left: SnapGuide[], right: SnapGuide[]) =>
     const other = right[index];
     return other && guide.orientation === other.orientation && guide.position === other.position;
   });
-
-const getDatePrefix = () => {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
-
-const getTemplateFileName = (name: string) => {
-  const slug = name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return `${slug || "template"}.json`;
-};
 
 function TextLayerNode({
   layer,
@@ -807,7 +791,14 @@ export default function App() {
   const [isExporting, setIsExporting] = useState(false);
   const [isImageDragging, setIsImageDragging] = useState(false);
   const [imageUploadMode, setImageUploadMode] = useState<ImageUploadMode>("free");
+  const [contentName, setContentName] = useState("");
+  const [contentLibrary, setContentLibrary] = useState<ProjectFile[]>([]);
+  const [contentStatus, setContentStatus] = useState("");
+  const [isContentSaving, setIsContentSaving] = useState(false);
   const [templateName, setTemplateName] = useState("");
+  const [templateLibrary, setTemplateLibrary] = useState<TemplateFile[]>([bundledListTemplate]);
+  const [templateStatus, setTemplateStatus] = useState("");
+  const [isTemplateSaving, setIsTemplateSaving] = useState(false);
   const [draggingSlideId, setDraggingSlideId] = useState<string | null>(null);
   const [dragOverSlideId, setDragOverSlideId] = useState<string | null>(null);
   const [draggingLayerId, setDraggingLayerId] = useState<string | null>(null);
@@ -818,7 +809,7 @@ export default function App() {
   const stageRef = useRef<Konva.Stage>(null);
   const transformerRef = useRef<Konva.Transformer>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const projectInputRef = useRef<HTMLInputElement>(null);
+  const contentInputRef = useRef<HTMLInputElement>(null);
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const selectedSlide = slides.find((slide) => slide.id === selectedSlideId) ?? slides[0];
@@ -829,6 +820,36 @@ export default function App() {
       : null;
   const selectedTextLayer = selectedLayer && isTextLayer(selectedLayer) ? selectedLayer : null;
   const selectedImageLayer = selectedLayer && isImageLayer(selectedLayer) ? selectedLayer : null;
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    const loadLibraries = async () => {
+      try {
+        const [templateResponse, contentResponse] = await Promise.all([
+          fetch("/api/templates"),
+          fetch("/api/contents"),
+        ]);
+
+        if (templateResponse.ok) {
+          const data = (await templateResponse.json()) as { templates?: TemplateFile[] };
+          if (isCurrent && data.templates?.length) setTemplateLibrary(data.templates);
+        }
+
+        if (contentResponse.ok) {
+          const data = (await contentResponse.json()) as { contents?: ProjectFile[] };
+          if (isCurrent && data.contents) setContentLibrary(data.contents);
+        }
+      } catch {
+        // Keep the editor usable when local file storage is unavailable.
+      }
+    };
+
+    void loadLibraries();
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
 
   useEffect(() => {
     const transformer = transformerRef.current;
@@ -1013,13 +1034,16 @@ export default function App() {
     setSelection(copyLayer.id);
   };
 
-  const deleteSelectedLayer = () => {
-    if (!selectedLayer) return;
+  const deleteLayer = (layerId: string) => {
     updateCurrentSlide((slide) => ({
       ...slide,
-      layers: slide.layers.filter((layer) => layer.id !== selectedLayer.id),
+      layers: slide.layers.filter((layer) => layer.id !== layerId),
     }));
-    setSelection(null);
+    if (selection === layerId) setSelection(null);
+  };
+
+  const deleteSelectedLayer = () => {
+    if (selectedLayer) deleteLayer(selectedLayer.id);
   };
 
   const addSlide = () => {
@@ -1029,11 +1053,13 @@ export default function App() {
     setSelection(nextSlide.layers[0]?.id ?? null);
   };
 
-  const applyListTemplate = () => {
-    const nextSlides = createSlidesFromListTemplate();
+  const applyTemplate = (template: TemplateFile) => {
+    const nextSlides = createSlidesFromTemplate(template);
+    if (nextSlides.length === 0) return;
     setSlides(nextSlides);
     setSelectedSlideId(nextSlides[0].id);
     setSelection(nextSlides[0].layers[0]?.id ?? null);
+    setTemplateStatus(`Applied "${template.name}".`);
   };
 
   const duplicateSlide = () => {
@@ -1049,12 +1075,16 @@ export default function App() {
     setSelection(slideCopy.layers[0]?.id ?? null);
   };
 
-  const deleteSlide = () => {
+  const deleteSlide = (slideId: string) => {
     if (slides.length <= 1) return;
-    const nextSlides = slides.filter((slide) => slide.id !== selectedSlide.id);
+    const deletedIndex = slides.findIndex((slide) => slide.id === slideId);
+    const nextSlides = slides.filter((slide) => slide.id !== slideId);
     setSlides(nextSlides);
-    setSelectedSlideId(nextSlides[0].id);
-    setSelection(nextSlides[0].layers[0]?.id ?? null);
+    if (selectedSlide.id === slideId) {
+      const nextSlide = nextSlides[Math.min(Math.max(deletedIndex, 0), nextSlides.length - 1)];
+      setSelectedSlideId(nextSlide.id);
+      setSelection(nextSlide.layers[0]?.id ?? null);
+    }
   };
 
   const reorderSlides = (sourceSlideId: string, targetSlideId: string) => {
@@ -1352,17 +1382,60 @@ export default function App() {
     });
   };
 
-  const exportProject = () => {
-    const project: ProjectFile = {
+  const saveContent = async () => {
+    const name = contentName.trim() || slides[0]?.name.trim() || "Untitled content";
+    const content: ProjectFile = {
       type: "tiktok-slide-project",
       version: 2,
+      name,
       preset: makePreset(selectedCanvas),
       slides,
     };
-    downloadTextFile(`${getDatePrefix()}-tiktok-slide-project.json`, JSON.stringify(project, null, 2));
+    setContentName(name);
+    setContentStatus("");
+    setIsContentSaving(true);
+
+    try {
+      const response = await fetch("/api/contents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(content),
+      });
+      const data = (await response.json()) as {
+        error?: string;
+        content?: ProjectFile;
+        contents?: ProjectFile[];
+      };
+      if (!response.ok || !data.content) throw new Error(data.error || "Content could not be saved.");
+
+      if (data.contents) setContentLibrary(data.contents);
+      setContentStatus(`Saved to contents/${data.content.id}.json.`);
+    } catch (error) {
+      setContentStatus(error instanceof Error ? error.message : "Content could not be saved.");
+    } finally {
+      setIsContentSaving(false);
+    }
   };
 
-  const exportTemplate = () => {
+  const deleteContent = async (content: ProjectFile) => {
+    if (!content.id) {
+      setContentStatus("Content could not be deleted.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/contents/${encodeURIComponent(content.id)}`, { method: "DELETE" });
+      const data = (await response.json()) as { error?: string; contents?: ProjectFile[] };
+      if (!response.ok || !data.contents) throw new Error(data.error || "Content could not be deleted.");
+
+      setContentLibrary(data.contents);
+      setContentStatus(`Deleted "${content.name ?? content.id}".`);
+    } catch (error) {
+      setContentStatus(error instanceof Error ? error.message : "Content could not be deleted.");
+    }
+  };
+
+  const saveTemplate = async () => {
     const name = templateName.trim() || selectedSlide.name.trim() || "Untitled template";
     const template: TemplateFile = {
       type: "tiktok-slide-template",
@@ -1372,22 +1445,52 @@ export default function App() {
       slides: slides.map(slideToTemplateSlide),
     };
     setTemplateName(name);
-    downloadTextFile(getTemplateFileName(name), JSON.stringify(template, null, 2));
+    setTemplateStatus("");
+    setIsTemplateSaving(true);
+
+    try {
+      const response = await fetch("/api/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(template),
+      });
+      const data = (await response.json()) as {
+        error?: string;
+        template?: TemplateFile;
+        templates?: TemplateFile[];
+      };
+      if (!response.ok || !data.template) throw new Error(data.error || "Template could not be saved.");
+
+      if (data.templates?.length) setTemplateLibrary(data.templates);
+      setTemplateStatus(`Saved to templates/${data.template.id}.json.`);
+    } catch (error) {
+      setTemplateStatus(error instanceof Error ? error.message : "Template could not be saved.");
+    } finally {
+      setIsTemplateSaving(false);
+    }
   };
 
-  const importProject = async (file?: File) => {
-    if (!file) return;
+  const loadContent = async (content: ProjectFile, fallbackName = "Untitled content") => {
     try {
-      const text = await file.text();
-      const { slides: importedSlides, warnings } = await normalizeProjectFile(JSON.parse(text));
+      const { slides: importedSlides, warnings } = await normalizeProjectFile(content);
       setSlides(importedSlides);
       setSelectedSlideId(importedSlides[0].id);
       setSelection(importedSlides[0].layers[0]?.id ?? null);
-      if (warnings.length > 0) {
-        console.warn(`Project loaded with warnings: ${file.name}`, warnings);
-      }
+      setContentName(content.name?.trim() || fallbackName);
+      setContentStatus(`Loaded "${content.name?.trim() || fallbackName}".`);
+      if (warnings.length > 0) console.warn("Content loaded with warnings.", warnings);
     } catch (error) {
-      console.error(error instanceof Error ? error.message : "Project load failed.");
+      setContentStatus(error instanceof Error ? error.message : "Content load failed.");
+    }
+  };
+
+  const importContent = async (file?: File) => {
+    if (!file) return;
+    try {
+      const content = JSON.parse(await file.text()) as ProjectFile;
+      await loadContent(content, file.name.replace(/\.json$/i, ""));
+    } catch (error) {
+      setContentStatus(error instanceof Error ? error.message : "Content load failed.");
     }
   };
 
@@ -1463,11 +1566,14 @@ export default function App() {
         }}
       />
       <input
-        ref={projectInputRef}
+        ref={contentInputRef}
         className="hidden-input"
         type="file"
         accept="application/json"
-        onChange={(event) => importProject(event.target.files?.[0])}
+        onChange={(event) => {
+          void importContent(event.target.files?.[0]);
+          event.currentTarget.value = "";
+        }}
       />
 
       <header className="topbar">
@@ -1492,13 +1598,13 @@ export default function App() {
             <Plus size={17} />
             Label
           </button>
-          <button title="Export project JSON" onClick={exportProject}>
+          <button title="Save content to the contents folder" onClick={saveContent} disabled={isContentSaving}>
             <FileJson size={17} />
-            Save Project
+            {isContentSaving ? "Saving" : "Save Content"}
           </button>
-          <button title="Import project JSON" onClick={() => projectInputRef.current?.click()}>
+          <button title="Load content JSON" onClick={() => contentInputRef.current?.click()}>
             <Upload size={17} />
-            Load Project
+            Load Content
           </button>
           <div className="divider" />
           <button title="Export current slide PNG" onClick={exportCurrentPng} disabled={isExporting}>
@@ -1520,37 +1626,47 @@ export default function App() {
           </div>
           <div className="slide-list">
             {slides.map((slide, index) => (
-              <button
-                key={slide.id}
-                className={[
-                  "slide-row",
-                  slide.id === selectedSlide.id ? "active" : "",
-                  slide.id === draggingSlideId ? "dragging" : "",
-                  slide.id === dragOverSlideId ? "drag-over" : "",
-                ].filter(Boolean).join(" ")}
-                aria-current={slide.id === selectedSlide.id ? "true" : undefined}
-                aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
-                title="Drag to reorder. Press Alt+ArrowUp or Alt+ArrowDown to move with the keyboard."
-                draggable
-                onDragStart={(event) => handleSlideDragStart(event, slide.id)}
-                onDragOver={(event) => handleSlideDragOver(event, slide.id)}
-                onDragLeave={() => {
-                  if (dragOverSlideId === slide.id) setDragOverSlideId(null);
-                }}
-                onDrop={(event) => handleSlideDrop(event, slide.id)}
-                onDragEnd={clearSlideDragState}
-                onKeyDown={(event) => handleSlideReorderKeyDown(event, slide.id)}
-                onClick={() => {
-                  setSelectedSlideId(slide.id);
-                  setSelection(slide.layers[0]?.id ?? null);
-                }}
-              >
-                <span className="slide-index">{index + 1}</span>
-                <span>
-                  <strong>{slide.name}</strong>
-                  <small>{slide.layers.filter(isImageLayer).length} images · {slide.layers.filter(isTextLayer).length} text</small>
-                </span>
-              </button>
+              <div key={slide.id} className="slide-row-group">
+                <button
+                  className={[
+                    "slide-row",
+                    slide.id === selectedSlide.id ? "active" : "",
+                    slide.id === draggingSlideId ? "dragging" : "",
+                    slide.id === dragOverSlideId ? "drag-over" : "",
+                  ].filter(Boolean).join(" ")}
+                  aria-current={slide.id === selectedSlide.id ? "true" : undefined}
+                  aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
+                  title="Drag to reorder. Press Alt+ArrowUp or Alt+ArrowDown to move with the keyboard."
+                  draggable
+                  onDragStart={(event) => handleSlideDragStart(event, slide.id)}
+                  onDragOver={(event) => handleSlideDragOver(event, slide.id)}
+                  onDragLeave={() => {
+                    if (dragOverSlideId === slide.id) setDragOverSlideId(null);
+                  }}
+                  onDrop={(event) => handleSlideDrop(event, slide.id)}
+                  onDragEnd={clearSlideDragState}
+                  onKeyDown={(event) => handleSlideReorderKeyDown(event, slide.id)}
+                  onClick={() => {
+                    setSelectedSlideId(slide.id);
+                    setSelection(slide.layers[0]?.id ?? null);
+                  }}
+                >
+                  <span className="slide-index">{index + 1}</span>
+                  <span>
+                    <strong>{slide.name}</strong>
+                    <small>{slide.layers.filter(isImageLayer).length} images · {slide.layers.filter(isTextLayer).length} text</small>
+                  </span>
+                </button>
+                <button
+                  className="item-delete-button"
+                  title={`Delete ${slide.name}`}
+                  aria-label={`Delete ${slide.name}`}
+                  onClick={() => deleteSlide(slide.id)}
+                  disabled={slides.length <= 1}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
             ))}
           </div>
           <div className="row-actions" role="group" aria-label="Slide actions">
@@ -1562,9 +1678,6 @@ export default function App() {
               <Copy size={16} />
               Copy
             </button>
-            <button title="Delete slide" onClick={deleteSlide} disabled={slides.length <= 1}>
-              <Trash2 size={16} />
-            </button>
           </div>
 
           <label className="slide-name-editor">
@@ -1575,6 +1688,54 @@ export default function App() {
               onChange={(event) => updateCurrentSlide((slide) => ({ ...slide, name: event.target.value }))}
             />
           </label>
+
+          <div className="panel-title content-title">
+            <FileJson size={17} />
+            Contents
+          </div>
+          <label className="content-name-field">
+            <span>Content name</span>
+            <input
+              value={contentName}
+              placeholder="Content name"
+              onChange={(event) => setContentName(event.target.value)}
+            />
+          </label>
+          <div className="content-list">
+            {contentLibrary.length > 0 ? (
+              contentLibrary.map((content) => (
+                <div key={content.id ?? content.name} className="content-row">
+                  <button
+                    className="content-card"
+                    title={`Load ${content.name ?? content.id} content`}
+                    aria-label={`Load ${content.name ?? content.id} content`}
+                    onClick={() => void loadContent(content)}
+                  >
+                    <strong>{content.name ?? content.id}</strong>
+                    <small>
+                      {content.slides.length} slides · {content.preset.width}×{content.preset.height}
+                    </small>
+                  </button>
+                  <button
+                    className="item-delete-button"
+                    title={`Delete ${content.name ?? content.id}`}
+                    aria-label={`Delete ${content.name ?? content.id}`}
+                    onClick={() => void deleteContent(content)}
+                    disabled={!content.id}
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
+              ))
+            ) : (
+              <div className="content-empty">No saved content.</div>
+            )}
+          </div>
+          {contentStatus ? (
+            <div className="content-status" role="status" aria-live="polite">
+              {contentStatus}
+            </div>
+          ) : null}
 
           <div className="panel-title layer-title">
             <Layers size={17} />
@@ -1588,35 +1749,44 @@ export default function App() {
             Background color
           </button>
           {selectedSlide.layers.map((layer, index) => (
-            <button
-              key={layer.id}
-              className={[
-                "layer-row",
-                "media-layer-row",
-                selection === layer.id ? "active" : "",
-                layer.id === draggingLayerId ? "dragging" : "",
-                layer.id === dragOverLayerId ? "drag-over" : "",
-              ].filter(Boolean).join(" ")}
-              aria-label={`${layer.name}, ${isImageLayer(layer) ? "image" : "text"}, layer ${index + 1} of ${selectedSlide.layers.length}`}
-              aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
-              title="Drag to reorder. Press Alt+ArrowUp or Alt+ArrowDown to move with the keyboard."
-              draggable
-              onDragStart={(event) => handleLayerDragStart(event, layer.id)}
-              onDragOver={(event) => handleLayerDragOver(event, layer.id)}
-              onDragLeave={() => {
-                if (dragOverLayerId === layer.id) setDragOverLayerId(null);
-              }}
-              onDrop={(event) => handleLayerDrop(event, layer.id)}
-              onDragEnd={clearLayerDragState}
-              onKeyDown={(event) => handleLayerReorderKeyDown(event, layer.id)}
-              onClick={() => setSelection(layer.id)}
-            >
-              <span className={`layer-dot ${isImageLayer(layer) ? "image-dot" : ""}`} />
-              <span>
-                <strong>{layer.name}</strong>
-                <small>{isImageLayer(layer) ? "image" : "text"}</small>
-              </span>
-            </button>
+            <div key={layer.id} className="media-layer-row-group">
+              <button
+                className={[
+                  "layer-row",
+                  "media-layer-row",
+                  selection === layer.id ? "active" : "",
+                  layer.id === draggingLayerId ? "dragging" : "",
+                  layer.id === dragOverLayerId ? "drag-over" : "",
+                ].filter(Boolean).join(" ")}
+                aria-label={`${layer.name}, ${isImageLayer(layer) ? "image" : "text"}, layer ${index + 1} of ${selectedSlide.layers.length}`}
+                aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
+                title="Drag to reorder. Press Alt+ArrowUp or Alt+ArrowDown to move with the keyboard."
+                draggable
+                onDragStart={(event) => handleLayerDragStart(event, layer.id)}
+                onDragOver={(event) => handleLayerDragOver(event, layer.id)}
+                onDragLeave={() => {
+                  if (dragOverLayerId === layer.id) setDragOverLayerId(null);
+                }}
+                onDrop={(event) => handleLayerDrop(event, layer.id)}
+                onDragEnd={clearLayerDragState}
+                onKeyDown={(event) => handleLayerReorderKeyDown(event, layer.id)}
+                onClick={() => setSelection(layer.id)}
+              >
+                <span className={`layer-dot ${isImageLayer(layer) ? "image-dot" : ""}`} />
+                <span>
+                  <strong>{layer.name}</strong>
+                  <small>{isImageLayer(layer) ? "image" : "text"}</small>
+                </span>
+              </button>
+              <button
+                className="item-delete-button"
+                title={`Delete ${layer.name}`}
+                aria-label={`Delete ${layer.name}`}
+                onClick={() => deleteLayer(layer.id)}
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
           ))}
 
           <div className="panel-title template-title">
@@ -1630,20 +1800,32 @@ export default function App() {
               placeholder="Template name"
               onChange={(event) => setTemplateName(event.target.value)}
             />
-            <button title="Download all slides as a template" onClick={exportTemplate}>
+            <button title="Save all slides to the templates folder" onClick={saveTemplate} disabled={isTemplateSaving}>
               <Save size={16} />
-              Save
+              {isTemplateSaving ? "Saving" : "Save"}
             </button>
           </div>
-          <button
-            className="template-card"
-            title="Apply list template"
-            aria-label="Apply list template"
-            onClick={applyListTemplate}
-          >
-            <strong>{listTemplate.name}</strong>
-            <small>{listTemplate.slides.length} slides · 1080×1350</small>
-          </button>
+          <div className="template-list">
+            {templateLibrary.map((template) => (
+              <button
+                key={template.id ?? template.name}
+                className="template-card"
+                title={`Apply ${template.name} template`}
+                aria-label={`Apply ${template.name} template`}
+                onClick={() => applyTemplate(template)}
+              >
+                <strong>{template.name}</strong>
+                <small>
+                  {template.slides.length} slides · {template.preset.width}×{template.preset.height}
+                </small>
+              </button>
+            ))}
+          </div>
+          {templateStatus ? (
+            <div className="template-status" role="status" aria-live="polite">
+              {templateStatus}
+            </div>
+          ) : null}
         </aside>
 
         <section

@@ -203,6 +203,28 @@ p {
   margin-top: 8px;
 }
 
+.slide-row-group,
+.content-row,
+.media-layer-row-group {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 44px;
+  gap: 6px;
+}
+
+.item-delete-button {
+  width: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  align-self: stretch;
+  padding: 0;
+  color: var(--muted);
+}
+
+.item-delete-button:hover:not(:disabled) {
+  color: var(--danger);
+  border-color: var(--danger);
+}
+
 .slide-row {
   width: 100%;
   min-height: 64px;
@@ -301,10 +323,16 @@ p {
   min-height: 44px;
 }
 
+.template-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 .template-card {
   width: 100%;
   min-height: 52px;
-  margin-top: 8px;
   padding: 9px 12px;
   flex-direction: column;
   align-items: flex-start;
@@ -320,6 +348,73 @@ p {
   font-size: 10px;
 }
 
+.template-status {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.content-title {
+  margin-top: 24px;
+}
+
+.content-name-field {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 8px;
+}
+
+.content-name-field span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.content-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.content-card {
+  width: 100%;
+  min-height: 52px;
+  padding: 9px 12px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+}
+
+.content-card strong {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+}
+
+.content-card small,
+.content-status,
+.content-empty {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.4;
+}
+
+.content-status {
+  margin-top: 8px;
+}
+
+.content-empty {
+  border: 1px dashed var(--line-strong);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+
 .layer-title {
   margin-top: 24px;
 }
@@ -332,6 +427,14 @@ p {
 
 .media-layer-row {
   min-width: 0;
+}
+
+.media-layer-row-group {
+  margin-top: 8px;
+}
+
+.media-layer-row-group .layer-row {
+  margin-top: 0;
 }
 
 .media-layer-row > span:last-child {

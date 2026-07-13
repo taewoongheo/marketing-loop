@@ -46,6 +46,7 @@ marketing-loop/
 ├── renderer/                         visual production implementations
 │   └── slideshow/                    local slideshow editor and renderer
 │       ├── src/                      editor and browser rendering code
+│       ├── contents/                 saved editable content JSON
 │       ├── templates/                fixed visual JSON structures
 │       └── public/assets/             assets required by those templates
 │
@@ -86,4 +87,4 @@ npm --prefix renderer/slideshow ci
 npm run renderer:slideshow
 ```
 
-The editor starts with a blank slide; the bundled `list` template can be applied from the sidebar. The editor loads and saves project JSON in the browser, downloads the current slides as reusable template JSON, and exports either the current PNG or a ZIP of all slides. To make a downloaded template available in the sidebar, add it to `renderer/slideshow/templates/` and import it in the editor. The renderer does not run a template API or a separate application server.
+The editor starts with a blank slide. It saves editable content JSON to `renderer/slideshow/contents/`, saves reusable template JSON to `renderer/slideshow/templates/`, and loads both libraries through a small Vite middleware. The editor also imports compatible content JSON from the browser and exports either the current PNG or a ZIP of all slides. The renderer does not run a separate application server.
