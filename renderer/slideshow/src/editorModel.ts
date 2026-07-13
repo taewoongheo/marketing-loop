@@ -153,6 +153,16 @@ export type ProjectFile = {
   slides: Slide[];
 };
 
+export type TemplateSlide = Omit<Slide, "id"> & { id?: string };
+
+export type TemplateFile = {
+  type: "tiktok-slide-template";
+  version: 2;
+  name: string;
+  preset: ProjectFile["preset"];
+  slides: TemplateSlide[];
+};
+
 export type Selection = "background" | string | null;
 
 export const uid = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
@@ -505,6 +515,13 @@ export const normalizeSlideLayer = (layer: unknown, resetId = true): SlideLayerM
   if (isRecord(layer) && layer.type === "image") return normalizeImageLayer(layer as Partial<ImageLayerModel>, resetId);
   return normalizeTextLayer(isRecord(layer) ? (layer as Partial<TextLayerModel>) : {}, resetId);
 };
+
+export const slideToTemplateSlide = (slide: Slide): TemplateSlide => ({
+  name: slide.name,
+  canvas: normalizeCanvasPreset(slide.canvas),
+  background: normalizeSlideBackground(slide.background),
+  layers: slide.layers.map((layer) => ({ ...layer })),
+});
 
 export const makePreset = (preset = DEFAULT_CANVAS_PRESET): ProjectFile["preset"] => normalizeCanvasPreset(preset);
 

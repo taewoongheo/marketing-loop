@@ -290,6 +290,17 @@ p {
   margin-top: 24px;
 }
 
+.template-save-box {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 78px;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.template-save-box button {
+  min-height: 44px;
+}
+
 .template-card {
   width: 100%;
   min-height: 52px;

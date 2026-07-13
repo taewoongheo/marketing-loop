@@ -14,6 +14,7 @@ import {
   Lock,
   Plus,
   Rows3,
+  Save,
   Trash2,
   Type,
   Underline,
@@ -42,6 +43,7 @@ import {
   normalizeSlideBackground,
   normalizeSlideLayer,
   normalizeTextLayer,
+  slideToTemplateSlide,
   isTextRangeUnderlined,
   toggleUnderlineMark,
   uid,
@@ -54,6 +56,7 @@ import {
   type Slide,
   type SlideLayerModel,
   type TemplateEditableProperty,
+  type TemplateFile,
   type TextLayerModel,
 } from "./editorModel";
 import { normalizeProjectFile } from "./projectIO";
@@ -411,6 +414,15 @@ const getDatePrefix = () => {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+};
+
+const getTemplateFileName = (name: string) => {
+  const slug = name
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return `${slug || "template"}.json`;
 };
 
 function TextLayerNode({
@@ -795,6 +807,7 @@ export default function App() {
   const [isExporting, setIsExporting] = useState(false);
   const [isImageDragging, setIsImageDragging] = useState(false);
   const [imageUploadMode, setImageUploadMode] = useState<ImageUploadMode>("free");
+  const [templateName, setTemplateName] = useState("");
   const [draggingSlideId, setDraggingSlideId] = useState<string | null>(null);
   const [dragOverSlideId, setDragOverSlideId] = useState<string | null>(null);
   const [draggingLayerId, setDraggingLayerId] = useState<string | null>(null);
@@ -1349,6 +1362,19 @@ export default function App() {
     downloadTextFile(`${getDatePrefix()}-tiktok-slide-project.json`, JSON.stringify(project, null, 2));
   };
 
+  const exportTemplate = () => {
+    const name = templateName.trim() || selectedSlide.name.trim() || "Untitled template";
+    const template: TemplateFile = {
+      type: "tiktok-slide-template",
+      version: 2,
+      name,
+      preset: makePreset(selectedCanvas),
+      slides: slides.map(slideToTemplateSlide),
+    };
+    setTemplateName(name);
+    downloadTextFile(getTemplateFileName(name), JSON.stringify(template, null, 2));
+  };
+
   const importProject = async (file?: File) => {
     if (!file) return;
     try {
@@ -1596,6 +1622,18 @@ export default function App() {
           <div className="panel-title template-title">
             <FileJson size={17} />
             Templates
+          </div>
+          <div className="template-save-box">
+            <input
+              value={templateName}
+              aria-label="Template name"
+              placeholder="Template name"
+              onChange={(event) => setTemplateName(event.target.value)}
+            />
+            <button title="Download all slides as a template" onClick={exportTemplate}>
+              <Save size={16} />
+              Save
+            </button>
           </div>
           <button
             className="template-card"
