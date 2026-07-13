@@ -1,0 +1,20 @@
+# Local SQLite data
+db/*.sqlite
+db/*.sqlite-*
+db/*.db
+db/*.db-*
+db/*-journal
+db/*-wal
+db/*-shm
+
+# Temporary renderer handoffs
+.tmp/
+tmp/
+
+# Local credentials
+.env
+.env.*
+!.env.example
+
+# macOS
+.DS_Store
