@@ -86,4 +86,4 @@ npm --prefix renderer/slideshow ci
 npm run renderer:slideshow
 ```
 
-The editor loads and saves project JSON in the browser and exports either the current PNG or a ZIP of all slides. Templates remain file-owned under `renderer/slideshow/templates/`; the editor does not run a template API or a separate application server.
+The bundled `list` template opens by default and can be reapplied from the editor sidebar. The editor loads and saves project JSON in the browser and exports either the current PNG or a ZIP of all slides. Templates remain file-owned under `renderer/slideshow/templates/`; the editor does not run a template API or a separate application server.

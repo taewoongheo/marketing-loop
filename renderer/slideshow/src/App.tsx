@@ -3,6 +3,7 @@ import type { DragEvent, ReactNode } from "react";
 import JSZip from "jszip";
 import { Image as KonvaImage, Layer, Line, Rect, Stage, Text, Transformer, Group } from "react-konva";
 import type Konva from "konva";
+import listTemplate from "../templates/list.json";
 import {
   ArrowDown,
   ArrowUp,
@@ -41,6 +42,7 @@ import {
   normalizeImageLayer,
   normalizeCanvasPreset,
   normalizeSlideBackground,
+  normalizeSlideLayer,
   normalizeTextLayer,
   isTextRangeUnderlined,
   toggleUnderlineMark,
@@ -90,6 +92,15 @@ type TemplateRuleProperty = {
   property: TemplateEditableProperty;
   label: string;
 };
+
+const createSlidesFromListTemplate = (): Slide[] =>
+  listTemplate.slides.map((templateSlide, index) => ({
+    id: uid("slide"),
+    name: templateSlide.name || `Slide ${index + 1}`,
+    canvas: normalizeCanvasPreset(templateSlide.canvas),
+    background: normalizeSlideBackground({ fill: templateSlide.background?.fill }),
+    layers: templateSlide.layers.map((layer) => normalizeSlideLayer(layer)),
+  }));
 
 type TemplateRuleSection = {
   id: string;
@@ -778,7 +789,7 @@ function ColorField({
 }
 
 export default function App() {
-  const [slides, setSlides] = useState<Slide[]>([createSlide(1)]);
+  const [slides, setSlides] = useState<Slide[]>(createSlidesFromListTemplate);
   const [selectedSlideId, setSelectedSlideId] = useState(() => slides[0].id);
   const [selection, setSelection] = useState<Selection>(slides[0].layers[0]?.id ?? null);
   const [zoom, setZoom] = useState(0.36);
@@ -1004,6 +1015,13 @@ export default function App() {
     setSlides((current) => [...current, nextSlide]);
     setSelectedSlideId(nextSlide.id);
     setSelection(nextSlide.layers[0]?.id ?? null);
+  };
+
+  const applyListTemplate = () => {
+    const nextSlides = createSlidesFromListTemplate();
+    setSlides(nextSlides);
+    setSelectedSlideId(nextSlides[0].id);
+    setSelection(nextSlides[0].layers[0]?.id ?? null);
   };
 
   const duplicateSlide = () => {
@@ -1494,6 +1512,20 @@ export default function App() {
               onChange={(event) => updateCurrentSlide((slide) => ({ ...slide, name: event.target.value }))}
             />
           </label>
+
+          <div className="panel-title template-title">
+            <FileJson size={17} />
+            Templates
+          </div>
+          <button
+            className="template-card"
+            title="Apply list template"
+            aria-label="Apply list template"
+            onClick={applyListTemplate}
+          >
+            <strong>{listTemplate.name}</strong>
+            <small>{listTemplate.slides.length} slides · 1080×1350</small>
+          </button>
 
           <div className="panel-title layer-title">
             <Layers size={17} />
