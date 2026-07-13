@@ -3,7 +3,7 @@
 ## Renderer template
 
 - Template ID: `list`
-- Source of implementation: `/Users/taewoongheo/Projects/slides-marketing/templates/list.json`
+- Source of implementation: `renderer/slideshow/templates/list.json`
 - The live template is authoritative for slide count, order, layout, image and text layers, typography, geometry, crop, and editable properties.
 
 Do not copy implementation values from the template into this file. Read the live JSON before creating each renderer project and record its SHA-256 with the final content.

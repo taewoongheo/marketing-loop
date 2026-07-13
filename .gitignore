@@ -11,6 +11,10 @@ db/*-shm
 .tmp/
 tmp/
 
+# Renderer dependencies and builds
+node_modules/
+dist/
+
 # Local credentials
 .env
 .env.*
