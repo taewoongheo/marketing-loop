@@ -6,8 +6,7 @@ CREATE TABLE IF NOT EXISTS hypotheses (
     id TEXT PRIMARY KEY
         CHECK (length(trim(id)) > 0),
     parent_hypothesis_id TEXT,
-    change_axis TEXT NOT NULL
-        CHECK (change_axis IN ('message', 'copywriting')),
+    change_axis TEXT,
     statement TEXT NOT NULL
         CHECK (length(trim(statement)) > 0),
     last_evaluated_at TEXT,
@@ -20,6 +19,15 @@ CREATE TABLE IF NOT EXISTS hypotheses (
     CHECK (
         parent_hypothesis_id IS NULL
         OR parent_hypothesis_id <> id
+    ),
+    CHECK (
+        (parent_hypothesis_id IS NULL AND change_axis IS NULL)
+        OR
+        (
+            parent_hypothesis_id IS NOT NULL
+            AND change_axis IS NOT NULL
+            AND change_axis IN ('message', 'copywriting')
+        )
     ),
     CHECK (
         (closed_at IS NULL AND closure_reason IS NULL)
@@ -95,6 +103,18 @@ CREATE TABLE IF NOT EXISTS hypothesis_evidence (
         REFERENCES content_results(id) ON DELETE RESTRICT
 );
 
+CREATE TRIGGER IF NOT EXISTS preserve_contents_published_at
+BEFORE UPDATE OF published_at ON contents
+WHEN
+    OLD.published_at IS NOT NULL
+    AND (
+        NEW.published_at IS NULL
+        OR NEW.published_at <> OLD.published_at
+    )
+BEGIN
+    SELECT RAISE(ABORT, 'published_at cannot change after publication');
+END;
+
 CREATE INDEX IF NOT EXISTS idx_hypotheses_parent
     ON hypotheses(parent_hypothesis_id);
 
@@ -113,6 +133,6 @@ CREATE INDEX IF NOT EXISTS idx_content_results_content
 CREATE INDEX IF NOT EXISTS idx_hypothesis_evidence_result
     ON hypothesis_evidence(content_result_id);
 
-PRAGMA user_version = 2;
+PRAGMA user_version = 3;
 
 COMMIT;

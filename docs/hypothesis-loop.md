@@ -248,7 +248,7 @@ It records:
 ```text
 id
 parent_hypothesis_id
-change_axis: message | copywriting
+change_axis: NULL for a root; message | copywriting for a child
 statement
 last_evaluated_at
 created_at
@@ -258,7 +258,7 @@ closure_reason
 
 - `id`: immutable identity of every root and child hypothesis;
 - `parent_hypothesis_id`: direct parent; only a root uses `NULL`;
-- `change_axis`: the axis changed from the parent;
+- `change_axis`: `NULL` for a root, which has no parent comparison; otherwise the one axis changed from the parent;
 - `statement`: the complete hypothesis claim;
 - `last_evaluated_at`: when the node and required ancestor results were last evaluated;
 - `created_at`: when the hypothesis node was created;
@@ -315,7 +315,7 @@ Do not store `telegram_delivered_at`, content `created_at`, or content `status`.
 - `hypotheses.created_at` owns hypothesis creation time, the renderer project's `updatedAt` records project storage, and `published_at` records publication registration.
 - Derive publication state from `tiktok_url` and `published_at`.
 
-When first recording `tiktok_url`, write `published_at` in the same database operation. Correcting the URL later must not overwrite the existing publication timestamp.
+When first recording `tiktok_url`, write `published_at` in the same database operation. A database trigger prevents later changes to a non-null `published_at`, so correcting the URL preserves the original publication timestamp.
 
 A hypothesis's direct contents are reverse-queried through `contents.hypothesis_id`; do not duplicate a content-ID array on the hypothesis row.
 
