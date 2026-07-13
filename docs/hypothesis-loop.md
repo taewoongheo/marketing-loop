@@ -228,6 +228,34 @@ H-001's results explain the context from which H-002 was created. The effect of 
 
 This distinction prevents the same ancestor result from being counted as independent evidence for multiple descendants.
 
+## Autonomous hypothesis adoption and owner updates
+
+The assistant autonomously decides when direct evidence operationally supports a hypothesis. This is a reversible operating judgment, not proof that the hypothesis is universally true, and it does not require a separate user-approval gate.
+
+Two or more contents generated directly by the hypothesis showing a consistent relevant signal are a useful default indication that a reusable rule may be adopted. Do not treat two results as an automatic pass. Judge the evidence in context:
+
+- whether the compared contents actually isolate the stated `message` or `copywriting` change;
+- whether the selected metric is relevant to the expected audience response;
+- whether the available 24-hour, 48-hour, or 72-hour checkpoints are mature enough for the decision;
+- whether the comparison context and fixed format/template conditions are sufficiently similar;
+- whether one outlier, topic difference, visual execution, or publication condition could explain the signal;
+- whether direct results are meaningfully varied rather than near-duplicate executions;
+- whether later or inherited evidence contradicts the apparent direction;
+- which limitations prevent a broader claim.
+
+One result may justify repetition, branching, redirection, or closure, but normally should not create a broad reusable performance rule by itself. Explicit user correction is different from performance validation: apply it immediately at the narrowest appropriate scope under the project feedback rules.
+
+When a hypothesis is operationally adopted:
+
+1. Keep its source observations, interpretations, evidence links, and lineage in SQLite.
+2. Update exactly one final owner directly; do not create a separate pending-learning file.
+3. For a message-strategy conclusion, create the next immutable version under `messages/<message-id>/` or a distinct message when the strategy identity changes.
+4. For a template-coupled copywriting conclusion, replace or narrow the relevant guidance in `formats/<format-id>/guide.md`.
+5. Do not infer product facts, verified user language, or audience facts from engagement metrics alone.
+6. If later evidence conflicts, revise or narrow the current owner while preserving historical message versions, hypotheses, contents, and results.
+
+Record the adoption judgment in the relevant result interpretation and update `last_evaluated_at` after the affected lineage and owner change have actually been reviewed. Do not add a confidence score, validation-status field, or duplicated evidence summary merely to label the judgment.
+
 ## Ancestor traversal range
 
 Do not read every ancestor's full raw record indefinitely when creating a child or reevaluating an active leaf.
@@ -385,19 +413,18 @@ Do not add:
 - a separate workflow engine;
 - separate hypothesis and content databases.
 
-## Open decisions
+## Evidence-dependent choices
 
-The following still require evidence or further discussion:
+The assistant resolves the following case by case from the current lineage and evidence; they are not user-approval gates and should not become fixed taxonomies or thresholds without repeated need:
 
 1. The exact internal structure of a `message`.
 2. The exact internal structure of `copywriting`.
 3. A rule that makes parent-child differences explicit in each full `statement`.
 4. How daily content slots are allocated across active leaves.
-5. The threshold for strengthening, branching, or closing from 24-hour results.
-6. The threshold for reevaluating a branch from 48-hour or 72-hour results.
-7. The minimal structure for Target, Metric, Test set, Evaluator, Baseline, and Decision rule.
-8. How several contents are synthesized into one hypothesis-level judgment.
-9. How supported learning is promoted into message or copywriting rules.
+5. The context-specific threshold for strengthening, branching, or closing from 24-hour results.
+6. The context-specific threshold for reevaluating a branch from 48-hour or 72-hour results.
+7. The minimal structure, if later needed, for Target, Metric, Test set, Evaluator, Baseline, and Decision rule.
+8. How several noisy contents are synthesized into one operational judgment beyond the default consistent-direction signal.
 
 ## Core principles
 
@@ -425,4 +452,7 @@ continue 24h, 48h, and 72h collection after a branch closes
 
 Evidence boundary:
 separate a node's direct evidence from inherited ancestor context
+
+Durable adoption:
+assistant judges operational support and updates the one proper owner directly
 ```
