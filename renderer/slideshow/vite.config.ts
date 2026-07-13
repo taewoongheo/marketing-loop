@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Connect, type Plugin } from "vite";
@@ -66,7 +66,8 @@ const readContents = () => readJsonLibrary(contentsDirectory, isContent);
 
 const templateApiMiddleware: Connect.NextHandleFunction = async (request, response, next) => {
   const pathname = new URL(request.url ?? "/", "http://localhost").pathname;
-  if (pathname !== "/api/templates" && pathname !== "/api/contents") {
+  const isContentItemRequest = pathname.startsWith("/api/contents/");
+  if (pathname !== "/api/templates" && pathname !== "/api/contents" && !isContentItemRequest) {
     next();
     return;
   }
@@ -78,6 +79,23 @@ const templateApiMiddleware: Connect.NextHandleFunction = async (request, respon
     }
 
     if (request.method === "GET" && pathname === "/api/contents") {
+      sendJson(response, 200, { contents: await readContents() });
+      return;
+    }
+
+    if (request.method === "DELETE" && isContentItemRequest) {
+      const id = decodeURIComponent(pathname.slice("/api/contents/".length));
+      if (!id || fileIdFromName(id, "") !== id) {
+        sendJson(response, 400, { error: "Content id is invalid." });
+        return;
+      }
+
+      try {
+        await unlink(path.join(contentsDirectory, `${id}.json`));
+      } catch (error) {
+        if ((error as { code?: string }).code !== "ENOENT") throw error;
+      }
+
       sendJson(response, 200, { contents: await readContents() });
       return;
     }

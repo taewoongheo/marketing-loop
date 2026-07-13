@@ -1034,13 +1034,16 @@ export default function App() {
     setSelection(copyLayer.id);
   };
 
-  const deleteSelectedLayer = () => {
-    if (!selectedLayer) return;
+  const deleteLayer = (layerId: string) => {
     updateCurrentSlide((slide) => ({
       ...slide,
-      layers: slide.layers.filter((layer) => layer.id !== selectedLayer.id),
+      layers: slide.layers.filter((layer) => layer.id !== layerId),
     }));
-    setSelection(null);
+    if (selection === layerId) setSelection(null);
+  };
+
+  const deleteSelectedLayer = () => {
+    if (selectedLayer) deleteLayer(selectedLayer.id);
   };
 
   const addSlide = () => {
@@ -1072,12 +1075,16 @@ export default function App() {
     setSelection(slideCopy.layers[0]?.id ?? null);
   };
 
-  const deleteSlide = () => {
+  const deleteSlide = (slideId: string) => {
     if (slides.length <= 1) return;
-    const nextSlides = slides.filter((slide) => slide.id !== selectedSlide.id);
+    const deletedIndex = slides.findIndex((slide) => slide.id === slideId);
+    const nextSlides = slides.filter((slide) => slide.id !== slideId);
     setSlides(nextSlides);
-    setSelectedSlideId(nextSlides[0].id);
-    setSelection(nextSlides[0].layers[0]?.id ?? null);
+    if (selectedSlide.id === slideId) {
+      const nextSlide = nextSlides[Math.min(Math.max(deletedIndex, 0), nextSlides.length - 1)];
+      setSelectedSlideId(nextSlide.id);
+      setSelection(nextSlide.layers[0]?.id ?? null);
+    }
   };
 
   const reorderSlides = (sourceSlideId: string, targetSlideId: string) => {
@@ -1410,6 +1417,24 @@ export default function App() {
     }
   };
 
+  const deleteContent = async (content: ProjectFile) => {
+    if (!content.id) {
+      setContentStatus("Content could not be deleted.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/contents/${encodeURIComponent(content.id)}`, { method: "DELETE" });
+      const data = (await response.json()) as { error?: string; contents?: ProjectFile[] };
+      if (!response.ok || !data.contents) throw new Error(data.error || "Content could not be deleted.");
+
+      setContentLibrary(data.contents);
+      setContentStatus(`Deleted "${content.name ?? content.id}".`);
+    } catch (error) {
+      setContentStatus(error instanceof Error ? error.message : "Content could not be deleted.");
+    }
+  };
+
   const saveTemplate = async () => {
     const name = templateName.trim() || selectedSlide.name.trim() || "Untitled template";
     const template: TemplateFile = {
@@ -1601,37 +1626,47 @@ export default function App() {
           </div>
           <div className="slide-list">
             {slides.map((slide, index) => (
-              <button
-                key={slide.id}
-                className={[
-                  "slide-row",
-                  slide.id === selectedSlide.id ? "active" : "",
-                  slide.id === draggingSlideId ? "dragging" : "",
-                  slide.id === dragOverSlideId ? "drag-over" : "",
-                ].filter(Boolean).join(" ")}
-                aria-current={slide.id === selectedSlide.id ? "true" : undefined}
-                aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
-                title="Drag to reorder. Press Alt+ArrowUp or Alt+ArrowDown to move with the keyboard."
-                draggable
-                onDragStart={(event) => handleSlideDragStart(event, slide.id)}
-                onDragOver={(event) => handleSlideDragOver(event, slide.id)}
-                onDragLeave={() => {
-                  if (dragOverSlideId === slide.id) setDragOverSlideId(null);
-                }}
-                onDrop={(event) => handleSlideDrop(event, slide.id)}
-                onDragEnd={clearSlideDragState}
-                onKeyDown={(event) => handleSlideReorderKeyDown(event, slide.id)}
-                onClick={() => {
-                  setSelectedSlideId(slide.id);
-                  setSelection(slide.layers[0]?.id ?? null);
-                }}
-              >
-                <span className="slide-index">{index + 1}</span>
-                <span>
-                  <strong>{slide.name}</strong>
-                  <small>{slide.layers.filter(isImageLayer).length} images · {slide.layers.filter(isTextLayer).length} text</small>
-                </span>
-              </button>
+              <div key={slide.id} className="slide-row-group">
+                <button
+                  className={[
+                    "slide-row",
+                    slide.id === selectedSlide.id ? "active" : "",
+                    slide.id === draggingSlideId ? "dragging" : "",
+                    slide.id === dragOverSlideId ? "drag-over" : "",
+                  ].filter(Boolean).join(" ")}
+                  aria-current={slide.id === selectedSlide.id ? "true" : undefined}
+                  aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
+                  title="Drag to reorder. Press Alt+ArrowUp or Alt+ArrowDown to move with the keyboard."
+                  draggable
+                  onDragStart={(event) => handleSlideDragStart(event, slide.id)}
+                  onDragOver={(event) => handleSlideDragOver(event, slide.id)}
+                  onDragLeave={() => {
+                    if (dragOverSlideId === slide.id) setDragOverSlideId(null);
+                  }}
+                  onDrop={(event) => handleSlideDrop(event, slide.id)}
+                  onDragEnd={clearSlideDragState}
+                  onKeyDown={(event) => handleSlideReorderKeyDown(event, slide.id)}
+                  onClick={() => {
+                    setSelectedSlideId(slide.id);
+                    setSelection(slide.layers[0]?.id ?? null);
+                  }}
+                >
+                  <span className="slide-index">{index + 1}</span>
+                  <span>
+                    <strong>{slide.name}</strong>
+                    <small>{slide.layers.filter(isImageLayer).length} images · {slide.layers.filter(isTextLayer).length} text</small>
+                  </span>
+                </button>
+                <button
+                  className="item-delete-button"
+                  title={`Delete ${slide.name}`}
+                  aria-label={`Delete ${slide.name}`}
+                  onClick={() => deleteSlide(slide.id)}
+                  disabled={slides.length <= 1}
+                >
+                  <Trash2 size={15} />
+                </button>
+              </div>
             ))}
           </div>
           <div className="row-actions" role="group" aria-label="Slide actions">
@@ -1642,9 +1677,6 @@ export default function App() {
             <button title="Duplicate slide" onClick={duplicateSlide}>
               <Copy size={16} />
               Copy
-            </button>
-            <button title="Delete slide" onClick={deleteSlide} disabled={slides.length <= 1}>
-              <Trash2 size={16} />
             </button>
           </div>
 
@@ -1672,18 +1704,28 @@ export default function App() {
           <div className="content-list">
             {contentLibrary.length > 0 ? (
               contentLibrary.map((content) => (
-                <button
-                  key={content.id ?? content.name}
-                  className="content-card"
-                  title={`Load ${content.name ?? content.id} content`}
-                  aria-label={`Load ${content.name ?? content.id} content`}
-                  onClick={() => void loadContent(content)}
-                >
-                  <strong>{content.name ?? content.id}</strong>
-                  <small>
-                    {content.slides.length} slides · {content.preset.width}×{content.preset.height}
-                  </small>
-                </button>
+                <div key={content.id ?? content.name} className="content-row">
+                  <button
+                    className="content-card"
+                    title={`Load ${content.name ?? content.id} content`}
+                    aria-label={`Load ${content.name ?? content.id} content`}
+                    onClick={() => void loadContent(content)}
+                  >
+                    <strong>{content.name ?? content.id}</strong>
+                    <small>
+                      {content.slides.length} slides · {content.preset.width}×{content.preset.height}
+                    </small>
+                  </button>
+                  <button
+                    className="item-delete-button"
+                    title={`Delete ${content.name ?? content.id}`}
+                    aria-label={`Delete ${content.name ?? content.id}`}
+                    onClick={() => void deleteContent(content)}
+                    disabled={!content.id}
+                  >
+                    <Trash2 size={15} />
+                  </button>
+                </div>
               ))
             ) : (
               <div className="content-empty">No saved content.</div>
@@ -1707,35 +1749,44 @@ export default function App() {
             Background color
           </button>
           {selectedSlide.layers.map((layer, index) => (
-            <button
-              key={layer.id}
-              className={[
-                "layer-row",
-                "media-layer-row",
-                selection === layer.id ? "active" : "",
-                layer.id === draggingLayerId ? "dragging" : "",
-                layer.id === dragOverLayerId ? "drag-over" : "",
-              ].filter(Boolean).join(" ")}
-              aria-label={`${layer.name}, ${isImageLayer(layer) ? "image" : "text"}, layer ${index + 1} of ${selectedSlide.layers.length}`}
-              aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
-              title="Drag to reorder. Press Alt+ArrowUp or Alt+ArrowDown to move with the keyboard."
-              draggable
-              onDragStart={(event) => handleLayerDragStart(event, layer.id)}
-              onDragOver={(event) => handleLayerDragOver(event, layer.id)}
-              onDragLeave={() => {
-                if (dragOverLayerId === layer.id) setDragOverLayerId(null);
-              }}
-              onDrop={(event) => handleLayerDrop(event, layer.id)}
-              onDragEnd={clearLayerDragState}
-              onKeyDown={(event) => handleLayerReorderKeyDown(event, layer.id)}
-              onClick={() => setSelection(layer.id)}
-            >
-              <span className={`layer-dot ${isImageLayer(layer) ? "image-dot" : ""}`} />
-              <span>
-                <strong>{layer.name}</strong>
-                <small>{isImageLayer(layer) ? "image" : "text"}</small>
-              </span>
-            </button>
+            <div key={layer.id} className="media-layer-row-group">
+              <button
+                className={[
+                  "layer-row",
+                  "media-layer-row",
+                  selection === layer.id ? "active" : "",
+                  layer.id === draggingLayerId ? "dragging" : "",
+                  layer.id === dragOverLayerId ? "drag-over" : "",
+                ].filter(Boolean).join(" ")}
+                aria-label={`${layer.name}, ${isImageLayer(layer) ? "image" : "text"}, layer ${index + 1} of ${selectedSlide.layers.length}`}
+                aria-keyshortcuts="Alt+ArrowUp Alt+ArrowDown"
+                title="Drag to reorder. Press Alt+ArrowUp or Alt+ArrowDown to move with the keyboard."
+                draggable
+                onDragStart={(event) => handleLayerDragStart(event, layer.id)}
+                onDragOver={(event) => handleLayerDragOver(event, layer.id)}
+                onDragLeave={() => {
+                  if (dragOverLayerId === layer.id) setDragOverLayerId(null);
+                }}
+                onDrop={(event) => handleLayerDrop(event, layer.id)}
+                onDragEnd={clearLayerDragState}
+                onKeyDown={(event) => handleLayerReorderKeyDown(event, layer.id)}
+                onClick={() => setSelection(layer.id)}
+              >
+                <span className={`layer-dot ${isImageLayer(layer) ? "image-dot" : ""}`} />
+                <span>
+                  <strong>{layer.name}</strong>
+                  <small>{isImageLayer(layer) ? "image" : "text"}</small>
+                </span>
+              </button>
+              <button
+                className="item-delete-button"
+                title={`Delete ${layer.name}`}
+                aria-label={`Delete ${layer.name}`}
+                onClick={() => deleteLayer(layer.id)}
+              >
+                <Trash2 size={15} />
+              </button>
+            </div>
           ))}
 
           <div className="panel-title template-title">
