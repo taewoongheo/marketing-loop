@@ -83,7 +83,7 @@ Install and run the isolated renderer package from the repository root:
 
 ```bash
 npm --prefix renderer/slideshow ci
-npm --prefix renderer/slideshow run dev
+npm run renderer:slideshow
 ```
 
 The editor loads and saves project JSON in the browser and exports either the current PNG or a ZIP of all slides. Templates remain file-owned under `renderer/slideshow/templates/`; the editor does not run a template API or a separate application server.
