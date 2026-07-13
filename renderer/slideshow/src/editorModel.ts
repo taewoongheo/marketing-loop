@@ -149,6 +149,9 @@ export type Slide = {
 export type ProjectFile = {
   type: "tiktok-slide-project";
   version: 2;
+  id?: string;
+  name?: string;
+  updatedAt?: string;
   preset: CanvasPreset;
   slides: Slide[];
 };

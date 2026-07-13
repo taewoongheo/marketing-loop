@@ -23,7 +23,6 @@ import {
 import {
   dataUrlToBlob,
   downloadDataUrl,
-  downloadTextFile,
   loadHtmlImage,
   readFileAsDataUrl,
   useLoadedImage,
@@ -410,14 +409,6 @@ const areSnapGuidesEqual = (left: SnapGuide[], right: SnapGuide[]) =>
     return other && guide.orientation === other.orientation && guide.position === other.position;
   });
 
-const getDatePrefix = () => {
-  const date = new Date();
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
-};
-
 function TextLayerNode({
   layer,
   isSelected,
@@ -800,6 +791,10 @@ export default function App() {
   const [isExporting, setIsExporting] = useState(false);
   const [isImageDragging, setIsImageDragging] = useState(false);
   const [imageUploadMode, setImageUploadMode] = useState<ImageUploadMode>("free");
+  const [contentName, setContentName] = useState("");
+  const [contentLibrary, setContentLibrary] = useState<ProjectFile[]>([]);
+  const [contentStatus, setContentStatus] = useState("");
+  const [isContentSaving, setIsContentSaving] = useState(false);
   const [templateName, setTemplateName] = useState("");
   const [templateLibrary, setTemplateLibrary] = useState<TemplateFile[]>([bundledListTemplate]);
   const [templateStatus, setTemplateStatus] = useState("");
@@ -814,7 +809,7 @@ export default function App() {
   const stageRef = useRef<Konva.Stage>(null);
   const transformerRef = useRef<Konva.Transformer>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
-  const projectInputRef = useRef<HTMLInputElement>(null);
+  const contentInputRef = useRef<HTMLInputElement>(null);
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const selectedSlide = slides.find((slide) => slide.id === selectedSlideId) ?? slides[0];
@@ -829,18 +824,28 @@ export default function App() {
   useEffect(() => {
     let isCurrent = true;
 
-    const loadTemplates = async () => {
+    const loadLibraries = async () => {
       try {
-        const response = await fetch("/api/templates");
-        if (!response.ok) return;
-        const data = (await response.json()) as { templates?: TemplateFile[] };
-        if (isCurrent && data.templates?.length) setTemplateLibrary(data.templates);
+        const [templateResponse, contentResponse] = await Promise.all([
+          fetch("/api/templates"),
+          fetch("/api/contents"),
+        ]);
+
+        if (templateResponse.ok) {
+          const data = (await templateResponse.json()) as { templates?: TemplateFile[] };
+          if (isCurrent && data.templates?.length) setTemplateLibrary(data.templates);
+        }
+
+        if (contentResponse.ok) {
+          const data = (await contentResponse.json()) as { contents?: ProjectFile[] };
+          if (isCurrent && data.contents) setContentLibrary(data.contents);
+        }
       } catch {
-        // Keep the bundled template available when file storage is unavailable.
+        // Keep the editor usable when local file storage is unavailable.
       }
     };
 
-    void loadTemplates();
+    void loadLibraries();
     return () => {
       isCurrent = false;
     };
@@ -1370,14 +1375,39 @@ export default function App() {
     });
   };
 
-  const exportProject = () => {
-    const project: ProjectFile = {
+  const saveContent = async () => {
+    const name = contentName.trim() || slides[0]?.name.trim() || "Untitled content";
+    const content: ProjectFile = {
       type: "tiktok-slide-project",
       version: 2,
+      name,
       preset: makePreset(selectedCanvas),
       slides,
     };
-    downloadTextFile(`${getDatePrefix()}-tiktok-slide-project.json`, JSON.stringify(project, null, 2));
+    setContentName(name);
+    setContentStatus("");
+    setIsContentSaving(true);
+
+    try {
+      const response = await fetch("/api/contents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(content),
+      });
+      const data = (await response.json()) as {
+        error?: string;
+        content?: ProjectFile;
+        contents?: ProjectFile[];
+      };
+      if (!response.ok || !data.content) throw new Error(data.error || "Content could not be saved.");
+
+      if (data.contents) setContentLibrary(data.contents);
+      setContentStatus(`Saved to contents/${data.content.id}.json.`);
+    } catch (error) {
+      setContentStatus(error instanceof Error ? error.message : "Content could not be saved.");
+    } finally {
+      setIsContentSaving(false);
+    }
   };
 
   const saveTemplate = async () => {
@@ -1415,19 +1445,27 @@ export default function App() {
     }
   };
 
-  const importProject = async (file?: File) => {
-    if (!file) return;
+  const loadContent = async (content: ProjectFile, fallbackName = "Untitled content") => {
     try {
-      const text = await file.text();
-      const { slides: importedSlides, warnings } = await normalizeProjectFile(JSON.parse(text));
+      const { slides: importedSlides, warnings } = await normalizeProjectFile(content);
       setSlides(importedSlides);
       setSelectedSlideId(importedSlides[0].id);
       setSelection(importedSlides[0].layers[0]?.id ?? null);
-      if (warnings.length > 0) {
-        console.warn(`Project loaded with warnings: ${file.name}`, warnings);
-      }
+      setContentName(content.name?.trim() || fallbackName);
+      setContentStatus(`Loaded "${content.name?.trim() || fallbackName}".`);
+      if (warnings.length > 0) console.warn("Content loaded with warnings.", warnings);
     } catch (error) {
-      console.error(error instanceof Error ? error.message : "Project load failed.");
+      setContentStatus(error instanceof Error ? error.message : "Content load failed.");
+    }
+  };
+
+  const importContent = async (file?: File) => {
+    if (!file) return;
+    try {
+      const content = JSON.parse(await file.text()) as ProjectFile;
+      await loadContent(content, file.name.replace(/\.json$/i, ""));
+    } catch (error) {
+      setContentStatus(error instanceof Error ? error.message : "Content load failed.");
     }
   };
 
@@ -1503,11 +1541,14 @@ export default function App() {
         }}
       />
       <input
-        ref={projectInputRef}
+        ref={contentInputRef}
         className="hidden-input"
         type="file"
         accept="application/json"
-        onChange={(event) => importProject(event.target.files?.[0])}
+        onChange={(event) => {
+          void importContent(event.target.files?.[0]);
+          event.currentTarget.value = "";
+        }}
       />
 
       <header className="topbar">
@@ -1532,13 +1573,13 @@ export default function App() {
             <Plus size={17} />
             Label
           </button>
-          <button title="Export project JSON" onClick={exportProject}>
+          <button title="Save content to the contents folder" onClick={saveContent} disabled={isContentSaving}>
             <FileJson size={17} />
-            Save Project
+            {isContentSaving ? "Saving" : "Save Content"}
           </button>
-          <button title="Import project JSON" onClick={() => projectInputRef.current?.click()}>
+          <button title="Load content JSON" onClick={() => contentInputRef.current?.click()}>
             <Upload size={17} />
-            Load Project
+            Load Content
           </button>
           <div className="divider" />
           <button title="Export current slide PNG" onClick={exportCurrentPng} disabled={isExporting}>
@@ -1615,6 +1656,44 @@ export default function App() {
               onChange={(event) => updateCurrentSlide((slide) => ({ ...slide, name: event.target.value }))}
             />
           </label>
+
+          <div className="panel-title content-title">
+            <FileJson size={17} />
+            Contents
+          </div>
+          <label className="content-name-field">
+            <span>Content name</span>
+            <input
+              value={contentName}
+              placeholder="Content name"
+              onChange={(event) => setContentName(event.target.value)}
+            />
+          </label>
+          <div className="content-list">
+            {contentLibrary.length > 0 ? (
+              contentLibrary.map((content) => (
+                <button
+                  key={content.id ?? content.name}
+                  className="content-card"
+                  title={`Load ${content.name ?? content.id} content`}
+                  aria-label={`Load ${content.name ?? content.id} content`}
+                  onClick={() => void loadContent(content)}
+                >
+                  <strong>{content.name ?? content.id}</strong>
+                  <small>
+                    {content.slides.length} slides · {content.preset.width}×{content.preset.height}
+                  </small>
+                </button>
+              ))
+            ) : (
+              <div className="content-empty">No saved content.</div>
+            )}
+          </div>
+          {contentStatus ? (
+            <div className="content-status" role="status" aria-live="polite">
+              {contentStatus}
+            </div>
+          ) : null}
 
           <div className="panel-title layer-title">
             <Layers size={17} />

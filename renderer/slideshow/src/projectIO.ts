@@ -158,7 +158,7 @@ function normalizeProjectLayer(layer: unknown): SlideLayerModel {
 
 export async function normalizeProjectFile(parsed: unknown): Promise<ProjectLoadResult> {
   if (!isRecord(parsed) || parsed.type !== "tiktok-slide-project" || !Array.isArray(parsed.slides)) {
-    throw new Error("Project JSON 형식이 아닙니다.");
+    throw new Error("Content JSON 형식이 아닙니다.");
   }
 
   const project = parsed as Partial<ProjectFile>;
@@ -167,7 +167,7 @@ export async function normalizeProjectFile(parsed: unknown): Promise<ProjectLoad
   const warnings: string[] = [];
 
   if (projectSlides.length === 0) {
-    return { slides: [createSlide(1)], warnings: ["Project had no slides. Created one empty slide."] };
+    return { slides: [createSlide(1)], warnings: ["Content had no slides. Created one empty slide."] };
   }
 
   const slides = await Promise.all(
