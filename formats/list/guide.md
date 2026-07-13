@@ -8,19 +8,11 @@
 
 Do not copy implementation values from the template into this file. Read the live JSON before creating each renderer project and record its SHA-256 with the final content.
 
-## Reference provenance
+## Reference status
 
-The current `list.json` contains a captured example and placeholder copy, but the original viral post URL and publication context have not yet been recorded. Until provenance is added, treat it as evidence of a reusable presentation technique, not evidence of performance or audience fit.
+The current `list.json` contains a captured example and placeholder copy. No source screenshots are currently stored in `references/` for this format.
 
 The example wording, subject, and distinctive expressions are not reusable copy.
-
-## Stored reference artifacts
-
-Reference screenshots for this format belong in `references/`, preserving slide order in their filenames. None are currently stored because the captured example's original screenshots and provenance have not been confirmed.
-
-When references are added, record their source URL, account, capture date, slide order, and known performance context in this guide. Missing information must remain labeled as unknown.
-
-The screenshots are evidence for re-analyzing hook hierarchy, slide-copy roles, information density, progression, and image-text relationships. They are not production assets and do not replace the live renderer template.
 
 ## Observed content technique
 

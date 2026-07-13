@@ -93,11 +93,11 @@ Do not duplicate one fact, rule, layout value, or result across owners.
 
 ## Reference evidence
 
-- Store durable reference screenshots under `formats/<format-id>/references/` when a reference becomes part of a format analysis.
-- Record source URL, account, capture date, slide order, and known performance context in the format guide when available. Mark missing provenance explicitly.
+- The user decides which references qualify as viral; do not ask for or store source URL, account, capture date, or post performance.
+- Store durable reference screenshots under `formats/<format-id>/references/` in the exact slide order designated by the user, using numeric filenames such as `1.png`, `2.png`, `3.png`, and `4.png`.
 - References support later re-analysis of hook hierarchy, slide roles, copy density, progression, and image-text relationships.
 - Reference screenshots are evidence, not renderer assets. Do not use them as production imagery unless the user separately adds them to `slides-marketing` for that purpose.
-- A viral reference supports the original package only. It does not validate the env adaptation, and its wording, subject matter, and distinctive expressions must not be copied.
+- A user-designated viral reference does not automatically validate the env adaptation, and its wording, subject matter, and distinctive expressions must not be copied.
 
 ## Evidence and claims
 
