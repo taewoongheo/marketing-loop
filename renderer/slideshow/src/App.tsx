@@ -94,11 +94,13 @@ type TemplateRuleProperty = {
   label: string;
 };
 
-const createSlidesFromListTemplate = (): Slide[] =>
-  listTemplate.slides.map((templateSlide, index) => ({
+const bundledListTemplate = listTemplate as unknown as TemplateFile;
+
+const createSlidesFromTemplate = (template: TemplateFile): Slide[] =>
+  template.slides.map((templateSlide, index) => ({
     id: uid("slide"),
     name: templateSlide.name || `Slide ${index + 1}`,
-    canvas: normalizeCanvasPreset(templateSlide.canvas),
+    canvas: normalizeCanvasPreset(templateSlide.canvas ?? template.preset),
     background: normalizeSlideBackground({ fill: templateSlide.background?.fill }),
     layers: templateSlide.layers.map((layer) => normalizeSlideLayer(layer)),
   }));
@@ -414,15 +416,6 @@ const getDatePrefix = () => {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
-};
-
-const getTemplateFileName = (name: string) => {
-  const slug = name
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "");
-  return `${slug || "template"}.json`;
 };
 
 function TextLayerNode({
@@ -808,6 +801,9 @@ export default function App() {
   const [isImageDragging, setIsImageDragging] = useState(false);
   const [imageUploadMode, setImageUploadMode] = useState<ImageUploadMode>("free");
   const [templateName, setTemplateName] = useState("");
+  const [templateLibrary, setTemplateLibrary] = useState<TemplateFile[]>([bundledListTemplate]);
+  const [templateStatus, setTemplateStatus] = useState("");
+  const [isTemplateSaving, setIsTemplateSaving] = useState(false);
   const [draggingSlideId, setDraggingSlideId] = useState<string | null>(null);
   const [dragOverSlideId, setDragOverSlideId] = useState<string | null>(null);
   const [draggingLayerId, setDraggingLayerId] = useState<string | null>(null);
@@ -829,6 +825,26 @@ export default function App() {
       : null;
   const selectedTextLayer = selectedLayer && isTextLayer(selectedLayer) ? selectedLayer : null;
   const selectedImageLayer = selectedLayer && isImageLayer(selectedLayer) ? selectedLayer : null;
+
+  useEffect(() => {
+    let isCurrent = true;
+
+    const loadTemplates = async () => {
+      try {
+        const response = await fetch("/api/templates");
+        if (!response.ok) return;
+        const data = (await response.json()) as { templates?: TemplateFile[] };
+        if (isCurrent && data.templates?.length) setTemplateLibrary(data.templates);
+      } catch {
+        // Keep the bundled template available when file storage is unavailable.
+      }
+    };
+
+    void loadTemplates();
+    return () => {
+      isCurrent = false;
+    };
+  }, []);
 
   useEffect(() => {
     const transformer = transformerRef.current;
@@ -1029,11 +1045,13 @@ export default function App() {
     setSelection(nextSlide.layers[0]?.id ?? null);
   };
 
-  const applyListTemplate = () => {
-    const nextSlides = createSlidesFromListTemplate();
+  const applyTemplate = (template: TemplateFile) => {
+    const nextSlides = createSlidesFromTemplate(template);
+    if (nextSlides.length === 0) return;
     setSlides(nextSlides);
     setSelectedSlideId(nextSlides[0].id);
     setSelection(nextSlides[0].layers[0]?.id ?? null);
+    setTemplateStatus(`Applied "${template.name}".`);
   };
 
   const duplicateSlide = () => {
@@ -1362,7 +1380,7 @@ export default function App() {
     downloadTextFile(`${getDatePrefix()}-tiktok-slide-project.json`, JSON.stringify(project, null, 2));
   };
 
-  const exportTemplate = () => {
+  const saveTemplate = async () => {
     const name = templateName.trim() || selectedSlide.name.trim() || "Untitled template";
     const template: TemplateFile = {
       type: "tiktok-slide-template",
@@ -1372,7 +1390,29 @@ export default function App() {
       slides: slides.map(slideToTemplateSlide),
     };
     setTemplateName(name);
-    downloadTextFile(getTemplateFileName(name), JSON.stringify(template, null, 2));
+    setTemplateStatus("");
+    setIsTemplateSaving(true);
+
+    try {
+      const response = await fetch("/api/templates", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(template),
+      });
+      const data = (await response.json()) as {
+        error?: string;
+        template?: TemplateFile;
+        templates?: TemplateFile[];
+      };
+      if (!response.ok || !data.template) throw new Error(data.error || "Template could not be saved.");
+
+      if (data.templates?.length) setTemplateLibrary(data.templates);
+      setTemplateStatus(`Saved to templates/${data.template.id}.json.`);
+    } catch (error) {
+      setTemplateStatus(error instanceof Error ? error.message : "Template could not be saved.");
+    } finally {
+      setIsTemplateSaving(false);
+    }
   };
 
   const importProject = async (file?: File) => {
@@ -1630,20 +1670,32 @@ export default function App() {
               placeholder="Template name"
               onChange={(event) => setTemplateName(event.target.value)}
             />
-            <button title="Download all slides as a template" onClick={exportTemplate}>
+            <button title="Save all slides to the templates folder" onClick={saveTemplate} disabled={isTemplateSaving}>
               <Save size={16} />
-              Save
+              {isTemplateSaving ? "Saving" : "Save"}
             </button>
           </div>
-          <button
-            className="template-card"
-            title="Apply list template"
-            aria-label="Apply list template"
-            onClick={applyListTemplate}
-          >
-            <strong>{listTemplate.name}</strong>
-            <small>{listTemplate.slides.length} slides · 1080×1350</small>
-          </button>
+          <div className="template-list">
+            {templateLibrary.map((template) => (
+              <button
+                key={template.id ?? template.name}
+                className="template-card"
+                title={`Apply ${template.name} template`}
+                aria-label={`Apply ${template.name} template`}
+                onClick={() => applyTemplate(template)}
+              >
+                <strong>{template.name}</strong>
+                <small>
+                  {template.slides.length} slides · {template.preset.width}×{template.preset.height}
+                </small>
+              </button>
+            ))}
+          </div>
+          {templateStatus ? (
+            <div className="template-status" role="status" aria-live="polite">
+              {templateStatus}
+            </div>
+          ) : null}
         </aside>
 
         <section

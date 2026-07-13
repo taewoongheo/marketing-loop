@@ -158,7 +158,9 @@ export type TemplateSlide = Omit<Slide, "id"> & { id?: string };
 export type TemplateFile = {
   type: "tiktok-slide-template";
   version: 2;
+  id?: string;
   name: string;
+  updatedAt?: string;
   preset: ProjectFile["preset"];
   slides: TemplateSlide[];
 };

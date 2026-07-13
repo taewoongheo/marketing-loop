@@ -86,4 +86,4 @@ npm --prefix renderer/slideshow ci
 npm run renderer:slideshow
 ```
 
-The editor starts with a blank slide; the bundled `list` template can be applied from the sidebar. The editor loads and saves project JSON in the browser, downloads the current slides as reusable template JSON, and exports either the current PNG or a ZIP of all slides. To make a downloaded template available in the sidebar, add it to `renderer/slideshow/templates/` and import it in the editor. The renderer does not run a template API or a separate application server.
+The editor starts with a blank slide; templates can be applied from the sidebar. The editor loads and saves project JSON in the browser, writes reusable template JSON directly to `renderer/slideshow/templates/` through a small Vite middleware, and exports either the current PNG or a ZIP of all slides. The renderer does not run a separate application server.
