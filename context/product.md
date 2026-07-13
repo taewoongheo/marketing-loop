@@ -9,6 +9,7 @@
 - Publicly available on the App Store.
 - Market: United States.
 - Product and marketing language: English (U.S.).
+- Broader intended market: primarily 18–34 college students, job seekers, and working professionals, with adult learners and independent workers as secondary audiences; all already intend to focus.
 
 ## Problem env addresses
 
@@ -19,6 +20,7 @@ env intervenes after the decision to focus and before the first focused action. 
 ## Current capabilities
 
 - Save timer, break, cycle, app blocking, allowed apps, sound, volume, name, and color as one reusable focus environment.
+- Save different environments for recurring sessions that need different timer, blocking, sound, or break settings.
 - Start an already-prepared environment without rebuilding its settings at the starting moment.
 - Use Screen Time and Family Controls to reduce access to distracting apps while keeping necessary apps available.
 - Use fixed timers or count-up timers.
@@ -38,6 +40,13 @@ The user decides to focus, then configures or revisits several settings and tool
 
 The user runs a previously prepared environment and moves into the intended study or work session without rebuilding the setup or visiting each tool again.
 
+## Two intervention paths
+
+- **Repeated setup choices:** timer, Screen Time, sound, break, and related values are chosen again while the intended work waits.
+- **Transitions between setup tools:** moving among the timer, Screen Time, sound app, Home Screen, or app lists creates additional opportunities to enter unrelated apps before the session begins.
+
+env addresses both paths by moving recurring decisions into a saved environment and running the prepared settings together. Either path may be tested as a message hypothesis; neither is established as frequent env-user behavior yet.
+
 ## Difference from alternatives
 
 - env does not merely place several focus features on one screen.
@@ -52,6 +61,7 @@ These claims may be used when phrased within the product's actual behavior:
 - A focus setup can be prepared once and reused.
 - Timer, app-blocking, allowed-app, sound, break, and related settings can run as one environment.
 - The user does not have to rebuild the same setup at every start.
+- Different recurring session types can use different saved environments rather than one rigid universal setup.
 - Widgets can shorten the route into a prepared environment.
 - env can reduce the setup choices and tool transitions required at the moment of starting.
 
