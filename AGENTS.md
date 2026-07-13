@@ -54,8 +54,8 @@ Ask for information only when a missing fact would materially affect product tru
 5. The assistant drafts, evaluates, and improves the copy internally against the selected format-copy grammar and the template’s actual text slots.
 6. Show only the refined final-copy proposal to the user, including the slide copy and caption. The template choice may be disclosed for context but is not a separate approval gate.
 7. Revise the working copy from user feedback. Do not persist intermediate copy versions.
-8. When the user approves the final copy, create an editable project JSON with the already-selected template under `renderer/slideshow/`; this does not create a content DB record.
-9. The user fine-tunes the visual project and provides its path inside `renderer/slideshow/` as the publication-ready final.
+8. When the user approves the final copy, create an editable content JSON with the already-selected template under `renderer/slideshow/contents/`; this does not create a content DB record.
+9. The user fine-tunes that content project and provides its path inside `renderer/slideshow/contents/` as the publication-ready final.
 10. Record the exact final content, final project path and hash, message ID, format/template identity, and experiment context in SQLite.
 11. Render the exact final project and deliver its images with the approved caption to Telegram when explicitly requested.
 12. The user publishes manually to TikTok and provides the post URL.
@@ -78,13 +78,16 @@ If the previous final content has no TikTok URL, ask naturally at the start of t
 - Agent identity: `~/.hermes/profiles/marketing-env/SOUL.md`
 - Approved compact profile-level lessons: `~/.hermes/profiles/marketing-env/memories/MEMORY.md`
 - Reusable multi-step procedures: Hermes skills
-- Layout, slide count, typography, geometry, editable layers, project JSON, and rendered media: `renderer/slideshow/`
+- Layout, slide count, typography, geometry, editable layers, and rendered media: `renderer/slideshow/`
+- Reusable template JSON: `renderer/slideshow/templates/`
+- Editable content project JSON: `renderer/slideshow/contents/`
 
 Do not duplicate one fact, rule, layout value, or result across owners.
 
 ## Renderer boundary
 
 - Read the live renderer template before generating a project.
+- Read templates from `renderer/slideshow/templates/` and write generated editable content only to `renderer/slideshow/contents/`.
 - The renderer template owns slide count, order, canvas, coordinates, dimensions, typography, colors, image crop, and editable properties.
 - The matching format guide owns hook function, slide-copy roles, progression, rhythm, information density, image-copy relationship, product reveal, and caption approach.
 - `formats/` must not restate renderer coordinates or other JSON implementation values.

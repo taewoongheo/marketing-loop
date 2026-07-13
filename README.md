@@ -73,7 +73,7 @@ External owners — not inside this repository
   - **`references/`** preserves the ordered images used to analyze that format.
 - **`db/`** holds the structure and runtime record of final content and observed results.
 - **`.hermes/plans/`** holds implementation plans, not runtime marketing knowledge.
-- **`renderer/slideshow/`** owns slideshow visual implementation, required assets, editable projects, and rendering.
+- **`renderer/slideshow/`** owns slideshow visual implementation and rendering. Templates live in `templates/`; generated editable content belongs in `contents/`.
 - **Profile `SOUL.md`** owns the dedicated agent identity.
 - **Profile `MEMORY.md`** owns approved compact lessons that must persist across sessions.
 - **Hermes skills** own reusable procedures.

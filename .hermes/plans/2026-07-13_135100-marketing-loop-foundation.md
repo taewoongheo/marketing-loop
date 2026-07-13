@@ -1,8 +1,8 @@
 # env Marketing Loop Folder Plan — Revised
 
-**Status:** Planning only. No project scaffold, DB, package, or renderer code has been created.
+**Status:** Historical planning artifact. `AGENTS.md` and `README.md` are authoritative for the current project.
 
-**Goal:** Keep only durable env marketing context and final content/performance records in `marketing-loop`, while `slides-marketing` remains the sole owner of visual templates, layout, project JSON, and rendered images.
+**Goal:** Keep durable env marketing knowledge and evidence in their project owners while `renderer/slideshow/` owns visual templates, editable content JSON, and rendered images.
 
 ---
 
@@ -42,7 +42,7 @@ Not included initially:
 - `learning/` directory or separate candidate/approved files
 - `content/drafts/`
 - `content/approved/`
-- renderer templates/assets/output
+- renderer implementation details inside marketing strategy files
 - workflow, prompt, schema-registry, or automation-builder directories
 
 ---
@@ -108,7 +108,7 @@ It should contain:
 - the required direction-approval gate;
 - the copy approval → renderer handoff → final project → Telegram → TikTok workflow;
 - claim-safety rules;
-- the boundary between `marketing-loop` and `slides-marketing`;
+- the boundary between marketing knowledge and `renderer/slideshow/`;
 - the rule that generalization requires user approval;
 - instructions for reading the current message, format analysis, template, and DB history.
 
@@ -147,7 +147,7 @@ Human-facing overview:
 - folder ownership map;
 - daily collaboration lifecycle;
 - DB record timing;
-- relationship with `/Users/taewoongheo/Projects/slides-marketing`;
+- relationship with the local `renderer/slideshow/` implementation;
 - how final project paths, Telegram delivery, TikTok URLs, and performance collection connect.
 
 It explains owners but does not repeat their facts or rules.
@@ -233,16 +233,16 @@ The DB stores the stable message ID used by every final content item, so histori
 Initial structure:
 
 ```text
-formats/list.md
+formats/list/guide.md
 ```
 
 The filename aligns with the renderer template ID:
 
 ```text
-/Users/taewoongheo/Projects/slides-marketing/templates/list.json
+renderer/slideshow/templates/list.json
 ```
 
-### Sole responsibility of `slides-marketing/templates/list.json`
+### Sole responsibility of `renderer/slideshow/templates/list.json`
 
 - slide count and order;
 - canvas dimensions;
@@ -255,7 +255,7 @@ The filename aligns with the renderer template ID:
 
 `marketing-loop` must read the live template when generating content and must not duplicate those values.
 
-### Responsibility of `formats/list.md`
+### Responsibility of `formats/list/guide.md`
 
 One merged format-analysis document containing:
 
@@ -273,7 +273,7 @@ It must not restate slide count, coordinates, font values, layer widths, or othe
 
 ### Why `guide.md` and `references.md` are merged
 
-For the first format, both documents would describe the same evidence-to-technique reasoning. Separating them would create artificial boundaries and likely duplication. One `formats/list.md` keeps source, observation, and adaptation together.
+For the first format, `formats/list/guide.md` keeps the format-specific observation and adaptation reasoning together while ordered reference images live beside it in `formats/list/references/`.
 
 If a future format has many raw references, a subdirectory can be introduced only when the real volume requires it.
 
@@ -355,7 +355,7 @@ Possible owners:
 - audience fact → `context/audience.md`;
 - voice rule → `context/voice.md`;
 - persuasion insight → relevant `messages/msg-*.md`;
-- format insight → `formats/<template-id>.md`;
+- format insight → `formats/<format-id>/guide.md`;
 - reusable multi-step procedure → Hermes skill.
 
 ### Trigger B: performance validates or contradicts a hypothesis
@@ -388,12 +388,13 @@ Do not copy performance metrics into this file; cite content IDs and query SQLit
 | Project operating contract | `marketing-loop/AGENTS.md` |
 | Product/audience/language/voice | `marketing-loop/context/` |
 | Persuasion hypotheses | `marketing-loop/messages/` |
-| Viral-format analysis and adaptation reasoning | `marketing-loop/formats/<template-id>.md` |
+| Viral-format analysis and adaptation reasoning | `formats/<format-id>/guide.md` |
 | Repeated, not-yet-promoted lesson candidates | `marketing-loop/learning.md` |
 | Final content, result, and metrics | `marketing-loop/db/marketing.sqlite` |
 | SQLite structure | `marketing-loop/db/schema.sql` |
-| Slide count, placement, typography, editable layers | `slides-marketing/templates/*.json` |
-| Editable final project and rendered images | `slides-marketing` |
+| Slide count, placement, typography, editable layers | `renderer/slideshow/templates/*.json` |
+| Editable final project | `renderer/slideshow/contents/*.json` |
+| Rendered images | `renderer/slideshow/` |
 | Reusable procedures | Hermes skills |
 
 ---
