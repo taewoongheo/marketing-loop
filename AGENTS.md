@@ -3,9 +3,10 @@
 ## Scope
 
 - This repository exists to produce increasingly viral organic TikTok slideshow content for `env` through autonomous, evidence-driven improvement.
-- The two primary optimization axes are message strategy and copywriting format.
+- The two primary optimization axes are message and copywriting.
 - **Message strategy** decides what perception or belief should change and how the audience is persuaded.
-- **Copywriting format** is the template-coupled system for expressing that message: hook function, wording, specificity, slide roles, information order, rhythm, image-text relationship, product reveal, and caption.
+- **Copywriting** decides how the message is expressed inside the fixed format: hook wording, specificity, information density, rhythm, product reveal, CTA, and caption.
+- The user controls the fixed format and renderer template because frequent format changes would weaken the account's brand consistency. Format is an execution condition, not a hypothesis axis.
 - `renderer/slideshow/templates/*.json` implements the fixed slideshow structure; `formats/<format-id>/guide.md` owns the copywriting grammar and adaptation reasoning tied to that structure.
 - `renderer/slideshow/` owns only slideshow templates, required visual assets, editable project JSON, editor code, and rendered images.
 - Do not place marketing context, message strategy, format-copy knowledge, content records, or performance data under `renderer/`.
@@ -19,16 +20,16 @@ The assistant independently selects:
 - the problem and situation to address;
 - hook and content direction;
 - core perspective and product exposure;
-- experiment objective, fixed elements, and changed elements;
-- the `renderer/slideshow` template;
+- the active hypothesis or child hypotheses and the daily content allocation across active leaves;
 - the copy approach.
 
-Base those decisions on project context, unresolved learning, the live renderer templates, and relevant DB performance. Do not ask the user to approve the direction, experiment boundary, or template choice.
+Base those decisions on project context, unresolved learning, the current fixed renderer template, the hypothesis lineage, and relevant DB performance. Do not ask the user to approve the direction or hypothesis boundary.
 
 The user controls:
 
 - final copy approval;
 - whether the final visual project is publication-ready;
+- adding or changing the fixed format and renderer template;
 - TikTok publication.
 
 Ask for information only when a missing fact would materially affect product truth, audience fit, or the ability to produce a valid final copy. Do not publish to TikTok, commit changes, delete data, or contact anyone without explicit instruction.
@@ -36,31 +37,31 @@ Ask for information only when a missing fact would materially affect product tru
 ## Required context before creating content
 
 1. Read the relevant files in `context/`.
-2. Review available message hypotheses in `messages/`.
+2. Review available versioned message definitions in `messages/`.
 3. Review the relevant `formats/<format-id>/guide.md` and its stored reference images.
 4. Inspect the live templates in `renderer/slideshow/templates/`; never rely on duplicated layout notes.
 5. Read `learning.md` for unresolved recurring candidates.
-6. Query SQLite for relevant final content, experiments, and results.
+6. Read `docs/hypothesis-loop.md` and query SQLite for active leaves, relevant ancestors, generated content, and results.
 7. Ask only for missing information that would materially affect product truth, audience fit, or valid copy.
-8. Independently select one problem, situation, message, format-copy approach, experiment boundary, and renderer template.
-9. Draft to the selected template’s actual editable text slots and constraints.
+8. Select or create the hypothesis node that will generate the content and allocate the requested content count across active leaves.
+9. Draft to the current fixed template’s actual editable text slots and constraints.
 
 ## Content workflow
 
 1. Any user message expressing an intent to create content starts the workflow; no fixed command phrase or user-supplied problem, situation, hook, or direction is required.
-2. The assistant reads the project context, message hypotheses, format-copy guides and references, unresolved learning, live renderer templates, and relevant DB history.
-3. The assistant independently selects the problem, situation, message, format-copy approach, product exposure, experiment boundary, and `renderer/slideshow` template.
-4. Ask the user only if a missing fact blocks truthful, audience-appropriate, or valid copy.
-5. The assistant drafts, evaluates, and improves the copy internally against the selected format-copy grammar and the template’s actual text slots.
-6. Show only the refined final-copy proposal to the user, including the slide copy and caption. The template choice may be disclosed for context but is not a separate approval gate.
-7. Revise the working copy from user feedback. Do not persist intermediate copy versions.
-8. When the user approves the final copy, create an editable content JSON with the already-selected template under `renderer/slideshow/contents/`; this does not create a content DB record.
-9. The user fine-tunes that content project and provides its path inside `renderer/slideshow/contents/` as the publication-ready final.
-10. Record the exact final content, final project path and hash, message ID, format/template identity, and experiment context in SQLite.
-11. Render the exact final project and deliver its images with the approved caption to Telegram when explicitly requested.
-12. The user publishes manually to TikTok and provides the post URL.
-13. Connect the URL and publication time, then collect performance at 24, 48, and 72 hours.
-14. Review observed results separately from interpretations.
+2. The assistant reads the project context, `docs/hypothesis-loop.md`, message definitions, format guide and references, unresolved learning, the fixed live template, and relevant DB lineage and results.
+3. Collect due 24h, 48h, and 72h results. When evaluating a leaf, read detailed ancestry back to the nearest 72h-complete ancestor and reintroduce older late corrections when present.
+4. Continue an active leaf, create one or more child hypotheses, or close a leaf from available results. Create a root hypothesis when no suitable lineage exists.
+5. Allocate the requested `n` contents across active leaves. A hypothesis may generate several contents; one parent may generate any number of child hypotheses.
+6. Independently select the problem, situation, message, content direction, product exposure, and copy approach inside the user-controlled fixed format.
+7. Ask the user only if a missing fact blocks truthful, audience-appropriate, or valid copy.
+8. Draft, evaluate, and improve the copy internally against the current format guide and template slots.
+9. Show only the refined final-copy proposal, including slide copy and caption, then revise it from user feedback without persisting intermediate versions.
+10. When the user approves the final copy, create an editable project under `renderer/slideshow/contents/`; this does not create a content DB record.
+11. The user fine-tunes that project and identifies the publication-ready final.
+12. Record the content under the hypothesis that generated it, together with message identity, fixed format/template identity, caption, and final project path and hash.
+13. Render or deliver the exact final project only when explicitly requested. The user publishes manually and provides the TikTok URL.
+14. Record the URL and `published_at` together, then collect results at 24, 48, and 72 hours. Keep observations separate from interpretations.
 
 If the previous final content has no TikTok URL, ask naturally at the start of the next relevant conversation. Do not create a separate reminder by default.
 
@@ -70,10 +71,11 @@ If the previous final content has no TikTok URL, ask naturally at the start of t
 - Audience facts and labeled assumptions: `context/audience.md`
 - User language and provenance: `context/user-language.md`
 - Brand-wide English voice and cross-format language constraints: `context/voice.md`
-- Persuasion hypotheses and evidence-backed message strategy: `messages/msg-*.md`
+- Versioned persuasion messages and evidence-backed message strategy: `messages/<message-id>/v<version>.md`
 - Template-coupled copywriting grammar, reference evidence, and adaptation reasoning: `formats/<format-id>/`
+- Hypothesis branching, delayed-evidence traversal, and active-leaf operation: `docs/hypothesis-loop.md`
 - Repeated but not-yet-promoted lesson candidates: `learning.md`
-- Final content, publication details, performance, and content-level interpretation: `db/marketing.sqlite`
+- Hypothesis nodes, generated content, publication details, results, and evidence links: `db/hypothesis-loop.sqlite`
 - SQLite structure: `db/schema.sql`
 - Agent identity: `~/.hermes/profiles/marketing-env/SOUL.md`
 - Approved compact profile-level lessons: `~/.hermes/profiles/marketing-env/memories/MEMORY.md`

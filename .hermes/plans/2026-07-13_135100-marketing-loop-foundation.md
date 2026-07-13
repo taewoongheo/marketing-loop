@@ -156,7 +156,7 @@ It explains owners but does not repeat their facts or rules.
 
 Ignore:
 
-- `db/marketing.sqlite`;
+- `db/hypothesis-loop.sqlite`;
 - SQLite `-wal`, `-shm`, and journal files;
 - local API credentials;
 - temporary handoff payloads;
@@ -168,7 +168,7 @@ The initial proposal used package scripts to make DB operations repeatable. That
 
 For the initial version:
 
-- initialize with `sqlite3 db/marketing.sqlite < db/schema.sql`;
+- initialize with `sqlite3 db/hypothesis-loop.sqlite < db/schema.sql`;
 - modify/query with explicit SQLite commands or a small temporary script when needed;
 - verify with `PRAGMA foreign_key_check` and focused SQL queries.
 
@@ -203,8 +203,8 @@ Content-specific edits do not belong in these files.
 Each durable persuasion hypothesis gets one stable file:
 
 ```text
-messages/msg-001-setup-is-not-the-work.md
-messages/msg-002-<next-message>.md
+messages/msg-001-setup-is-not-the-work/v1.md
+messages/msg-002-<next-message>/v1.md
 ```
 
 A message file owns:
@@ -299,7 +299,7 @@ This preserves historical reproducibility even if `list.json` changes later, wit
 
 A small, reviewable source of truth for SQLite structure. This remains useful even without `package.json`, because it allows the DB to be recreated and inspected.
 
-### `db/marketing.sqlite`
+### `db/hypothesis-loop.sqlite`
 
 Local, gitignored runtime data.
 
@@ -354,7 +354,7 @@ Possible owners:
 - product fact → `context/product.md`;
 - audience fact → `context/audience.md`;
 - voice rule → `context/voice.md`;
-- persuasion insight → relevant `messages/msg-*.md`;
+- persuasion insight → relevant `messages/<message-id>/v<version>.md`;
 - format insight → `formats/<format-id>/guide.md`;
 - reusable multi-step procedure → Hermes skill.
 
@@ -390,7 +390,7 @@ Do not copy performance metrics into this file; cite content IDs and query SQLit
 | Persuasion hypotheses | `marketing-loop/messages/` |
 | Viral-format analysis and adaptation reasoning | `formats/<format-id>/guide.md` |
 | Repeated, not-yet-promoted lesson candidates | `marketing-loop/learning.md` |
-| Final content, result, and metrics | `marketing-loop/db/marketing.sqlite` |
+| Hypotheses, generated content, results, and evidence | `marketing-loop/db/hypothesis-loop.sqlite` |
 | SQLite structure | `marketing-loop/db/schema.sql` |
 | Slide count, placement, typography, editable layers | `renderer/slideshow/templates/*.json` |
 | Editable final project | `renderer/slideshow/contents/*.json` |

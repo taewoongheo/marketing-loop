@@ -9,9 +9,9 @@ The final goal is to create increasingly viral content by learning from editoria
 The two primary optimization axes are:
 
 - **Message strategy:** what should persuade the audience.
-- **Copywriting format:** how that message should be expressed within a reference-derived visual template.
+- **Copywriting:** how that message should be expressed within the user-controlled fixed visual format.
 
-The fixed slideshow structure and its local editor live in `renderer/slideshow/`. The rest of this repository owns the marketing knowledge, evidence, and learning loop. Detailed operating rules and decision rights live only in `AGENTS.md`.
+The fixed slideshow structure and its local editor live in `renderer/slideshow/`. The rest of this repository owns the marketing knowledge, evidence, and learning loop. Project-wide operating rules live in `AGENTS.md`; the detailed hypothesis lineage model lives in `docs/hypothesis-loop.md`.
 
 ## Structure
 
@@ -22,6 +22,9 @@ marketing-loop/
 ├── learning.md                       unresolved cross-content lessons
 ├── .gitignore                        local/generated file exclusions
 │
+├── docs/
+│   └── hypothesis-loop.md            hypothesis branching and delayed evidence
+│
 ├── context/                          stable decision inputs
 │   ├── product.md                    product truth
 │   ├── audience.md                   target understanding
@@ -29,7 +32,9 @@ marketing-loop/
 │   └── voice.md                      shared English voice
 │
 ├── messages/                         persuasion strategy
-│   └── msg-*.md                      one message hypothesis per file
+│   └── <message-id>/                 immutable versions of one message
+│       ├── v1.md
+│       └── ...
 │
 ├── formats/                          template-coupled copywriting systems
 │   └── <format-id>/                  one analyzed format; current example: list/
@@ -41,7 +46,7 @@ marketing-loop/
 │
 ├── db/                               final evidence
 │   ├── schema.sql                    database structure
-│   └── marketing.sqlite              local runtime database
+│   └── hypothesis-loop.sqlite         local runtime database
 │
 ├── renderer/                         visual production implementations
 │   └── slideshow/                    local slideshow editor and renderer
@@ -62,16 +67,17 @@ External owners — not inside this repository
 - **`AGENTS.md`** owns the rules for operating this project.
 - **`README.md`** maps the system and points to each source of truth.
 - **`learning.md`** holds unresolved lessons that may later move to a permanent owner.
+- **`docs/hypothesis-loop.md`** owns the detailed hypothesis-branch and delayed-evidence operating model.
 - **`context/`** holds stable inputs used to make content decisions.
   - **`product.md`** is the source of product truth.
   - **`audience.md`** is the source of target-audience understanding.
   - **`user-language.md`** is the source of audience-language evidence.
   - **`voice.md`** is the source of shared English voice rules.
-- **`messages/`** holds the persuasion hypotheses being tested and improved.
+- **`messages/`** holds immutable, explicitly versioned persuasion-message definitions.
 - **`formats/`** holds the copywriting systems tied to visual templates.
   - **`guide.md`** describes how a format communicates.
   - **`references/`** preserves the ordered images used to analyze that format.
-- **`db/`** holds the structure and runtime record of final content and observed results.
+- **`db/`** holds the exact schema and local runtime record of hypotheses, generated content, observed results, and evidence links.
 - **`.hermes/plans/`** holds implementation plans, not runtime marketing knowledge.
 - **`renderer/slideshow/`** owns slideshow visual implementation and rendering. Templates live in `templates/`; generated editable content belongs in `contents/`.
 - **Profile `SOUL.md`** owns the dedicated agent identity.

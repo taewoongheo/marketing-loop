@@ -1,0 +1,390 @@
+# Hypothesis Branch Operating Model
+
+This document owns the operating model through which hypotheses generate content and delayed results influence later hypotheses. `db/schema.sql` is the sole owner of exact SQLite tables and constraints.
+
+## Purpose
+
+Continue producing `n` contents per day while preserving which hypothesis generated each content and how its results influenced later hypotheses.
+
+Content production does not wait for performance collection. Results that arrive after 24, 48, or 72 hours remain connected to the existing hypothesis lineage.
+
+## Confirmed boundaries
+
+### Optimization axes
+
+Hypotheses may improve two axes:
+
+- `message`: what to communicate and which perspective and persuasion logic to use;
+- `copywriting`: how to express the same message.
+
+Each child hypothesis changes only one of these axes from its parent.
+
+The exact internal structures of message and copywriting, including which elements may change, are not defined yet.
+
+### Fixed condition
+
+`format` and the renderer template are not hypothesis axes.
+
+- The format is a fixed condition that preserves the account's consistent brand tone.
+- The user decides when to add or replace a format.
+- A meaningful format change receives a new `format_id`; it is not treated as an internal version of the existing format.
+- The content record stores the `format_id` and renderer-template identity used as execution conditions.
+
+## Hypothesis branch model
+
+A hypothesis has at most one parent and may have any number of children. There is no fixed upper bound on the number of historical hypothesis nodes.
+
+```text
+H-001
+├── C-001
+├── C-002
+├── H-002: a strengthened descendant of H-001
+│   ├── C-003
+│   └── C-004
+├── H-003: a redirected descendant of H-001
+│   └── C-005
+└── H-004: another branch from H-001
+    └── C-006
+```
+
+The lineage repeatedly follows this causal direction:
+
+```text
+Hypothesis → Content result → Child hypothesis
+```
+
+A parent may generate any number of child hypotheses.
+
+## Daily content generation
+
+Only the total daily content count `n` is fixed. The number of hypotheses is not tied to `n`; content slots may be distributed dynamically across multiple active leaves.
+
+```text
+Today's content slots: n
+
+Distribute them dynamically across H-012, H-017, H-021, and other active leaves.
+```
+
+If one hypothesis is more promising or needs more direct evidence, several or all slots may be assigned to it.
+
+```text
+H-012 → n contents
+```
+
+## Actions after reviewing content results
+
+After reviewing a content result that is at least 24 hours old, choose one of the following actions for the hypothesis that generated it.
+
+### 1. Generate more content from the same hypothesis
+
+Use this when the direction remains useful but needs more direct evidence.
+
+```text
+H-001
+├── C-001
+├── C-002
+└── C-003
+```
+
+This action does not create a new hypothesis node.
+
+### 2. Create one child hypothesis
+
+Use this when the result is promising enough to strengthen or redirect the hypothesis in one direction.
+
+```text
+H-001
+└── H-002
+```
+
+### 3. Create several child hypotheses
+
+Use this when the result supports several plausible interpretations or when several distinct changes are worth exploring.
+
+```text
+H-001
+├── H-002
+├── H-003
+└── H-004
+```
+
+Each child changes one `message` or `copywriting` element from its parent.
+
+### 4. Close the branch
+
+Close a branch when the hypothesis failed or no longer deserves further exploration.
+
+```text
+H-001 → closed
+```
+
+Do not delete the record.
+
+## Node creation rule
+
+Every content belongs to the hypothesis that generated it, but generating content does not automatically create a new hypothesis node.
+
+```text
+Review content results
+→ zero children: generate more content from the same hypothesis or close the branch
+→ one child: strengthen or redirect the hypothesis
+→ several children: branch into several directions
+```
+
+A hypothesis may generate several contents, so hypothesis creation and content generation are separate events.
+
+## Active leaves
+
+New content is generated only from active-leaf hypotheses.
+
+Do not persist a separate `active` status. Derive node state from the tree and `closed_at`:
+
+```text
+active leaf: no child + no closed_at
+closed leaf: no child + closed_at exists
+branched parent: one or more children
+```
+
+After a parent creates a child, it receives no new content. Its already-published content continues receiving delayed results.
+
+```text
+H-001 generates H-002
+
+H-001: no new content allocation
+H-002: active leaf
+```
+
+This rule prevents parent and child nodes from expanding simultaneously and making lineage ambiguous.
+
+## Delayed result collection
+
+Closing a hypothesis or branch does not stop result collection for content that has already been published.
+
+```text
+24h → early exploration signal
+48h → intermediate observation
+72h → mature result
+```
+
+If a 72-hour result arrives today for content generated by H-001 two days earlier:
+
+1. Add the 72-hour result to that content.
+2. Update H-001's direct evidence.
+3. Read the new result when evaluating a current branch descended from H-001.
+4. If it conflicts with the early interpretation, reconsider whether to continue or close the current branch or create a new sibling from an earlier hypothesis.
+5. Do not delete or rewrite existing hypotheses, contents, or lineage.
+
+## Direct evidence and inherited context
+
+A parent's content results are not direct evidence for a child's changed element.
+
+- Direct evidence: results from content generated by that exact hypothesis.
+- Inherited context: results from content generated by parent and ancestor hypotheses.
+
+```text
+Strong H-001 performance
+≠ automatic validation of H-002
+```
+
+H-001's results explain the context from which H-002 was created. The effect of H-002's changed element must be judged from content generated by H-002.
+
+This distinction prevents the same ancestor result from being counted as independent evidence for multiple descendants.
+
+## Ancestor traversal range
+
+Do not read every ancestor's full raw record indefinitely when creating a child or reevaluating an active leaf.
+
+Starting at the current leaf, walk toward its parents through the nearest ancestor whose 72-hour evaluation is complete. Treat that node as the `72h-complete ancestor` and include it in the detailed range.
+
+```text
+H-001: 72h evaluation complete
+└── H-002: results collected through 48h
+    └── H-003: results collected through 24h
+        └── H-004: current active leaf
+
+Detailed H-004 range: H-004 → H-003 → H-002 → H-001
+```
+
+`72h evaluation complete` means that every planned direct content for that node has received its 72-hour result and that those results have been reviewed. A node is not a cutoff merely because one of its contents has reached 72 hours.
+
+Do not reread the raw content and results of nodes older than the `72h-complete ancestor` on every evaluation. Treat that earlier lineage as inherited context already reflected when the mature ancestor was formed.
+
+Exception: if a missing or corrected late result arrives for an older node after the mature ancestor was evaluated, read that older node directly again and reevaluate its effect on the current descendant branch.
+
+The ancestor count is therefore not a fixed number. It is the actual depth between the current leaf and the nearest `72h-complete ancestor`.
+
+## When a 72-hour result reverses the early interpretation
+
+A child may be created from a 24-hour result that is later contradicted by the 72-hour result.
+
+In that case:
+
+- preserve the existing node and lineage;
+- attach the mature result to the original content;
+- reconsider whether to continue or close the current descendant or create a sibling from an earlier hypothesis;
+- do not automatically invalidate a descendant's direct results merely because an ancestor's mature result was weak.
+
+A 24-hour result is a fast signal for choosing the next exploration direction. A 72-hour result is more mature evidence that may cause the lineage to be reconsidered.
+
+## SQLite storage boundary
+
+Use one hypothesis-centered SQLite database. Do not split hypothesis and content records into separate databases.
+
+```text
+hypotheses
+├── contents
+│   └── content_results
+└── hypothesis_evidence
+```
+
+Exact columns, foreign keys, indexes, and checks belong only to `db/schema.sql`.
+
+### `hypotheses`
+
+Owns hypothesis nodes and parent-child lineage.
+
+It records:
+
+```text
+id
+parent_hypothesis_id
+change_axis: message | copywriting
+statement
+last_evaluated_at
+created_at
+closed_at
+closure_reason
+```
+
+- `id`: immutable identity of every root and child hypothesis;
+- `parent_hypothesis_id`: direct parent; only a root uses `NULL`;
+- `change_axis`: the axis changed from the parent;
+- `statement`: the complete hypothesis claim;
+- `last_evaluated_at`: when the node and required ancestor results were last evaluated;
+- `created_at`: when the hypothesis node was created;
+- `closed_at`: when a childless leaf was explicitly closed;
+- `closure_reason`: why a childless leaf was closed.
+
+Do not store `change_summary`, `creation_rationale`, `status`, or `content_ids`.
+
+- Compare parent and child statements to identify the change.
+- Use `hypothesis_evidence` and the referenced result to recover creation evidence.
+- Derive active-leaf state from the tree and `closed_at`.
+- Reverse-query `contents.hypothesis_id` for direct content.
+
+A simple SQL check can prevent self-parenting but not every longer cycle. Before inserting a child, traverse its proposed ancestors and reject cycles.
+
+### `contents`
+
+Owns publication-ready content generated by a hypothesis, the fixed execution conditions it used, and its publication identity.
+
+It records:
+
+```text
+id
+hypothesis_id
+message_id
+message_version
+format_id
+template_path
+template_sha256
+caption
+final_project_path
+final_project_sha256
+tiktok_url
+published_at
+```
+
+- `id`: immutable content identity;
+- `hypothesis_id`: the hypothesis node that generated the content;
+- `message_id`, `message_version`: exact versioned message identity;
+- `format_id`: fixed format identity selected by the user;
+- `template_path`, `template_sha256`: exact renderer template used as the fixed visual condition;
+- `caption`: final TikTok caption;
+- `final_project_path`, `final_project_sha256`: exact publication-ready renderer project;
+- `tiktok_url`: URL supplied after manual publication;
+- `published_at`: timestamp recorded when the TikTok URL is first registered.
+
+`renderer/slideshow/templates/list.json` is a `tiktok-slide-template` containing the visual structure and placeholder content. The final editable content is a `tiktok-slide-project` stored under `renderer/slideshow/contents/<id>.json`.
+
+The renderer content project is the source of truth for final slide text and visuals. Do not duplicate its visible text as `slide_copy_json`; read text layers from the exact project when copy analysis is required.
+
+Do not store `telegram_delivered_at`, content `created_at`, or content `status`.
+
+- Telegram delivery is not hypothesis-learning evidence.
+- `hypotheses.created_at` owns hypothesis creation time, the renderer project's `updatedAt` records project storage, and `published_at` records publication registration.
+- Derive publication state from `tiktok_url` and `published_at`.
+
+When first recording `tiktok_url`, write `published_at` in the same database operation. Correcting the URL later must not overwrite the existing publication timestamp.
+
+A hypothesis's direct contents are reverse-queried through `contents.hypothesis_id`; do not duplicate a content-ID array on the hypothesis row.
+
+### `content_results`
+
+Owns one result row for each 24-hour, 48-hour, or 72-hour checkpoint of a content. Observation and interpretation remain separate columns in the same result row. Continue planned result collection regardless of whether the generating hypothesis or branch is now closed.
+
+### `hypothesis_evidence`
+
+Connects a child hypothesis to the exact content-result rows that influenced its creation.
+
+```text
+hypothesis_id
+content_result_id
+```
+
+Several rows may connect several results to one child. Referencing the result rather than only the content distinguishes, for example, a 24-hour signal from a later 72-hour result.
+
+## Excluded from the MVP
+
+Do not add:
+
+- a fixed cap on historical hypothesis nodes;
+- format hypotheses or format versions;
+- hypothesis merging;
+- deletion of hypothesis or content history;
+- subjective confidence scores;
+- multi-agent voting evaluators;
+- a separate workflow engine;
+- separate hypothesis and content databases.
+
+## Open decisions
+
+The following still require evidence or further discussion:
+
+1. The exact internal structure of a `message`.
+2. The exact internal structure of `copywriting`.
+3. A rule that makes parent-child differences explicit in each full `statement`.
+4. How daily content slots are allocated across active leaves.
+5. The threshold for strengthening, branching, or closing from 24-hour results.
+6. The threshold for reevaluating a branch from 48-hour or 72-hour results.
+7. The minimal structure for Target, Metric, Test set, Evaluator, Baseline, and Decision rule.
+8. How several contents are synthesized into one hypothesis-level judgment.
+9. How supported learning is promoted into message or copywriting rules.
+
+## Core principles
+
+```text
+Fixed condition:
+format + renderer template
+
+Optimization axes:
+message | copywriting
+
+Production limit:
+total daily content count n
+
+Hypothesis limit:
+no fixed cap on historical nodes
+
+Content allocation:
+one active leaf may generate several contents
+
+Hypothesis expansion:
+one parent may generate zero or more children
+
+Result collection:
+continue 24h, 48h, and 72h collection after a branch closes
+
+Evidence boundary:
+separate a node's direct evidence from inherited ancestor context
+```

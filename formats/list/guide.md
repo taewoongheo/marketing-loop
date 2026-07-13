@@ -33,13 +33,13 @@ These are observations from the captured artifact, not validated env performance
 - Keep the message's evidence limits intact; a dramatic hook does not justify a stronger product or scientific claim.
 - Read the template's live editable text slots before drafting final visible copy.
 
-## Current hypotheses
+## Copywriting candidates
 
 - A concrete list may make a study-start problem more recognizable than an abstract productivity explanation.
 - A counterintuitive hook may create enough tension to earn the next swipe without mentioning env immediately.
 - A personal realization structure may make the reframe feel less instructional or judgmental.
 
-None of these hypotheses is validated yet.
+These are unvalidated copywriting candidates and do not change the format identity. When selected for testing, express one candidate as a `copywriting` hypothesis node in SQLite while keeping `format_id = list` fixed.
 
 ## Supporting or conflicting content
 
