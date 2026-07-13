@@ -11,7 +11,7 @@ The two primary optimization axes are:
 - **Message strategy:** what should persuade the audience.
 - **Copywriting format:** how that message should be expressed within a reference-derived visual template.
 
-The user implements the fixed visual structure in `slides-marketing`. This repository owns the marketing knowledge, evidence, and learning loop. Detailed operating rules and decision rights live only in `AGENTS.md`.
+The fixed slideshow structure and its local editor live in `renderer/slideshow/`. The rest of this repository owns the marketing knowledge, evidence, and learning loop. Detailed operating rules and decision rights live only in `AGENTS.md`.
 
 ## Structure
 
@@ -43,17 +43,16 @@ marketing-loop/
 │   ├── schema.sql                    database structure
 │   └── marketing.sqlite              local runtime database
 │
+├── renderer/                         visual production implementations
+│   └── slideshow/                    local slideshow editor and renderer
+│       ├── src/                      editor and browser rendering code
+│       ├── templates/                fixed visual JSON structures
+│       └── public/assets/             assets required by those templates
+│
 └── .hermes/                          non-runtime Hermes planning artifacts
     └── plans/
 
 External owners — not inside this repository
-├── /Users/taewoongheo/Projects/slides-marketing/
-│   ├── templates/                    visual JSON structure
-│   ├── assets/                       production image assets
-│   ├── editable project JSON
-│   ├── renderer/editor code
-│   └── rendered images
-│
 └── ~/.hermes/profiles/marketing-env/
     ├── SOUL.md                        dedicated agent identity
     └── memories/MEMORY.md             approved compact lessons; created on first save
@@ -73,7 +72,18 @@ External owners — not inside this repository
   - **`references/`** preserves the ordered images used to analyze that format.
 - **`db/`** holds the structure and runtime record of final content and observed results.
 - **`.hermes/plans/`** holds implementation plans, not runtime marketing knowledge.
-- **`slides-marketing`** owns visual implementation, editable projects, and rendering.
+- **`renderer/slideshow/`** owns slideshow visual implementation, required assets, editable projects, and rendering.
 - **Profile `SOUL.md`** owns the dedicated agent identity.
 - **Profile `MEMORY.md`** owns approved compact lessons that must persist across sessions.
 - **Hermes skills** own reusable procedures.
+
+## Slideshow editor
+
+Install and run the isolated renderer package from the repository root:
+
+```bash
+npm --prefix renderer/slideshow ci
+npm --prefix renderer/slideshow run dev
+```
+
+The editor loads and saves project JSON in the browser and exports either the current PNG or a ZIP of all slides. Templates remain file-owned under `renderer/slideshow/templates/`; the editor does not run a template API or a separate application server.
