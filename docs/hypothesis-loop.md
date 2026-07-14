@@ -19,7 +19,7 @@ Hypotheses may improve two axes:
 
 Each child hypothesis changes only one of these axes from its parent.
 
-Message definitions use seven semantic sections: target situation, problem pattern, belief shift, persuasion logic, resistance and response, product role, and evidence and limits. Copywriting structure remains format-specific in `renderer/slideshow/templates/<format-id>/copywriting.md`; do not impose one cross-format taxonomy.
+Message definitions use seven semantic sections: target situation, problem pattern, belief shift, persuasion logic, resistance and response, product role, and evidence and limits. Copywriting structure remains format-specific in versioned files under `renderer/slideshow/templates/<format-id>/copywriting/`; do not impose one cross-format taxonomy.
 
 ### Hypothesis statement requirements
 
@@ -66,7 +66,7 @@ Do not repeat the 24-hour, 48-hour, and 72-hour workflow in every statement. The
 - The format is a fixed condition that preserves the account's consistent brand tone.
 - The user decides when to add or replace a format.
 - A meaningful format change receives a new `format_id`; it is not treated as an internal version of the existing format.
-- The content record stores the `format_id` and renderer-template identity used as execution conditions.
+- The content record stores the `format_id`, selected `copywriting_version`, and renderer-template identity used for that execution.
 
 ## Hypothesis branch model
 
@@ -185,6 +185,8 @@ Review content results
 
 A hypothesis may generate several contents, so hypothesis creation and content generation are separate events.
 
+Message and copywriting versions identify generation-affecting states, not every file edit. The current version may be refined until a content row first references it. After that first use, a durable change to the message or copywriting behavior creates the next version. If the current hypothesis has already generated content, create a child on the changed axis before assigning content that uses the new version; do not silently mix materially different versions as direct evidence for one node. Content-specific edits remain in the final renderer project and do not create durable-owner versions.
+
 ## Active leaves
 
 New content is generated only from active-leaf hypotheses.
@@ -263,10 +265,10 @@ After the user confirms that a hypothesis should be operationally adopted:
 
 1. Keep its source observations, interpretations, evidence links, and lineage in SQLite.
 2. Update exactly one final owner directly; do not create a separate pending-learning file.
-3. For a message-strategy conclusion, create the next immutable version under `messages/msg-<message-name>/` or a distinctly named `msg-<message-name>` when the strategy identity changes; do not add a numeric sequence to the message ID.
-4. For a template-coupled copywriting conclusion, replace or narrow the relevant rule in `renderer/slideshow/templates/<format-id>/copywriting.md`.
+3. For a message-strategy conclusion, create the next version under `messages/msg-<message-name>/` when an already-used message changes, or a distinctly named `msg-<message-name>` when the strategy identity changes; do not add a numeric sequence to the message ID.
+4. For a template-coupled copywriting conclusion, create the next `renderer/slideshow/templates/<format-id>/copywriting/v<version>.md` when the selected version has already been used. Refine an unreferenced current version in place instead of creating empty version noise.
 5. Do not infer product facts, verified user language, or audience facts from engagement metrics alone.
-6. If later evidence conflicts, revise or narrow the current owner while preserving historical message versions, hypotheses, contents, and results.
+6. If later evidence conflicts, revise or narrow the current owner in a new used-state version while preserving historical message and copywriting versions, hypotheses, contents, and results.
 
 Record the adoption judgment in the relevant result interpretation and update `last_evaluated_at` after the affected lineage and owner change have actually been reviewed. Do not add a confidence score, validation-status field, or duplicated evidence summary merely to label the judgment.
 
@@ -366,6 +368,7 @@ hypothesis_id
 message_id
 message_version
 format_id
+copywriting_version
 template_path
 template_sha256
 caption
@@ -378,14 +381,14 @@ published_at
 - `id`: immutable content identity;
 - `hypothesis_id`: the hypothesis node that generated the content;
 - `message_id`, `message_version`: exact versioned message identity;
-- `format_id`: fixed format identity selected by the user;
+- `format_id`, `copywriting_version`: exact format and format-coupled copy grammar used;
 - `template_path`, `template_sha256`: exact renderer template used as the fixed visual condition;
 - `caption`: final TikTok caption;
 - `final_project_path`, `final_project_sha256`: exact publication-ready renderer project;
 - `tiktok_url`: URL supplied after manual publication;
 - `published_at`: timestamp recorded when the TikTok URL is first registered.
 
-`renderer/slideshow/templates/list/template.json` is a `tiktok-slide-template` containing the visual structure and placeholder content. The final editable content is a `tiktok-slide-project` stored under `renderer/slideshow/contents/<id>.json`.
+`renderer/slideshow/templates/<format-id>/template.json` is a `tiktok-slide-template` containing the visual structure and placeholder content. The final editable content is a `tiktok-slide-project` stored under `renderer/slideshow/contents/<id>.json`.
 
 The renderer content project is the source of truth for final slide text and visuals. Do not duplicate its visible text as `slide_copy_json`; read text layers from the exact project when copy analysis is required.
 

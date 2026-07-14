@@ -29,7 +29,7 @@ marketing-loop/
 │   └── user-language.md              collected expressions and provenance
 │
 ├── messages/                         persuasion strategy
-│   └── msg-<message-name>/           immutable versions of one message
+│   └── msg-<message-name>/           versions; immutable after first content use
 │       ├── v1.md
 │       └── ...
 │
@@ -44,7 +44,9 @@ marketing-loop/
 │       ├── templates/                colocated format packages
 │       │   └── <format-id>/          current example: denzel/
 │       │       ├── template.json     fixed visual structure
-│       │       ├── copywriting.md    format-coupled copywriting owner
+│       │       ├── copywriting/      versioned format-copy owner
+│       │       │   ├── v1.md
+│       │       │   └── ...
 │       │       ├── materials.md      optional approved content inputs
 │       │       └── references/       ordered reference screenshots
 │       └── public/assets/             assets required by those templates
@@ -64,10 +66,10 @@ External owners — not inside this repository
 - **`context/`** holds stable inputs used to make content decisions.
   - **`product.md`** owns product truth, market scope, positioning, and claim boundaries.
   - **`user-language.md`** stores project-wide collected expressions, situations, sources, and confidence without interpreting them.
-- **`messages/`** holds immutable, explicitly versioned target situations, problem patterns, belief shifts, persuasion logic, resistance and response, product roles, and evidence limits.
+- **`messages/`** holds explicitly versioned target situations, problem patterns, belief shifts, persuasion logic, resistance and response, product roles, and evidence limits. A version's generation-affecting meaning becomes immutable after content first references it.
 - **`db/`** holds the exact schema and local runtime record of hypotheses, generated content, observed results, and evidence links.
 - **`.hermes/plans/`** holds implementation plans, not runtime marketing knowledge.
-- **`renderer/slideshow/`** owns slideshow production. Each `templates/<format-id>/` package colocates its visual `template.json`, format-coupled `copywriting.md`, optional format-specific `materials.md`, and ordered `references/`; generated editable content belongs in `contents/`. Each format defines its own materials structure when it needs one.
+- **`renderer/slideshow/`** owns slideshow production. Each `templates/<format-id>/` package colocates its visual `template.json`, versioned format-copy files under `copywriting/`, optional format-specific `materials.md`, and ordered `references/`; generated editable content belongs in `contents/`. Each format defines its own materials structure when it needs one.
 - **Profile `SOUL.md`** owns the dedicated agent identity.
 - **Profile `MEMORY.md`** owns approved compact lessons that must persist across sessions.
 - **Hermes skills** own reusable procedures.
