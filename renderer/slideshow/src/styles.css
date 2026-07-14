@@ -323,6 +323,10 @@ p {
   min-height: 44px;
 }
 
+.template-save-box .template-load-button {
+  grid-column: 1 / -1;
+}
+
 .template-list {
   display: flex;
   flex-direction: column;

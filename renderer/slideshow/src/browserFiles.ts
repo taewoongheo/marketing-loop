@@ -45,6 +45,46 @@ export function downloadTextFile(filename: string, contents: string, mime = "app
   URL.revokeObjectURL(href);
 }
 
+type SaveFilePickerWindow = Window & {
+  showSaveFilePicker?: (options: {
+    suggestedName: string;
+    types: Array<{
+      description: string;
+      accept: Record<string, string[]>;
+    }>;
+  }) => Promise<{
+    createWritable(): Promise<{
+      write(contents: string): Promise<void>;
+      close(): Promise<void>;
+    }>;
+  }>;
+};
+
+export async function saveTextFile(filename: string, contents: string, mime = "application/json") {
+  const showSaveFilePicker = (window as SaveFilePickerWindow).showSaveFilePicker;
+  if (!showSaveFilePicker) {
+    downloadTextFile(filename, contents, mime);
+    return "downloaded" as const;
+  }
+
+  try {
+    const fileHandle = await showSaveFilePicker.call(window, {
+      suggestedName: filename,
+      types: [{
+        description: "JSON file",
+        accept: { [mime]: [".json"] },
+      }],
+    });
+    const writable = await fileHandle.createWritable();
+    await writable.write(contents);
+    await writable.close();
+    return "saved" as const;
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") return "cancelled" as const;
+    throw error;
+  }
+}
+
 export function downloadDataUrl(filename: string, dataUrl: string) {
   const anchor = document.createElement("a");
   anchor.href = dataUrl;

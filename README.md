@@ -42,9 +42,10 @@ marketing-loop/
 │       ├── src/                      editor and browser rendering code
 │       ├── contents/                 saved editable content JSON
 │       ├── templates/                colocated format packages
-│       │   └── <format-id>/          current example: list/
+│       │   └── <format-id>/          current example: denzel/
 │       │       ├── template.json     fixed visual structure
 │       │       ├── copywriting.md    format-coupled copywriting owner
+│       │       ├── materials.md      optional approved content inputs
 │       │       └── references/       ordered reference screenshots
 │       └── public/assets/             assets required by those templates
 │
@@ -62,11 +63,11 @@ External owners — not inside this repository
 - **`docs/hypothesis-loop.md`** owns the detailed hypothesis-branch and delayed-evidence operating model.
 - **`context/`** holds stable inputs used to make content decisions.
   - **`product.md`** owns product truth, market scope, positioning, and claim boundaries.
-  - **`user-language.md`** stores collected expressions, situations, sources, and confidence without interpreting them.
+  - **`user-language.md`** stores project-wide collected expressions, situations, sources, and confidence without interpreting them.
 - **`messages/`** holds immutable, explicitly versioned target situations, problem patterns, belief shifts, persuasion logic, resistance and response, product roles, and evidence limits.
 - **`db/`** holds the exact schema and local runtime record of hypotheses, generated content, observed results, and evidence links.
 - **`.hermes/plans/`** holds implementation plans, not runtime marketing knowledge.
-- **`renderer/slideshow/`** owns slideshow production. Each `templates/<format-id>/` package colocates its visual `template.json`, format-coupled `copywriting.md`, and ordered `references/`; generated editable content belongs in `contents/`.
+- **`renderer/slideshow/`** owns slideshow production. Each `templates/<format-id>/` package colocates its visual `template.json`, format-coupled `copywriting.md`, optional format-specific `materials.md`, and ordered `references/`; generated editable content belongs in `contents/`. Each format defines its own materials structure when it needs one.
 - **Profile `SOUL.md`** owns the dedicated agent identity.
 - **Profile `MEMORY.md`** owns approved compact lessons that must persist across sessions.
 - **Hermes skills** own reusable procedures.
@@ -80,4 +81,4 @@ npm --prefix renderer/slideshow ci
 npm run renderer:slideshow
 ```
 
-The editor starts with a blank slide. It saves editable content JSON to `renderer/slideshow/contents/`, saves reusable template JSON to `renderer/slideshow/templates/`, and loads both libraries through a small Vite middleware. The editor also imports compatible content JSON from the browser and exports either the current PNG or a ZIP of all slides. The renderer does not run a separate application server.
+The editor starts with a blank slide. It saves editable content JSON to `renderer/slideshow/contents/` through a small Vite middleware, loads format-package templates from `renderer/slideshow/templates/`, and saves or imports template JSON through the browser file picker so colocated format context is never overwritten. It also imports compatible content JSON from the browser and exports either the current PNG or a ZIP of all slides. The renderer does not run a separate application server.

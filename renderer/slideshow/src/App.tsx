@@ -3,7 +3,6 @@ import type { DragEvent, KeyboardEvent, ReactNode } from "react";
 import JSZip from "jszip";
 import { Image as KonvaImage, Layer, Line, Rect, Stage, Text, Transformer, Group } from "react-konva";
 import type Konva from "konva";
-import listTemplate from "../templates/list/template.json";
 import {
   Copy,
   Download,
@@ -25,6 +24,7 @@ import {
   downloadDataUrl,
   loadHtmlImage,
   readFileAsDataUrl,
+  saveTextFile,
   useLoadedImage,
 } from "./browserFiles";
 import {
@@ -93,7 +93,28 @@ type TemplateRuleProperty = {
   label: string;
 };
 
-const bundledListTemplate = listTemplate as unknown as TemplateFile;
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null;
+
+const parseTemplateFile = (value: unknown, fallbackName: string): TemplateFile => {
+  if (!isRecord(value) || value.type !== "tiktok-slide-template" || !Array.isArray(value.slides) || value.slides.length === 0) {
+    throw new Error("Template JSON format is invalid.");
+  }
+
+  if (!isRecord(value.preset) || typeof value.preset.width !== "number" || typeof value.preset.height !== "number") {
+    throw new Error("Template canvas preset is invalid.");
+  }
+
+  if (value.slides.some((slide) => !isRecord(slide) || !Array.isArray(slide.layers))) {
+    throw new Error("Template slides are invalid.");
+  }
+
+  return {
+    ...(value as TemplateFile),
+    id: typeof value.id === "string" && value.id.trim() ? value.id : fallbackName,
+    name: typeof value.name === "string" && value.name.trim() ? value.name : fallbackName,
+  };
+};
 
 const createSlidesFromTemplate = (template: TemplateFile): Slide[] =>
   template.slides.map((templateSlide, index) => ({
@@ -796,7 +817,7 @@ export default function App() {
   const [contentStatus, setContentStatus] = useState("");
   const [isContentSaving, setIsContentSaving] = useState(false);
   const [templateName, setTemplateName] = useState("");
-  const [templateLibrary, setTemplateLibrary] = useState<TemplateFile[]>([bundledListTemplate]);
+  const [templateLibrary, setTemplateLibrary] = useState<TemplateFile[]>([]);
   const [templateStatus, setTemplateStatus] = useState("");
   const [isTemplateSaving, setIsTemplateSaving] = useState(false);
   const [draggingSlideId, setDraggingSlideId] = useState<string | null>(null);
@@ -810,6 +831,7 @@ export default function App() {
   const transformerRef = useRef<Konva.Transformer>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const contentInputRef = useRef<HTMLInputElement>(null);
+  const templateInputRef = useRef<HTMLInputElement>(null);
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const selectedSlide = slides.find((slide) => slide.id === selectedSlideId) ?? slides[0];
@@ -1437,6 +1459,7 @@ export default function App() {
 
   const saveTemplate = async () => {
     const name = templateName.trim() || selectedSlide.name.trim() || "Untitled template";
+    const filename = `${name.replace(/\.json$/i, "").replace(/[/:]/g, "-")}.json`;
     const template: TemplateFile = {
       type: "tiktok-slide-template",
       version: 2,
@@ -1449,24 +1472,36 @@ export default function App() {
     setIsTemplateSaving(true);
 
     try {
-      const response = await fetch("/api/templates", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(template),
-      });
-      const data = (await response.json()) as {
-        error?: string;
-        template?: TemplateFile;
-        templates?: TemplateFile[];
-      };
-      if (!response.ok || !data.template) throw new Error(data.error || "Template could not be saved.");
-
-      if (data.templates?.length) setTemplateLibrary(data.templates);
-      setTemplateStatus(`Saved to templates/${data.template.id}.json.`);
+      const result = await saveTextFile(filename, `${JSON.stringify(template, null, 2)}\n`);
+      setTemplateStatus(
+        result === "saved"
+          ? `Saved ${filename}.`
+          : result === "downloaded"
+            ? `Downloaded ${filename}.`
+            : "Template save cancelled.",
+      );
     } catch (error) {
       setTemplateStatus(error instanceof Error ? error.message : "Template could not be saved.");
     } finally {
       setIsTemplateSaving(false);
+    }
+  };
+
+  const importTemplate = async (file?: File) => {
+    if (!file) return;
+
+    try {
+      const fallbackName = file.name.replace(/\.json$/i, "") || "Imported template";
+      const template = parseTemplateFile(JSON.parse(await file.text()), fallbackName);
+      setTemplateLibrary((current) => [
+        ...current.filter((item) => item.id !== template.id && item.name !== template.name),
+        template,
+      ]);
+      setTemplateName(template.name);
+      applyTemplate(template);
+      setTemplateStatus(`Loaded and applied "${template.name}".`);
+    } catch (error) {
+      setTemplateStatus(error instanceof Error ? error.message : "Template load failed.");
     }
   };
 
@@ -1572,6 +1607,16 @@ export default function App() {
         accept="application/json"
         onChange={(event) => {
           void importContent(event.target.files?.[0]);
+          event.currentTarget.value = "";
+        }}
+      />
+      <input
+        ref={templateInputRef}
+        className="hidden-input"
+        type="file"
+        accept=".json,application/json"
+        onChange={(event) => {
+          void importTemplate(event.target.files?.[0]);
           event.currentTarget.value = "";
         }}
       />
@@ -1800,26 +1845,44 @@ export default function App() {
               placeholder="Template name"
               onChange={(event) => setTemplateName(event.target.value)}
             />
-            <button title="Save all slides to the templates folder" onClick={saveTemplate} disabled={isTemplateSaving}>
+            <button
+              title="Choose where to save the template JSON"
+              aria-label="Choose where to save the template JSON"
+              onClick={saveTemplate}
+              disabled={isTemplateSaving}
+            >
               <Save size={16} />
               {isTemplateSaving ? "Saving" : "Save"}
             </button>
+            <button
+              className="template-load-button"
+              title="Choose a template JSON to load"
+              aria-label="Choose a template JSON to load"
+              onClick={() => templateInputRef.current?.click()}
+            >
+              <Upload size={16} />
+              Load Template
+            </button>
           </div>
           <div className="template-list">
-            {templateLibrary.map((template) => (
-              <button
-                key={template.id ?? template.name}
-                className="template-card"
-                title={`Apply ${template.name} template`}
-                aria-label={`Apply ${template.name} template`}
-                onClick={() => applyTemplate(template)}
-              >
-                <strong>{template.name}</strong>
-                <small>
-                  {template.slides.length} slides · {template.preset.width}×{template.preset.height}
-                </small>
-              </button>
-            ))}
+            {templateLibrary.length > 0 ? (
+              templateLibrary.map((template) => (
+                <button
+                  key={template.id ?? template.name}
+                  className="template-card"
+                  title={`Apply ${template.name} template`}
+                  aria-label={`Apply ${template.name} template`}
+                  onClick={() => applyTemplate(template)}
+                >
+                  <strong>{template.name}</strong>
+                  <small>
+                    {template.slides.length} slides · {template.preset.width}×{template.preset.height}
+                  </small>
+                </button>
+              ))
+            ) : (
+              <div className="content-empty">No loaded templates.</div>
+            )}
           </div>
           {templateStatus ? (
             <div className="template-status" role="status" aria-live="polite">

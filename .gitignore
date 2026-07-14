@@ -16,6 +16,12 @@ node_modules/
 dist/
 .vite/
 
+# User-provided format reference images
+renderer/slideshow/templates/*/references/**/*.png
+renderer/slideshow/templates/*/references/**/*.jpg
+renderer/slideshow/templates/*/references/**/*.jpeg
+renderer/slideshow/templates/*/references/**/*.webp
+
 # Local credentials
 .env
 .env.*

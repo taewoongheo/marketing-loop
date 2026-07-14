@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 
-import { readTemplatePackages, writeTemplatePackage } from "../template-storage.ts";
+import { readTemplatePackages } from "../template-storage.ts";
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
@@ -40,22 +40,5 @@ test("reads one template.json from each template package directory", async () =>
     assert.deepEqual(templates, [
       { type: "tiktok-slide-template", id: "list", name: "list", slides: [{}] },
     ]);
-  });
-});
-
-test("writes template JSON inside its package without replacing copywriting context", async () => {
-  await withTemporaryDirectory(async (directory) => {
-    const packageDirectory = path.join(directory, "list");
-    await mkdir(packageDirectory);
-    await writeFile(path.join(packageDirectory, "copywriting.md"), "# Keep me\n", "utf8");
-
-    const template = { type: "tiktok-slide-template", id: "list", name: "list", slides: [{}] };
-    await writeTemplatePackage(directory, "list", template);
-
-    assert.deepEqual(
-      JSON.parse(await readFile(path.join(packageDirectory, "template.json"), "utf8")),
-      template,
-    );
-    assert.equal(await readFile(path.join(packageDirectory, "copywriting.md"), "utf8"), "# Keep me\n");
   });
 });

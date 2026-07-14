@@ -1,4 +1,4 @@
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 
 type JsonProject = Record<string, unknown> & { slides: unknown[] };
@@ -29,10 +29,4 @@ export const readTemplatePackages = async (directory: string, acceptsFile: Accep
   );
 
   return templates.filter((template) => template !== null);
-};
-
-export const writeTemplatePackage = async (directory: string, id: string, value: Record<string, unknown>) => {
-  const packageDirectory = path.join(directory, id);
-  await mkdir(packageDirectory, { recursive: true });
-  await writeFile(path.join(packageDirectory, "template.json"), `${JSON.stringify(value, null, 2)}\n`, "utf8");
 };

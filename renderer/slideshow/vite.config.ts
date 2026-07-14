@@ -3,7 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Connect, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
-import { readTemplatePackages, writeTemplatePackage } from "./template-storage";
+import { readTemplatePackages } from "./template-storage";
 
 const templatesDirectory = fileURLToPath(new URL("./templates", import.meta.url));
 const contentsDirectory = fileURLToPath(new URL("./contents", import.meta.url));
@@ -84,6 +84,11 @@ const templateApiMiddleware: Connect.NextHandleFunction = async (request, respon
       return;
     }
 
+    if (pathname === "/api/templates") {
+      sendJson(response, 405, { error: "Method not allowed." });
+      return;
+    }
+
     if (request.method === "DELETE" && isContentItemRequest) {
       const id = decodeURIComponent(pathname.slice("/api/contents/".length));
       if (!id || fileIdFromName(id, "") !== id) {
@@ -112,43 +117,29 @@ const templateApiMiddleware: Connect.NextHandleFunction = async (request, respon
 
     const value = JSON.parse(rawBody);
     const name = isRecord(value) && typeof value.name === "string" ? value.name.trim() : "";
-    if (pathname === "/api/templates" && (!name || !isTemplate(value))) {
-      sendJson(response, 400, { error: "A template name and at least one slide are required." });
-      return;
-    }
-
-    if (pathname === "/api/contents" && (!name || !isContent(value))) {
+    if (!name || !isContent(value)) {
       sendJson(response, 400, { error: "A content name and at least one slide are required." });
       return;
     }
 
-    const isTemplateRequest = pathname === "/api/templates";
-    const id = fileIdFromName(name, isTemplateRequest ? "template" : "content");
+    const id = fileIdFromName(name, "content");
     const storedValue = {
       ...value,
-      type: isTemplateRequest ? "tiktok-slide-template" : "tiktok-slide-project",
+      type: "tiktok-slide-project",
       version: 2,
       id,
       name,
       updatedAt: new Date().toISOString(),
     };
 
-    if (isTemplateRequest) {
-      await writeTemplatePackage(templatesDirectory, id, storedValue);
-    } else {
-      await mkdir(contentsDirectory, { recursive: true });
-      await writeFile(
-        path.join(contentsDirectory, `${id}.json`),
-        `${JSON.stringify(storedValue, null, 2)}\n`,
-        "utf8",
-      );
-    }
+    await mkdir(contentsDirectory, { recursive: true });
+    await writeFile(
+      path.join(contentsDirectory, `${id}.json`),
+      `${JSON.stringify(storedValue, null, 2)}\n`,
+      "utf8",
+    );
 
-    if (isTemplateRequest) {
-      sendJson(response, 200, { template: storedValue, templates: await readTemplates() });
-    } else {
-      sendJson(response, 200, { content: storedValue, contents: await readContents() });
-    }
+    sendJson(response, 200, { content: storedValue, contents: await readContents() });
   } catch (error) {
     const label = pathname === "/api/templates" ? "Template" : "Content";
     const message = error instanceof SyntaxError ? `${label} JSON is invalid.` : `${label} could not be saved.`;
