@@ -7,9 +7,9 @@
 - **Message strategy** decides what perception or belief should change and how the audience is persuaded.
 - **Copywriting** decides how the message is expressed inside the fixed format: hook wording, specificity, information density, rhythm, product reveal, CTA, and caption.
 - The user controls the fixed format and renderer template because frequent format changes would weaken the account's brand consistency. Format is an execution condition, not a hypothesis axis.
-- `renderer/slideshow/templates/*.json` implements the fixed slideshow structure; `formats/<format-id>/copywriting.md` is the sole owner of the copywriting grammar and adaptation reasoning tied to that structure.
-- `renderer/slideshow/` owns only slideshow templates, required visual assets, editable project JSON, editor code, and rendered images.
-- Do not place marketing context, message strategy, format-copy knowledge, content records, or performance data under `renderer/`.
+- `renderer/slideshow/templates/<format-id>/` is one format package: `template.json` implements the fixed slideshow structure, `copywriting.md` owns the copywriting grammar and adaptation reasoning tied to it, and `references/` stores the ordered reference evidence.
+- `renderer/slideshow/` owns format packages, required visual assets, editable project JSON, editor code, and rendered images.
+- Do not place product context, user-language evidence, message strategy, content records, or performance data under `renderer/`.
 
 ## Decision rights
 
@@ -39,7 +39,7 @@ Ask for information only when a missing fact would materially affect product tru
 
 1. Read product truth and user-language evidence in `context/`.
 2. Review available versioned message definitions in `messages/`.
-3. Review the relevant `formats/<format-id>/copywriting.md` and its stored reference images.
+3. Review the relevant `renderer/slideshow/templates/<format-id>/copywriting.md` and its stored reference images.
 4. Inspect the live templates in `renderer/slideshow/templates/`; never rely on duplicated layout notes.
 5. Read `docs/hypothesis-loop.md` and query SQLite for active leaves, relevant ancestors, generated content, and results.
 6. Ask only for missing information that would materially affect product truth, audience fit, or valid copy.
@@ -71,7 +71,7 @@ If the previous final content has no TikTok URL, ask naturally at the start of t
 - Verified product facts and claim boundaries: `context/product.md`
 - Collected user-language expressions and provenance only: `context/user-language.md`
 - Versioned target situation, problem pattern, belief shift, persuasion logic, resistance and response, product role, and evidence limits: `messages/msg-<message-name>/v<version>.md`; use the descriptive `msg-` name as the message ID without a numeric sequence.
-- All template-coupled wording, empathy technique, tone, hook, progression, density, product reveal, image-copy relationship, CTA, caption, reference evidence, and adaptation reasoning: `formats/<format-id>/copywriting.md`
+- All template-coupled wording, empathy technique, tone, hook, progression, density, product reveal, image-copy relationship, CTA, caption, reference evidence, and adaptation reasoning: `renderer/slideshow/templates/<format-id>/copywriting.md`
 - Hypothesis branching, delayed-evidence traversal, and active-leaf operation: `docs/hypothesis-loop.md`
 - Hypothesis nodes, generated content, publication details, results, and evidence links: `db/hypothesis-loop.sqlite`
 - SQLite structure: `db/schema.sql`
@@ -87,17 +87,17 @@ Do not duplicate one fact, rule, layout value, or result across owners.
 ## Renderer boundary
 
 - Read the live renderer template before generating a project.
-- Read templates from `renderer/slideshow/templates/` and write generated editable content only to `renderer/slideshow/contents/`.
+- Read each format package from `renderer/slideshow/templates/<format-id>/` and write generated editable content only to `renderer/slideshow/contents/`.
 - The renderer template owns slide count, order, canvas, coordinates, dimensions, typography, colors, image crop, and editable properties.
 - The matching `copywriting.md` owns hook function, slide-copy roles, progression, rhythm, information density, reader relationship, image-copy relationship, product reveal, CTA, and caption approach.
-- `formats/` must not restate renderer coordinates or other JSON implementation values.
+- `copywriting.md` must not restate coordinates or other `template.json` implementation values even though both are colocated.
 - Store the exact template path and SHA-256 with final content so later template edits do not obscure what was used.
 - Do not modify renderer code or templates unless the user explicitly requests it.
 
 ## Reference evidence
 
 - The user decides which references qualify as viral; do not ask for or store source URL, account, capture date, or post performance.
-- Store durable reference screenshots under `formats/<format-id>/references/` in the exact slide order designated by the user, using numeric filenames such as `1.png`, `2.png`, `3.png`, and `4.png`.
+- Store durable reference screenshots under `renderer/slideshow/templates/<format-id>/references/` in the exact slide order designated by the user, using numeric filenames such as `1.png`, `2.png`, `3.png`, and `4.png`.
 - References support later re-analysis of hook hierarchy, slide roles, copy density, progression, and image-text relationships.
 - Reference screenshots are evidence, not renderer assets. Do not use them as production imagery unless the user separately adds them to `renderer/slideshow/public/assets/` for that purpose.
 - A user-designated viral reference does not automatically validate the env adaptation, and its wording, subject matter, and distinctive expressions must not be copied.
@@ -115,7 +115,7 @@ Do not duplicate one fact, rule, layout value, or result across owners.
 - Apply every user feedback to the current content, including one-off feedback.
 - Infer the narrowest scope that preserves the feedback's meaning. Do not turn a content-specific edit into a universal rule, but do not discard a reusable correction merely because it appeared once.
 - When feedback changes durable guidance, update exactly one proper owner immediately. Replace or narrow conflicting guidance instead of appending a contradictory rule.
-- Product corrections belong in `context/product.md`; expression or provenance corrections in `context/user-language.md`; target-situation, belief, resistance, and persuasion changes in a new immutable message version; every wording, tone, empathy, hook, progression, rhythm, reveal, CTA, and caption rule in the matching `formats/<format-id>/copywriting.md`; project operating rules in `AGENTS.md`.
+- Product corrections belong in `context/product.md`; expression or provenance corrections in `context/user-language.md`; target-situation, belief, resistance, and persuasion changes in a new immutable message version; every wording, tone, empathy, hook, progression, rhythm, reveal, CTA, and caption rule in the matching `renderer/slideshow/templates/<format-id>/copywriting.md`; project operating rules in `AGENTS.md`.
 - A content-specific correction remains embodied in the approved final content and does not need a separate durable feedback log.
 - The assistant autonomously judges whether performance evidence operationally supports a hypothesis. Two or more directly generated contents showing a consistent relevant signal are a useful default promotion signal, not a mechanical threshold; account for checkpoint maturity, comparison quality, metric relevance, confounders, sample diversity, limitations, and contradictory evidence.
 - Present operational adoption as part of the daily hypothesis-action proposal. Once the user confirms it, update the one proper final owner directly. Keep the underlying observations, interpretations, and lineage in SQLite; do not duplicate them in a learning inbox.

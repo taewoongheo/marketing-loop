@@ -33,14 +33,6 @@ marketing-loop/
 │       ├── v1.md
 │       └── ...
 │
-├── formats/                          template-coupled copywriting systems
-│   └── <format-id>/                  one analyzed format; current example: list/
-│       ├── copywriting.md            sole owner of format-coupled copywriting
-│       └── references/               user-selected screenshots in slide order
-│           ├── 1.png
-│           ├── 2.png
-│           └── ...
-│
 ├── db/                               final evidence
 │   ├── schema.sql                    database structure
 │   └── hypothesis-loop.sqlite         local runtime database
@@ -49,7 +41,11 @@ marketing-loop/
 │   └── slideshow/                    local slideshow editor and renderer
 │       ├── src/                      editor and browser rendering code
 │       ├── contents/                 saved editable content JSON
-│       ├── templates/                fixed visual JSON structures
+│       ├── templates/                colocated format packages
+│       │   └── <format-id>/          current example: list/
+│       │       ├── template.json     fixed visual structure
+│       │       ├── copywriting.md    format-coupled copywriting owner
+│       │       └── references/       ordered reference screenshots
 │       └── public/assets/             assets required by those templates
 │
 └── .hermes/                          non-runtime Hermes planning artifacts
@@ -68,12 +64,9 @@ External owners — not inside this repository
   - **`product.md`** owns product truth, market scope, positioning, and claim boundaries.
   - **`user-language.md`** stores collected expressions, situations, sources, and confidence without interpreting them.
 - **`messages/`** holds immutable, explicitly versioned target situations, problem patterns, belief shifts, persuasion logic, resistance and response, product roles, and evidence limits.
-- **`formats/`** holds the copywriting systems tied to visual templates.
-  - **`copywriting.md`** solely owns how a selected message becomes copy in that format: empathy, tone, wording, hook, progression, density, product reveal, image-copy relationship, CTA, and caption.
-  - **`references/`** preserves the ordered images used to analyze that format.
 - **`db/`** holds the exact schema and local runtime record of hypotheses, generated content, observed results, and evidence links.
 - **`.hermes/plans/`** holds implementation plans, not runtime marketing knowledge.
-- **`renderer/slideshow/`** owns slideshow visual implementation and rendering. Templates live in `templates/`; generated editable content belongs in `contents/`.
+- **`renderer/slideshow/`** owns slideshow production. Each `templates/<format-id>/` package colocates its visual `template.json`, format-coupled `copywriting.md`, and ordered `references/`; generated editable content belongs in `contents/`.
 - **Profile `SOUL.md`** owns the dedicated agent identity.
 - **Profile `MEMORY.md`** owns approved compact lessons that must persist across sessions.
 - **Hermes skills** own reusable procedures.

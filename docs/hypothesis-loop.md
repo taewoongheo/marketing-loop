@@ -19,7 +19,7 @@ Hypotheses may improve two axes:
 
 Each child hypothesis changes only one of these axes from its parent.
 
-Message definitions use seven semantic sections: target situation, problem pattern, belief shift, persuasion logic, resistance and response, product role, and evidence and limits. Copywriting structure remains format-specific in `formats/<format-id>/copywriting.md`; do not impose one cross-format taxonomy.
+Message definitions use seven semantic sections: target situation, problem pattern, belief shift, persuasion logic, resistance and response, product role, and evidence and limits. Copywriting structure remains format-specific in `renderer/slideshow/templates/<format-id>/copywriting.md`; do not impose one cross-format taxonomy.
 
 ### Hypothesis statement requirements
 
@@ -264,7 +264,7 @@ After the user confirms that a hypothesis should be operationally adopted:
 1. Keep its source observations, interpretations, evidence links, and lineage in SQLite.
 2. Update exactly one final owner directly; do not create a separate pending-learning file.
 3. For a message-strategy conclusion, create the next immutable version under `messages/msg-<message-name>/` or a distinctly named `msg-<message-name>` when the strategy identity changes; do not add a numeric sequence to the message ID.
-4. For a template-coupled copywriting conclusion, replace or narrow the relevant rule in `formats/<format-id>/copywriting.md`.
+4. For a template-coupled copywriting conclusion, replace or narrow the relevant rule in `renderer/slideshow/templates/<format-id>/copywriting.md`.
 5. Do not infer product facts, verified user language, or audience facts from engagement metrics alone.
 6. If later evidence conflicts, revise or narrow the current owner while preserving historical message versions, hypotheses, contents, and results.
 
@@ -385,7 +385,7 @@ published_at
 - `tiktok_url`: URL supplied after manual publication;
 - `published_at`: timestamp recorded when the TikTok URL is first registered.
 
-`renderer/slideshow/templates/list.json` is a `tiktok-slide-template` containing the visual structure and placeholder content. The final editable content is a `tiktok-slide-project` stored under `renderer/slideshow/contents/<id>.json`.
+`renderer/slideshow/templates/list/template.json` is a `tiktok-slide-template` containing the visual structure and placeholder content. The final editable content is a `tiktok-slide-project` stored under `renderer/slideshow/contents/<id>.json`.
 
 The renderer content project is the source of truth for final slide text and visuals. Do not duplicate its visible text as `slide_copy_json`; read text layers from the exact project when copy analysis is required.
 
