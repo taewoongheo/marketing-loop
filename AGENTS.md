@@ -13,20 +13,21 @@
 
 ## Decision rights
 
-The assistant operates the content loop autonomously. Any user message that expresses an intent to create content starts the workflow; no fixed phrase, problem statement, situation, hook, or direction is required.
+The assistant autonomously analyzes the content loop and proposes the day's hypothesis actions. Any user message that expresses an intent to create content starts the workflow; no fixed phrase, problem statement, situation, hook, or direction is required.
 
 The assistant independently selects:
 
 - the problem and situation to address;
 - hook and content direction;
 - core perspective and product exposure;
-- the active hypothesis or child hypotheses and the daily content allocation across active leaves;
+- the recommended hypothesis actions and daily content allocation across active leaves;
 - the copy approach.
 
-Base those decisions on project context, the current fixed renderer template, the hypothesis lineage, and relevant DB performance. Do not ask the user to approve the direction or hypothesis boundary.
+Base those recommendations on project context, the current fixed renderer template, the hypothesis lineage, and relevant DB performance. Do not ask the user to choose the evaluation criteria or develop the hypothesis direction, but obtain confirmation before applying the day's hypothesis actions.
 
 The user controls:
 
+- confirmation or revision of the day's hypothesis actions: continue a leaf, close a leaf, create root or child hypotheses, adopt a supported hypothesis into its final owner, and allocate content across active leaves;
 - final copy approval;
 - whether the final visual project is publication-ready;
 - adding or changing the fixed format and renderer template;
@@ -42,26 +43,26 @@ Ask for information only when a missing fact would materially affect product tru
 4. Inspect the live templates in `renderer/slideshow/templates/`; never rely on duplicated layout notes.
 5. Read `docs/hypothesis-loop.md` and query SQLite for active leaves, relevant ancestors, generated content, and results.
 6. Ask only for missing information that would materially affect product truth, audience fit, or valid copy.
-7. Select or create the hypothesis node that will generate the content and allocate the requested content count across active leaves.
-8. Draft to the current fixed template’s actual editable text slots and constraints.
+7. Prepare the day's hypothesis-action and allocation proposal, then obtain user confirmation before creating or closing nodes, promoting a supported rule, or assigning content.
+8. Apply the confirmed hypothesis actions and draft to the current fixed template’s actual editable text slots and constraints.
 
 ## Content workflow
 
 1. Any user message expressing an intent to create content starts the workflow; no fixed command phrase or user-supplied problem, situation, hook, or direction is required.
 2. The assistant reads the project context, `docs/hypothesis-loop.md`, message definitions, format guide and references, the fixed live template, and relevant DB lineage and results.
 3. Collect due 24h, 48h, and 72h results. When evaluating a leaf, read detailed ancestry back to the nearest 72h-complete ancestor and reintroduce older late corrections when present.
-4. Continue an active leaf, create one or more child hypotheses, or close a leaf from available results. Create a root hypothesis when no suitable lineage exists.
-5. Allocate the requested `n` contents across active leaves. A hypothesis may generate several contents; one parent may generate any number of child hypotheses.
-6. Independently select the problem, situation, message, content direction, product exposure, and copy approach inside the user-controlled fixed format.
-7. Ask the user only if a missing fact blocks truthful, audience-appropriate, or valid copy.
-8. Draft, evaluate, and improve the copy internally against the current format guide and template slots.
-9. Show only the refined final-copy proposal, including slide copy and caption, then revise it from every user feedback without persisting intermediate versions. Infer the narrowest reusable scope of the feedback and update its proper owner immediately when it changes durable guidance.
-10. When the user approves the final copy, create an editable project under `renderer/slideshow/contents/`; this does not create a content DB record.
-11. The user fine-tunes that project and identifies the publication-ready final.
-12. Record the content under the hypothesis that generated it, together with message identity, fixed format/template identity, caption, and final project path and hash.
-13. Render or deliver the exact final project only when explicitly requested. The user publishes manually and provides the TikTok URL.
-14. Record the URL and `published_at` together, then collect results at 24, 48, and 72 hours. Keep observations separate from interpretations.
-15. When the assistant judges a hypothesis operationally supported, update the one proper message or copywriting owner directly. Do not create an intermediate learning queue.
+4. Independently evaluate whether to continue an active leaf, create one or more root or child hypotheses, close a leaf, or adopt a supported hypothesis, and recommend the requested `n`-content allocation.
+5. Present the concise daily hypothesis-action proposal and wait for user confirmation or revision. Do not mutate hypothesis lineage, close a branch, update a durable owner from performance evidence, or assign new content before confirmation.
+6. Apply the confirmed hypothesis actions and allocation. A hypothesis may generate several contents; one parent may generate any number of child hypotheses.
+7. Independently select the problem, situation, message, content direction, product exposure, and copy approach inside the confirmed hypothesis plan and user-controlled fixed format.
+8. Ask the user only if a missing fact blocks truthful, audience-appropriate, or valid copy.
+9. Draft, evaluate, and improve the copy internally against the current format guide and template slots.
+10. Show only the refined final-copy proposal, including slide copy and caption, then revise it from every user feedback without persisting intermediate versions. Infer the narrowest reusable scope of the feedback and update its proper owner immediately when it changes durable guidance.
+11. When the user approves the final copy, create an editable project under `renderer/slideshow/contents/`; this does not create a content DB record.
+12. The user fine-tunes that project and identifies the publication-ready final.
+13. Record the content under the hypothesis that generated it, together with message identity, fixed format/template identity, caption, and final project path and hash.
+14. Render or deliver the exact final project only when explicitly requested. The user publishes manually and provides the TikTok URL.
+15. Record the URL and `published_at` together, then collect results at 24, 48, and 72 hours. Keep observations separate from interpretations.
 
 If the previous final content has no TikTok URL, ask naturally at the start of the next relevant conversation. Do not create a separate reminder by default.
 
@@ -118,8 +119,8 @@ Do not duplicate one fact, rule, layout value, or result across owners.
 - When feedback changes durable guidance, update exactly one proper owner immediately. Replace or narrow conflicting guidance instead of appending a contradictory rule.
 - Product corrections belong in `context/product.md`; audience corrections in `context/audience.md`; user-language provenance in `context/user-language.md`; brand-wide language constraints in `context/voice.md`; message-strategy changes in a new immutable message version; template-coupled hook, progression, rhythm, reveal, and caption guidance in the matching format guide; project operating rules in `AGENTS.md`.
 - A content-specific correction remains embodied in the approved final content and does not need a separate durable feedback log.
-- The assistant autonomously decides whether performance evidence operationally supports a hypothesis. Two or more directly generated contents showing a consistent relevant signal are a useful default promotion signal, not a mechanical threshold; account for checkpoint maturity, comparison quality, metric relevance, confounders, sample diversity, limitations, and contradictory evidence.
-- Once a hypothesis is operationally supported, update its one proper final owner directly. Keep the underlying observations, interpretations, and lineage in SQLite; do not duplicate them in a learning inbox.
+- The assistant autonomously judges whether performance evidence operationally supports a hypothesis. Two or more directly generated contents showing a consistent relevant signal are a useful default promotion signal, not a mechanical threshold; account for checkpoint maturity, comparison quality, metric relevance, confounders, sample diversity, limitations, and contradictory evidence.
+- Present operational adoption as part of the daily hypothesis-action proposal. Once the user confirms it, update the one proper final owner directly. Keep the underlying observations, interpretations, and lineage in SQLite; do not duplicate them in a learning inbox.
 - Later conflicting feedback or evidence may replace, narrow, or reverse a promoted rule. Preserve immutable message versions and historical database evidence rather than rewriting history.
 - Use `MEMORY.md` only for compact, adopted, high-value lessons that should be present in every `marketing-env` session and do not already belong to a more specific project owner.
 - Use a skill for repeatable procedures, not marketing facts or content-specific preferences.

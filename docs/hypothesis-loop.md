@@ -111,7 +111,7 @@ H-012 → n contents
 
 ## Actions after reviewing content results
 
-After reviewing a content result that is at least 24 hours old, choose one of the following actions for the hypothesis that generated it.
+After reviewing a content result that is at least 24 hours old, the assistant recommends one of the following actions for the hypothesis that generated it. The recommendation is not applied until the user confirms the daily hypothesis-action proposal.
 
 ### 1. Generate more content from the same hypothesis
 
@@ -157,6 +157,20 @@ H-001 → closed
 ```
 
 Do not delete the record.
+
+## Daily hypothesis confirmation gate
+
+Before generating the day's content, the assistant presents a concise proposal covering every active leaf affected by newly reviewed evidence:
+
+- continue the same hypothesis, close the leaf, or create one or more root or child hypotheses;
+- the evidence and limitations behind each recommendation;
+- the full statement and `change_axis` of every proposed new hypothesis;
+- the proposed allocation of the requested `n` contents across active leaves;
+- any hypothesis judged operationally supported and the one durable owner that would be updated.
+
+The user confirms or revises this proposal. Only then may the assistant create or close hypothesis nodes, update a durable owner from performance evidence, allocate new content, and proceed to the refined copy proposal. “Remove” means close a branch while preserving its full history; never delete the node, content, or results.
+
+Result collection and factual observation storage do not require confirmation. The gate applies to interpretation-driven hypothesis actions and durable promotion, not to recording due metrics.
 
 ## Node creation rule
 
@@ -230,7 +244,7 @@ This distinction prevents the same ancestor result from being counted as indepen
 
 ## Autonomous hypothesis adoption and owner updates
 
-The assistant autonomously decides when direct evidence operationally supports a hypothesis. This is a reversible operating judgment, not proof that the hypothesis is universally true, and it does not require a separate user-approval gate.
+The assistant autonomously judges when direct evidence operationally supports a hypothesis. This is a reversible operating judgment, not proof that the hypothesis is universally true. The assistant chooses the criteria and recommendation, then includes operational adoption in the daily hypothesis-action proposal for user confirmation before applying it.
 
 Two or more contents generated directly by the hypothesis showing a consistent relevant signal are a useful default indication that a reusable rule may be adopted. Do not treat two results as an automatic pass. Judge the evidence in context:
 
@@ -245,7 +259,7 @@ Two or more contents generated directly by the hypothesis showing a consistent r
 
 One result may justify repetition, branching, redirection, or closure, but normally should not create a broad reusable performance rule by itself. Explicit user correction is different from performance validation: apply it immediately at the narrowest appropriate scope under the project feedback rules.
 
-When a hypothesis is operationally adopted:
+After the user confirms that a hypothesis should be operationally adopted:
 
 1. Keep its source observations, interpretations, evidence links, and lineage in SQLite.
 2. Update exactly one final owner directly; do not create a separate pending-learning file.
@@ -415,7 +429,7 @@ Do not add:
 
 ## Evidence-dependent choices
 
-The assistant resolves the following case by case from the current lineage and evidence; they are not user-approval gates and should not become fixed taxonomies or thresholds without repeated need:
+The assistant resolves the following case by case from the current lineage and evidence and presents the resulting action for confirmation. The user is not required to design these taxonomies or thresholds, and they should not become fixed without repeated need:
 
 1. The exact internal structure of a `message`.
 2. The exact internal structure of `copywriting`.
