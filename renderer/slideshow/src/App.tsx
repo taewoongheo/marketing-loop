@@ -3,7 +3,7 @@ import type { DragEvent, KeyboardEvent, ReactNode } from "react";
 import JSZip from "jszip";
 import { Image as KonvaImage, Layer, Line, Rect, Stage, Text, Transformer, Group } from "react-konva";
 import type Konva from "konva";
-import listTemplate from "../templates/list.json";
+import listTemplate from "../templates/list/template.json";
 import {
   Copy,
   Download,

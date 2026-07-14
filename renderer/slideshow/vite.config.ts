@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Connect, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
+import { readTemplatePackages, writeTemplatePackage } from "./template-storage";
 
 const templatesDirectory = fileURLToPath(new URL("./templates", import.meta.url));
 const contentsDirectory = fileURLToPath(new URL("./contents", import.meta.url));
@@ -61,7 +62,7 @@ const readJsonLibrary = async (
   return templates.filter((template) => template !== null);
 };
 
-const readTemplates = () => readJsonLibrary(templatesDirectory, isTemplate);
+const readTemplates = () => readTemplatePackages(templatesDirectory, isTemplate);
 const readContents = () => readJsonLibrary(contentsDirectory, isContent);
 
 const templateApiMiddleware: Connect.NextHandleFunction = async (request, response, next) => {
@@ -122,7 +123,6 @@ const templateApiMiddleware: Connect.NextHandleFunction = async (request, respon
     }
 
     const isTemplateRequest = pathname === "/api/templates";
-    const directory = isTemplateRequest ? templatesDirectory : contentsDirectory;
     const id = fileIdFromName(name, isTemplateRequest ? "template" : "content");
     const storedValue = {
       ...value,
@@ -133,12 +133,16 @@ const templateApiMiddleware: Connect.NextHandleFunction = async (request, respon
       updatedAt: new Date().toISOString(),
     };
 
-    await mkdir(directory, { recursive: true });
-    await writeFile(
-      path.join(directory, `${id}.json`),
-      `${JSON.stringify(storedValue, null, 2)}\n`,
-      "utf8",
-    );
+    if (isTemplateRequest) {
+      await writeTemplatePackage(templatesDirectory, id, storedValue);
+    } else {
+      await mkdir(contentsDirectory, { recursive: true });
+      await writeFile(
+        path.join(contentsDirectory, `${id}.json`),
+        `${JSON.stringify(storedValue, null, 2)}\n`,
+        "utf8",
+      );
+    }
 
     if (isTemplateRequest) {
       sendJson(response, 200, { template: storedValue, templates: await readTemplates() });

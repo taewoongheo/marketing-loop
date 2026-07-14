@@ -7,7 +7,7 @@ This file is the sole owner of copywriting rules for the `list` format: how a se
 ## Renderer dependency
 
 - Template ID: `list`
-- Live implementation: `renderer/slideshow/templates/list.json`
+- Live implementation: `renderer/slideshow/templates/list/template.json`
 - The live template owns slide count, order, text slots, layout, typography, geometry, image crop, and editable properties.
 - Read the live template before drafting and fit the copy to its actual hook, body, and closing slots.
 - Do not copy implementation values into this file.
