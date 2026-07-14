@@ -4,12 +4,14 @@
 
 `env` is an iOS focus app that saves a prepared focus setup and runs it as one reusable focus environment.
 
-## Product status
+## Product status and market
 
-- Publicly available on the App Store.
 - Market: United States.
-- Product and marketing language: English (U.S.).
+- Product and visible marketing language: English (U.S.).
+- Product name: `env`, written in lowercase.
 - Broader intended market: primarily 18–34 college students, job seekers, and working professionals, with adult learners and independent workers as secondary audiences; all already intend to focus.
+
+Individual message versions own the specific target user and situation they address. The current messages prioritize U.S. college students; this is message strategy rather than a universal product-user fact.
 
 ## Problem env addresses
 
@@ -40,16 +42,18 @@ The user decides to focus, then configures or revisits several settings and tool
 
 The user runs a previously prepared environment and moves into the intended study or work session without rebuilding the setup or visiting each tool again.
 
-## Two intervention paths
+## Product mechanism
 
-- **Repeated setup choices:** timer, Screen Time, sound, break, and related values are chosen again while the intended work waits.
-- **Transitions between setup tools:** moving among the timer, Screen Time, sound app, Home Screen, or app lists creates additional opportunities to enter unrelated apps before the session begins.
+env moves recurring setup decisions into a saved environment and runs the prepared settings together. This can shorten and simplify two parts of the starting process:
 
-env addresses both paths by moving recurring decisions into a saved environment and running the prepared settings together. Either path may be tested as a message hypothesis; neither is established as frequent env-user behavior yet.
+- rebuilding timer, Screen Time, sound, break, and related values;
+- moving among separate setup tools before the session begins.
+
+Whether either behavior is frequent, costly, or recognizable to a particular target is a message hypothesis owned by the relevant message version, not a verified product fact.
 
 ## Difference from alternatives
 
-- env does not merely place several focus features on one screen.
+- env does not merely place several focus features on one screen and should not be positioned as an “all-in-one focus app.”
 - Its intended role is to move recurring setup decisions out of the starting moment and run the required settings together.
 - env uses Screen Time and Family Controls; it does not replace Screen Time.
 - The phone is not treated as something that must disappear. Necessary study and work apps can remain available.
@@ -80,12 +84,3 @@ Do not claim that env:
 - replaces Screen Time;
 - acts as parental control;
 - tracks private TikTok performance.
-
-## Unverified assumptions
-
-- Repeated setup choices measurably deplete concentration.
-- Tool switching is a frequent cause of off-task app use among the priority audience.
-- The priority audience recognizes the setup moment as the source of the problem.
-- Reusing a prepared environment changes study or work outcomes beyond shortening and simplifying setup.
-
-These are messaging or research hypotheses unless supported by recorded evidence.

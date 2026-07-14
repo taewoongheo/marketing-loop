@@ -264,7 +264,7 @@ After the user confirms that a hypothesis should be operationally adopted:
 1. Keep its source observations, interpretations, evidence links, and lineage in SQLite.
 2. Update exactly one final owner directly; do not create a separate pending-learning file.
 3. For a message-strategy conclusion, create the next immutable version under `messages/<message-id>/` or a distinct message when the strategy identity changes.
-4. For a template-coupled copywriting conclusion, replace or narrow the relevant guidance in `formats/<format-id>/guide.md`.
+4. For a template-coupled copywriting conclusion, replace or narrow the relevant rule in `formats/<format-id>/copywriting.md`.
 5. Do not infer product facts, verified user language, or audience facts from engagement metrics alone.
 6. If later evidence conflicts, revise or narrow the current owner while preserving historical message versions, hypotheses, contents, and results.
 

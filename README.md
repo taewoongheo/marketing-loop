@@ -19,17 +19,14 @@ The fixed slideshow structure and its local editor live in `renderer/slideshow/`
 marketing-loop/
 ├── AGENTS.md                         agent operating contract
 ├── README.md                         human-facing project map
-├── learning.md                       unresolved cross-content lessons
 ├── .gitignore                        local/generated file exclusions
 │
 ├── docs/
 │   └── hypothesis-loop.md            hypothesis branching and delayed evidence
 │
 ├── context/                          stable decision inputs
-│   ├── product.md                    product truth
-│   ├── audience.md                   target understanding
-│   ├── user-language.md              audience language evidence
-│   └── voice.md                      shared English voice
+│   ├── product.md                    product truth and claim boundaries
+│   └── user-language.md              collected expressions and provenance
 │
 ├── messages/                         persuasion strategy
 │   └── <message-id>/                 immutable versions of one message
@@ -38,7 +35,7 @@ marketing-loop/
 │
 ├── formats/                          template-coupled copywriting systems
 │   └── <format-id>/                  one analyzed format; current example: list/
-│       ├── guide.md                  format-copy knowledge
+│       ├── copywriting.md            sole owner of format-coupled copywriting
 │       └── references/               user-selected screenshots in slide order
 │           ├── 1.png
 │           ├── 2.png
@@ -66,16 +63,13 @@ External owners — not inside this repository
 
 - **`AGENTS.md`** owns the rules for operating this project.
 - **`README.md`** maps the system and points to each source of truth.
-- **`learning.md`** holds unresolved lessons that may later move to a permanent owner.
 - **`docs/hypothesis-loop.md`** owns the detailed hypothesis-branch and delayed-evidence operating model.
 - **`context/`** holds stable inputs used to make content decisions.
-  - **`product.md`** is the source of product truth.
-  - **`audience.md`** is the source of target-audience understanding.
-  - **`user-language.md`** is the source of audience-language evidence.
-  - **`voice.md`** is the source of shared English voice rules.
-- **`messages/`** holds immutable, explicitly versioned persuasion-message definitions.
+  - **`product.md`** owns product truth, market scope, positioning, and claim boundaries.
+  - **`user-language.md`** stores collected expressions, situations, sources, and confidence without interpreting them.
+- **`messages/`** holds immutable, explicitly versioned target situations, beliefs, resistance, persuasion logic, product roles, and evidence limits.
 - **`formats/`** holds the copywriting systems tied to visual templates.
-  - **`guide.md`** describes how a format communicates.
+  - **`copywriting.md`** solely owns how a selected message becomes copy in that format: empathy, tone, wording, hook, progression, density, product reveal, image-copy relationship, CTA, and caption.
   - **`references/`** preserves the ordered images used to analyze that format.
 - **`db/`** holds the exact schema and local runtime record of hypotheses, generated content, observed results, and evidence links.
 - **`.hermes/plans/`** holds implementation plans, not runtime marketing knowledge.
