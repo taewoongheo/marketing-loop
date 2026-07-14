@@ -29,7 +29,7 @@ marketing-loop/
 │   └── user-language.md              collected expressions and provenance
 │
 ├── messages/                         persuasion strategy
-│   └── <message-id>/                 immutable versions of one message
+│   └── msg-<message-name>/           immutable versions of one message
 │       ├── v1.md
 │       └── ...
 │
@@ -67,7 +67,7 @@ External owners — not inside this repository
 - **`context/`** holds stable inputs used to make content decisions.
   - **`product.md`** owns product truth, market scope, positioning, and claim boundaries.
   - **`user-language.md`** stores collected expressions, situations, sources, and confidence without interpreting them.
-- **`messages/`** holds immutable, explicitly versioned target situations, beliefs, resistance, persuasion logic, product roles, and evidence limits.
+- **`messages/`** holds immutable, explicitly versioned target situations, problem patterns, belief shifts, persuasion logic, resistance and response, product roles, and evidence limits.
 - **`formats/`** holds the copywriting systems tied to visual templates.
   - **`copywriting.md`** solely owns how a selected message becomes copy in that format: empathy, tone, wording, hook, progression, density, product reveal, image-copy relationship, CTA, and caption.
   - **`references/`** preserves the ordered images used to analyze that format.

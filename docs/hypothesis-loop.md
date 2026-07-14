@@ -19,7 +19,7 @@ Hypotheses may improve two axes:
 
 Each child hypothesis changes only one of these axes from its parent.
 
-The exact internal structures of message and copywriting, including which elements may change, are not defined yet.
+Message definitions use seven semantic sections: target situation, problem pattern, belief shift, persuasion logic, resistance and response, product role, and evidence and limits. Copywriting structure remains format-specific in `formats/<format-id>/copywriting.md`; do not impose one cross-format taxonomy.
 
 ### Hypothesis statement requirements
 
@@ -263,7 +263,7 @@ After the user confirms that a hypothesis should be operationally adopted:
 
 1. Keep its source observations, interpretations, evidence links, and lineage in SQLite.
 2. Update exactly one final owner directly; do not create a separate pending-learning file.
-3. For a message-strategy conclusion, create the next immutable version under `messages/<message-id>/` or a distinct message when the strategy identity changes.
+3. For a message-strategy conclusion, create the next immutable version under `messages/msg-<message-name>/` or a distinctly named `msg-<message-name>` when the strategy identity changes; do not add a numeric sequence to the message ID.
 4. For a template-coupled copywriting conclusion, replace or narrow the relevant rule in `formats/<format-id>/copywriting.md`.
 5. Do not infer product facts, verified user language, or audience facts from engagement metrics alone.
 6. If later evidence conflicts, revise or narrow the current owner while preserving historical message versions, hypotheses, contents, and results.
@@ -431,14 +431,12 @@ Do not add:
 
 The assistant resolves the following case by case from the current lineage and evidence and presents the resulting action for confirmation. The user is not required to design these taxonomies or thresholds, and they should not become fixed without repeated need:
 
-1. The exact internal structure of a `message`.
-2. The exact internal structure of `copywriting`.
-3. A rule that makes parent-child differences explicit in each full `statement`.
-4. How daily content slots are allocated across active leaves.
-5. The context-specific threshold for strengthening, branching, or closing from 24-hour results.
-6. The context-specific threshold for reevaluating a branch from 48-hour or 72-hour results.
-7. The minimal structure, if later needed, for Target, Metric, Test set, Evaluator, Baseline, and Decision rule.
-8. How several noisy contents are synthesized into one operational judgment beyond the default consistent-direction signal.
+1. A rule that makes parent-child differences explicit in each full `statement`.
+2. How daily content slots are allocated across active leaves.
+3. The context-specific threshold for strengthening, branching, or closing from 24-hour results.
+4. The context-specific threshold for reevaluating a branch from 48-hour or 72-hour results.
+5. The minimal structure, if later needed, for Target, Metric, Test set, Evaluator, Baseline, and Decision rule.
+6. How several noisy contents are synthesized into one operational judgment beyond the default consistent-direction signal.
 
 ## Core principles
 

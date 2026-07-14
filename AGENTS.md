@@ -70,7 +70,7 @@ If the previous final content has no TikTok URL, ask naturally at the start of t
 
 - Verified product facts and claim boundaries: `context/product.md`
 - Collected user-language expressions and provenance only: `context/user-language.md`
-- Versioned target situation, beliefs, resistance, persuasion logic, product role, and evidence limits: `messages/<message-id>/v<version>.md`
+- Versioned target situation, problem pattern, belief shift, persuasion logic, resistance and response, product role, and evidence limits: `messages/msg-<message-name>/v<version>.md`; use the descriptive `msg-` name as the message ID without a numeric sequence.
 - All template-coupled wording, empathy technique, tone, hook, progression, density, product reveal, image-copy relationship, CTA, caption, reference evidence, and adaptation reasoning: `formats/<format-id>/copywriting.md`
 - Hypothesis branching, delayed-evidence traversal, and active-leaf operation: `docs/hypothesis-loop.md`
 - Hypothesis nodes, generated content, publication details, results, and evidence links: `db/hypothesis-loop.sqlite`
