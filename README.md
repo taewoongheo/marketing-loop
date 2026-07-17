@@ -52,7 +52,7 @@ marketing-loop/
 │       │       ├── copywriting/      versioned format-copy owner
 │       │       │   ├── v1.md
 │       │       │   └── ...
-│       │       ├── imagery/          versioned visual-expression owner
+│       │       ├── imagery/          versioned visual rules and generation policy
 │       │       │   ├── v1.md
 │       │       │   └── ...
 │       │       ├── materials.md      optional approved content inputs
@@ -78,7 +78,7 @@ External owners — not inside this repository
 - **`db/`** holds the exact schema and local runtime record of hypotheses, generated content, observed results, and evidence links.
 - **`viewer/hypothesis_tree/`** derives a read-only tree from the runtime database. It owns no hypothesis state and cannot replace SQLite as the evidence source.
 - **`.hermes/plans/`** holds implementation plans, not runtime marketing knowledge.
-- **`renderer/slideshow/`** owns slideshow production. Each `templates/<format-id>/` package colocates its visual `template.json`, versioned language rules under `copywriting/`, versioned image-expression and generation rules under `imagery/`, optional format-specific `materials.md`, and ordered `references/`; generated editable content belongs in `contents/`. Copywriting owns no visual tone, and imagery consumes approved copy and live template slots without duplicating either. Each format defines its own materials structure when it needs one.
+- **`renderer/slideshow/`** owns slideshow production. Each `templates/<format-id>/` package colocates its visual `template.json`, versioned language rules under `copywriting/`, versioned semantic visualization, art direction, within-image composition, runtime request constraints, and generation policy under `imagery/`, optional format-specific `materials.md`, and ordered raw reference screenshots under `references/`; generated editable content belongs in `contents/`. Copywriting owns no visual tone. Imagery consumes approved copy and live template slots without duplicating either, while the assistant constructs the content-specific provider request transiently and stores only the resulting image in the editable project. Each format defines its own materials structure when it needs one.
 - **Profile `SOUL.md`** owns the dedicated agent identity.
 - **Profile `MEMORY.md`** owns approved compact lessons that must persist across sessions.
 - **Hermes skills** own reusable procedures.
