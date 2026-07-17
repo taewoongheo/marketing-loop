@@ -1748,8 +1748,10 @@ export default function App() {
           </label>
           <div className="content-list">
             {contentLibrary.length > 0 ? (
-              contentLibrary.map((content) => (
-                <div key={content.id ?? content.name} className="content-row">
+              contentLibrary.map((content) => {
+                const preset = normalizeCanvasPreset(content.preset ?? content.slides[0]?.canvas);
+
+                return <div key={content.id ?? content.name} className="content-row">
                   <button
                     className="content-card"
                     title={`Load ${content.name ?? content.id} content`}
@@ -1758,7 +1760,7 @@ export default function App() {
                   >
                     <strong>{content.name ?? content.id}</strong>
                     <small>
-                      {content.slides.length} slides · {content.preset.width}×{content.preset.height}
+                      {content.slides.length} slides · {preset.width}×{preset.height}
                     </small>
                   </button>
                   <button
@@ -1770,8 +1772,8 @@ export default function App() {
                   >
                     <Trash2 size={15} />
                   </button>
-                </div>
-              ))
+                </div>;
+              })
             ) : (
               <div className="content-empty">No saved content.</div>
             )}

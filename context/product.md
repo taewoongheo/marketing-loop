@@ -23,7 +23,7 @@ env intervenes after the decision to focus and before the first focused action. 
 
 - Save timer, break, cycle, app blocking, allowed apps, sound, volume, name, and color as one reusable focus environment.
 - Save different environments for recurring sessions that need different timer, blocking, sound, or break settings.
-- Start an already-prepared environment without rebuilding its settings at the starting moment.
+- Load and start an already-prepared environment with one tap without rebuilding its settings at the starting moment.
 - Use Screen Time and Family Controls to reduce access to distracting apps while keeping necessary apps available.
 - Use fixed timers or count-up timers.
 - Configure breaks, cycles, focus sounds, and volume.
@@ -63,6 +63,7 @@ Whether either behavior is frequent, costly, or recognizable to a particular tar
 These claims may be used when phrased within the product's actual behavior:
 
 - A focus setup can be prepared once and reused.
+- A saved focus environment can be loaded and started with one tap.
 - Timer, app-blocking, allowed-app, sound, break, and related settings can run as one environment.
 - The user does not have to rebuild the same setup at every start.
 - Different recurring session types can use different saved environments rather than one rigid universal setup.

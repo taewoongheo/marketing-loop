@@ -31,8 +31,13 @@ function query(databasePath, sql) {
   });
 }
 
-function insertContent(databasePath, copywritingVersion, messageVersion = "1") {
-  const suffix = `${copywritingVersion}-${messageVersion}`.replace(
+function insertContent(
+  databasePath,
+  copywritingVersion,
+  messageVersion = "1",
+  imageryVersion = "NULL",
+) {
+  const suffix = `${copywritingVersion}-${messageVersion}-${imageryVersion}`.replace(
     /[^a-z0-9]/gi,
     "-",
   );
@@ -46,6 +51,7 @@ function insertContent(databasePath, copywritingVersion, messageVersion = "1") {
         message_version,
         format_id,
         copywriting_version,
+        imagery_version,
         template_path,
         template_sha256,
         caption,
@@ -58,6 +64,7 @@ function insertContent(databasePath, copywritingVersion, messageVersion = "1") {
         ${messageVersion},
         'denzel',
         ${copywritingVersion},
+        ${imageryVersion},
         'renderer/slideshow/templates/denzel/template.json',
         '${"a".repeat(64)}',
         'caption',
@@ -69,7 +76,7 @@ function insertContent(databasePath, copywritingVersion, messageVersion = "1") {
   });
 }
 
-test("contents records the copywriting version used by publication-ready content", async () => {
+test("contents records the format execution versions used by publication-ready content", async () => {
   await withDatabase(async (databasePath) => {
     const columns = JSON.parse(query(databasePath, "PRAGMA table_info(contents);"));
     const copywritingVersion = columns.find(
@@ -79,23 +86,41 @@ test("contents records the copywriting version used by publication-ready content
     assert.ok(copywritingVersion);
     assert.equal(copywritingVersion.notnull, 1);
 
+    const imageryVersion = columns.find(
+      (column) => column.name === "imagery_version",
+    );
+    assert.ok(imageryVersion);
+    assert.equal(imageryVersion.notnull, 0);
+
     const indexes = JSON.parse(query(databasePath, "PRAGMA index_list(contents);"));
     const formatIndex = indexes.find(
-      (index) => index.name === "idx_contents_format_copywriting",
+      (index) => index.name === "idx_contents_format_versions",
     );
     assert.ok(formatIndex);
 
     const indexColumns = JSON.parse(
-      query(databasePath, "PRAGMA index_info(idx_contents_format_copywriting);"),
+      query(databasePath, "PRAGMA index_info(idx_contents_format_versions);"),
     );
     assert.deepEqual(
       indexColumns.map((column) => column.name),
-      ["format_id", "copywriting_version"],
+      ["format_id", "copywriting_version", "imagery_version"],
     );
   });
 });
 
 test("contents accepts positive integer strategy versions", async () => {
+  await withDatabase(async (databasePath) => {
+    execFileSync("sqlite3", [databasePath, `
+      INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
+    `]);
+
+    const inserted = insertContent(databasePath, "1", "1", "1");
+
+    assert.equal(inserted.status, 0, inserted.stderr);
+  });
+});
+
+test("contents accepts null imagery version for historical content", async () => {
   await withDatabase(async (databasePath) => {
     execFileSync("sqlite3", [databasePath, `
       INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
@@ -135,9 +160,23 @@ test("contents rejects invalid message versions", async () => {
   });
 });
 
-test("schema version identifies the copywriting-version structure", async () => {
+test("contents rejects invalid imagery versions", async () => {
+  await withDatabase(async (databasePath) => {
+    execFileSync("sqlite3", [databasePath, `
+      INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
+    `]);
+
+    for (const version of ["0", "-1", "1.5", "'1'", "'1.0'", "'abc'"]) {
+      const inserted = insertContent(databasePath, "1", "1", version);
+      assert.notEqual(inserted.status, 0, `accepted ${version}`);
+      assert.match(inserted.stderr, /CHECK constraint failed/);
+    }
+  });
+});
+
+test("schema version identifies the imagery-version structure", async () => {
   await withDatabase(async (databasePath) => {
     const version = query(databasePath, "PRAGMA user_version;").trim();
-    assert.equal(version, '[{"user_version":4}]');
+    assert.equal(version, '[{"user_version":5}]');
   });
 });
