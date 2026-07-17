@@ -29,14 +29,14 @@ class LoadTreeTests(unittest.TestCase):
                 """
                 INSERT INTO contents (
                     id, hypothesis_id, message_id, message_version,
-                    format_id, copywriting_version, imagery_version, template_path,
+                    format_id, copywriting_version, template_path,
                     template_sha256, caption, final_project_path,
                     final_project_sha256, tiktok_url, published_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     "C-001", "H-001", "msg-focus-is-a-system", 1,
-                    "denzel", 1, 1, "template.json", "a" * 64, "caption",
+                    "denzel", 1, "template.json", "a" * 64, "caption",
                     "contents/C-001.json", "b" * 64,
                     "https://example.com/post", "2026-07-14T00:00:00Z",
                 ),
@@ -80,7 +80,7 @@ class LoadTreeTests(unittest.TestCase):
         root = tree["roots"][0]
         self.assertEqual(root["id"], "H-001")
         self.assertEqual(root["state"], "branched")
-        self.assertEqual(root["contents"][0]["imagery_version"], 1)
+        self.assertNotIn("imagery_version", root["contents"][0])
         self.assertEqual(root["contents"][0]["checkpoints"]["24"]["views"], 1200)
         self.assertIsNone(root["contents"][0]["checkpoints"]["48"])
         child = root["children"][0]
@@ -104,7 +104,7 @@ class ViewerDocumentTests(unittest.TestCase):
         self.assertIn('fetch("/api/tree")', document)
         self.assertIn('data-role="inspector"', document)
         self.assertIn('class="checkpoint-detail"', document)
-        self.assertIn('imagery v${content.imagery_version}', document)
+        self.assertNotIn("imagery_version", document)
 
 
 if __name__ == "__main__":

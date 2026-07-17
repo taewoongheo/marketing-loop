@@ -358,10 +358,7 @@
 
       const contents = node.contents.length ? node.contents.map(content => {
         const completed = [24, 48, 72].filter(hour => content.checkpoints[String(hour)]).join(" / ") || "none";
-        const imagery = content.imagery_version
-          ? `imagery v${content.imagery_version}`
-          : "imagery unmanaged";
-        const versions = `message v${content.message_version} · copywriting v${content.copywriting_version} · ${imagery}`;
+        const versions = `message v${content.message_version} · copywriting v${content.copywriting_version}`;
         const details = [24, 48, 72]
           .map(hour => content.checkpoints[String(hour)])
           .filter(Boolean)
