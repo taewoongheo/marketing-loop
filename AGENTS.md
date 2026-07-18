@@ -92,6 +92,7 @@ Do not duplicate one fact, rule, layout value, or result across owners.
 ## Renderer boundary
 
 - The renderer has no reusable template or per-property lock contract. It reads, edits, saves, and renders self-contained content projects.
+- `renderer/slideshow/src/projectValidation.ts` solely owns the runtime safety envelope for accepted Project JSON: byte size, slide/layer counts, canvas bounds, and allowed image-source schemes. The editor loader, storage middleware, and render CLI must all consume it rather than restating those limits.
 - Write generated editable content only to the selected `renderer/slideshow/formats/<format-id>/contents/` directory.
 - Each content project owns its exact slide count, order, canvas, coordinates, dimensions, typography, colors, image crop, image bytes, and editable layers.
 - The selected copywriting version owns hook function, slide-copy roles, progression, rhythm, information density, reader relationship, product reveal, CTA, title, and caption approach.

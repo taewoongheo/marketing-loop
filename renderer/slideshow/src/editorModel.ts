@@ -1,3 +1,5 @@
+import { assertCanvasBounds, MAX_LEGACY_BACKGROUNDS } from "./projectValidation.ts";
+
 export type CanvasPreset = {
   id: string;
   name: string;
@@ -223,7 +225,7 @@ export const toggleUnderlineMark = (marks: TextMark[], start: number, end: numbe
   );
 };
 
-export const MAX_BACKGROUNDS = 4;
+export const MAX_BACKGROUNDS = MAX_LEGACY_BACKGROUNDS;
 
 export type BackgroundRenderArea = {
   x: number;
@@ -252,6 +254,7 @@ export const normalizeCanvasPreset = (preset?: Partial<CanvasPreset>): CanvasPre
   if (matchedBySize) return matchedBySize;
 
   if (typeof preset.width === "number" && typeof preset.height === "number") {
+    assertCanvasBounds(preset, "Canvas preset");
     return {
       id: preset.id ?? `custom-${preset.width}x${preset.height}`,
       name: preset.name ?? `${preset.width}x${preset.height}`,

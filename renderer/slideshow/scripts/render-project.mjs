@@ -1,11 +1,21 @@
 #!/usr/bin/env node
 
 import { spawn } from "node:child_process";
-import { access, mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { createServer } from "vite";
+import {
+  assertBoundedProject,
+  MAX_PROJECT_BYTES,
+} from "../src/projectValidation.ts";
+
+const DEVTOOLS_TIMEOUT_MS = 5_000;
+const PAGE_RENDER_TIMEOUT_MS = 60_000;
+const BROWSER_RENDER_TIMEOUT_MS = 180_000;
+const FORCE_KILL_WAIT_MS = 1_000;
+const CLEANUP_TIMEOUT_MS = 5_000;
 
 const HELP = `Usage:
   npm run render -- --project <project.json> --out <directory>
@@ -89,43 +99,90 @@ const projectMiddleware = (projectPayload) => ({
 
 const delay = (milliseconds) => new Promise((resolve) => setTimeout(resolve, milliseconds));
 
-const startChrome = (chrome, profileDirectory) => new Promise((resolve, reject) => {
-  const child = spawn(chrome, [
-    "--headless=new",
-    "--disable-gpu",
-    "--hide-scrollbars",
-    "--no-first-run",
-    "--no-default-browser-check",
-    "--disable-component-update",
-    "--force-device-scale-factor=1",
-    `--user-data-dir=${profileDirectory}`,
-    "--remote-debugging-port=0",
-    "about:blank",
-  ]);
-  child.stdout.resume();
-  let stderr = "";
-  const timeout = setTimeout(() => {
-    child.kill("SIGKILL");
-    reject(new Error("Chrome DevTools endpoint did not start within 15 seconds."));
-  }, 15_000);
+const remainingTime = (deadline, cap, label) => {
+  const remaining = deadline - Date.now();
+  if (remaining <= 0) throw new Error(`${label} exceeded the render deadline.`);
+  return Math.min(cap, remaining);
+};
 
-  child.stderr.on("data", (chunk) => {
-    stderr += chunk.toString("utf8");
-    const match = stderr.match(/DevTools listening on (ws:\/\/[^\s]+)/);
-    if (!match) return;
+const withTimeout = async (promise, timeoutMs, label) => {
+  let timeout;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise((_, reject) => {
+        timeout = setTimeout(() => reject(new Error(`${label} exceeded the render deadline.`)), timeoutMs);
+      }),
+    ]);
+  } finally {
     clearTimeout(timeout);
-    const debuggerUrl = new URL(match[1]);
-    resolve({ child, httpOrigin: `http://${debuggerUrl.host}` });
-  });
-  child.on("error", (error) => {
-    clearTimeout(timeout);
-    reject(error);
-  });
-  child.on("close", (code) => {
-    clearTimeout(timeout);
-    reject(new Error(stderr.trim() || `Chrome exited with ${code} before DevTools became ready.`));
-  });
+  }
+};
+
+const withDeadline = (operation, deadline, label) => {
+  const timeoutMs = remainingTime(deadline, BROWSER_RENDER_TIMEOUT_MS, label);
+  return withTimeout(operation(), timeoutMs, label);
+};
+
+const fetchBeforeDeadline = (url, options, deadline, label) => fetch(url, {
+  ...options,
+  signal: AbortSignal.timeout(remainingTime(deadline, DEVTOOLS_TIMEOUT_MS, label)),
 });
+
+const startChrome = (chrome, profileDirectory, deadline) => {
+  const startupTimeout = remainingTime(deadline, 15_000, "Chrome startup");
+  return new Promise((resolve, reject) => {
+    const child = spawn(chrome, [
+      "--headless=new",
+      "--disable-gpu",
+      "--hide-scrollbars",
+      "--no-first-run",
+      "--no-default-browser-check",
+      "--disable-component-update",
+      "--host-resolver-rules=MAP * ~NOTFOUND, EXCLUDE 127.0.0.1",
+      "--force-device-scale-factor=1",
+      `--user-data-dir=${profileDirectory}`,
+      "--remote-debugging-port=0",
+      "about:blank",
+    ]);
+    child.stdout.resume();
+    let stderr = "";
+    let startupError;
+    let forceTimeout;
+    let timedOut = false;
+    const timeout = setTimeout(() => {
+      timedOut = true;
+      startupError = new Error("Chrome DevTools endpoint did not start before its deadline.");
+      child.kill("SIGKILL");
+      forceTimeout = setTimeout(() => {
+        child.stdout.destroy();
+        child.stderr.destroy();
+        child.unref();
+        reject(startupError);
+      }, FORCE_KILL_WAIT_MS);
+    }, startupTimeout);
+
+    child.stderr.on("data", (chunk) => {
+      stderr += chunk.toString("utf8");
+      const match = stderr.match(/DevTools listening on (ws:\/\/[^\s]+)/);
+      if (!match || timedOut) return;
+      clearTimeout(timeout);
+      clearTimeout(forceTimeout);
+      const debuggerUrl = new URL(match[1]);
+      resolve({ child, httpOrigin: `http://${debuggerUrl.host}` });
+    });
+    child.on("error", (error) => {
+      clearTimeout(timeout);
+      clearTimeout(forceTimeout);
+      reject(error);
+    });
+    child.on("close", (code) => {
+      clearTimeout(timeout);
+      clearTimeout(forceTimeout);
+      reject(startupError ?? new Error(stderr.trim() || `Chrome exited with ${code} before DevTools became ready.`));
+    });
+  });
+};
 
 const stopChrome = async ({ child }) => {
   if (child.exitCode !== null) return;
@@ -134,38 +191,66 @@ const stopChrome = async ({ child }) => {
   await Promise.race([closed, delay(5_000)]);
   if (child.exitCode === null) {
     child.kill("SIGKILL");
-    await closed;
+    await Promise.race([closed, delay(FORCE_KILL_WAIT_MS)]);
+  }
+  if (child.exitCode === null) {
+    child.stdout.destroy();
+    child.stderr.destroy();
+    child.unref();
   }
 };
 
-const createCdpClient = async (webSocketUrl) => {
+const createCdpClient = async (webSocketUrl, deadline) => {
+  const connectionTimeout = remainingTime(deadline, DEVTOOLS_TIMEOUT_MS, "Chrome DevTools connection");
   const socket = new WebSocket(webSocketUrl);
   const pending = new Map();
   let nextId = 1;
 
   await new Promise((resolve, reject) => {
-    socket.addEventListener("open", resolve, { once: true });
-    socket.addEventListener("error", () => reject(new Error("Could not connect to the Chrome DevTools page.")), { once: true });
+    const timeout = setTimeout(() => {
+      try {
+        socket.close();
+      } catch {
+        // Ignore a WebSocket that is still connecting.
+      }
+      reject(new Error("Chrome DevTools page did not connect in time."));
+    }, connectionTimeout);
+    socket.addEventListener("open", () => {
+      clearTimeout(timeout);
+      resolve();
+    }, { once: true });
+    socket.addEventListener("error", () => {
+      clearTimeout(timeout);
+      reject(new Error("Could not connect to the Chrome DevTools page."));
+    }, { once: true });
   });
   socket.addEventListener("message", (event) => {
     const message = JSON.parse(String(event.data));
     if (!message.id || !pending.has(message.id)) return;
     const callbacks = pending.get(message.id);
     pending.delete(message.id);
+    clearTimeout(callbacks.timeout);
     if (message.error) callbacks.reject(new Error(message.error.message));
     else callbacks.resolve(message.result);
   });
   socket.addEventListener("close", () => {
-    for (const callbacks of pending.values()) callbacks.reject(new Error("Chrome DevTools page closed unexpectedly."));
+    for (const callbacks of pending.values()) {
+      clearTimeout(callbacks.timeout);
+      callbacks.reject(new Error("Chrome DevTools page closed unexpectedly."));
+    }
     pending.clear();
   });
 
   return {
-    send(method, params = {}) {
+    send(method, params = {}, timeoutMs = DEVTOOLS_TIMEOUT_MS) {
       const id = nextId;
       nextId += 1;
       return new Promise((resolve, reject) => {
-        pending.set(id, { resolve, reject });
+        const timeout = setTimeout(() => {
+          pending.delete(id);
+          reject(new Error(`Chrome DevTools ${method} timed out.`));
+        }, timeoutMs);
+        pending.set(id, { resolve, reject, timeout });
         socket.send(JSON.stringify({ id, method, params }));
       });
     },
@@ -175,16 +260,26 @@ const createCdpClient = async (webSocketUrl) => {
   };
 };
 
-const renderUrl = async (browser, url) => {
-  const response = await fetch(`${browser.httpOrigin}/json/new?${encodeURIComponent(url)}`, { method: "PUT" });
+const renderUrl = async (browser, url, operationDeadline) => {
+  const pageDeadline = Math.min(operationDeadline, Date.now() + PAGE_RENDER_TIMEOUT_MS);
+  const response = await fetchBeforeDeadline(
+    `${browser.httpOrigin}/json/new?${encodeURIComponent(url)}`,
+    { method: "PUT" },
+    pageDeadline,
+    "Chrome target creation",
+  );
   if (!response.ok) throw new Error(`Chrome could not open the render target (${response.status}).`);
-  const target = await response.json();
-  const cdp = await createCdpClient(target.webSocketDebuggerUrl);
+  const target = await withDeadline(() => response.json(), pageDeadline, "Chrome target response");
+  let cdp;
 
   try {
-    await cdp.send("Runtime.enable");
-    const deadline = Date.now() + 60_000;
-    while (Date.now() < deadline) {
+    cdp = await createCdpClient(target.webSocketDebuggerUrl, pageDeadline);
+    await cdp.send(
+      "Runtime.enable",
+      {},
+      remainingTime(pageDeadline, DEVTOOLS_TIMEOUT_MS, "Chrome Runtime.enable"),
+    );
+    while (Date.now() < pageDeadline) {
       const evaluation = await cdp.send("Runtime.evaluate", {
         expression: `(() => {
           const output = document.querySelector("#render-output");
@@ -193,7 +288,7 @@ const renderUrl = async (browser, url) => {
           return error ? "__RENDER_ERROR__" + error.textContent : null;
         })()`,
         returnByValue: true,
-      });
+      }, remainingTime(pageDeadline, DEVTOOLS_TIMEOUT_MS, "Chrome Runtime.evaluate"));
       const value = evaluation.result?.value;
       if (typeof value === "string" && value.startsWith("data:image/png;base64,")) {
         return pngFromDataUrl(value);
@@ -201,12 +296,21 @@ const renderUrl = async (browser, url) => {
       if (typeof value === "string" && value.startsWith("__RENDER_ERROR__")) {
         throw new Error(`Browser renderer failed: ${value.slice("__RENDER_ERROR__".length)}`);
       }
-      await delay(100);
+      await delay(remainingTime(pageDeadline, 100, "Browser render polling"));
     }
-    throw new Error("Browser renderer did not produce PNG data within 60 seconds.");
+    throw new Error("Browser renderer exceeded its page deadline.");
   } finally {
-    cdp.close();
-    await fetch(`${browser.httpOrigin}/json/close/${target.id}`, { method: "PUT" }).catch(() => undefined);
+    cdp?.close();
+    try {
+      await fetchBeforeDeadline(
+        `${browser.httpOrigin}/json/close/${target.id}`,
+        { method: "PUT" },
+        pageDeadline,
+        "Chrome target cleanup",
+      );
+    } catch {
+      // Chrome termination closes any target that outlives its page budget.
+    }
   }
 };
 
@@ -226,20 +330,19 @@ const run = async () => {
 
   const projectPath = path.resolve(options.project);
   const outputDirectory = path.resolve(options.out);
+  const projectStats = await stat(projectPath);
+  if (!projectStats.isFile() || projectStats.size > MAX_PROJECT_BYTES) {
+    throw new Error(`--project must be a file no larger than ${MAX_PROJECT_BYTES} bytes.`);
+  }
   const projectPayload = await readFile(projectPath, "utf8");
   const project = JSON.parse(projectPayload);
-  if (project?.type !== "tiktok-slide-project" || !Array.isArray(project.slides) || project.slides.length === 0) {
-    throw new Error("--project must point to a non-empty tiktok-slide-project JSON file.");
-  }
-  if (typeof project.formatId !== "string" || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(project.formatId)) {
-    throw new Error("--project must include a lowercase format identity.");
-  }
-
+  assertBoundedProject(project);
   const chrome = await findChrome();
-  const profileDirectory = await mkdtemp(path.join(os.tmpdir(), "env-render-chrome-"));
+  let profileDirectory;
   let server;
   let browser;
   try {
+    profileDirectory = await mkdtemp(path.join(os.tmpdir(), "env-render-chrome-"));
     server = await createServer({
       root: rendererRoot,
       configFile: path.join(rendererRoot, "vite.config.ts"),
@@ -248,28 +351,47 @@ const run = async () => {
       plugins: [projectMiddleware(projectPayload)],
     });
     await mkdir(outputDirectory, { recursive: true });
-    await server.listen();
+    await withTimeout(server.listen(), 15_000, "Renderer server startup");
     const address = server.httpServer?.address();
     if (!address || typeof address === "string") throw new Error("Renderer server did not expose a local port.");
     const baseUrl = `http://127.0.0.1:${address.port}/render-cli.html`;
-    browser = await startChrome(chrome, profileDirectory);
+    browser = await startChrome(chrome, profileDirectory, Date.now() + 15_000);
+    const renderDeadline = Date.now() + BROWSER_RENDER_TIMEOUT_MS;
 
     for (const [index, slide] of project.slides.entries()) {
       const fileName = `${String(index + 1).padStart(2, "0")}-${safeFileName(slide.name, `slide-${index + 1}`)}.png`;
-      const png = await renderUrl(browser, `${baseUrl}?slide=${index}`);
-      await writeFile(path.join(outputDirectory, fileName), png);
+      const png = await renderUrl(browser, `${baseUrl}?slide=${index}`, renderDeadline);
+      await writeFile(path.join(outputDirectory, fileName), png, {
+        signal: AbortSignal.timeout(
+          remainingTime(renderDeadline, BROWSER_RENDER_TIMEOUT_MS, `Slide ${index + 1} write`),
+        ),
+      });
       process.stdout.write(`${fileName}\n`);
     }
 
-    await writeFile(
-      path.join(outputDirectory, "contact-sheet.png"),
-      await renderUrl(browser, `${baseUrl}?contact=1`),
-    );
+    const contactSheet = await renderUrl(browser, `${baseUrl}?contact=1`, renderDeadline);
+    await writeFile(path.join(outputDirectory, "contact-sheet.png"), contactSheet, {
+      signal: AbortSignal.timeout(
+        remainingTime(renderDeadline, BROWSER_RENDER_TIMEOUT_MS, "Contact sheet write"),
+      ),
+    });
     process.stdout.write("contact-sheet.png\n");
   } finally {
     if (browser) await stopChrome(browser);
-    if (server) await server.close();
-    await rm(profileDirectory, { recursive: true, force: true });
+    if (server) {
+      await withTimeout(
+        server.close(),
+        CLEANUP_TIMEOUT_MS,
+        "Renderer server cleanup",
+      ).catch(() => undefined);
+    }
+    if (profileDirectory) {
+      await withTimeout(
+        rm(profileDirectory, { recursive: true, force: true }),
+        CLEANUP_TIMEOUT_MS,
+        "Chrome profile cleanup",
+      );
+    }
   }
 };
 

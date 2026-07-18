@@ -16,6 +16,7 @@ import {
   type SlideBackground,
   type SlideLayerModel,
 } from "./editorModel";
+import { assertBoundedProject, normalizeProjectImageSource } from "./projectValidation.ts";
 
 type ProjectLoadResult = {
   formatId: string;
@@ -36,24 +37,6 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
 const asNumber = (value: unknown, fallback: number) => (typeof value === "number" && Number.isFinite(value) ? value : fallback);
-
-const normalizeAssetSrc = (src: string) => {
-  const trimmed = src.trim();
-  if (trimmed.startsWith("assets/")) {
-    return `/${trimmed}`;
-  }
-
-  if (
-    trimmed.startsWith("data:") ||
-    trimmed.startsWith("http://") ||
-    trimmed.startsWith("https://") ||
-    trimmed.startsWith("/")
-  ) {
-    return trimmed;
-  }
-
-  return `/${trimmed.replace(/^\.?\//, "")}`;
-};
 
 const getBackgroundInput = (value: unknown): DraftBackground | undefined => {
   if (typeof value === "string") return { src: value };
@@ -90,7 +73,7 @@ async function normalizeLegacyBackgroundAsImageLayer(
   const background = getLegacyBackgroundInput(backgroundInput);
   if (!background?.src) return undefined;
 
-  const src = normalizeAssetSrc(String(background.src));
+  const src = normalizeProjectImageSource(background.src);
   try {
     const image = await loadHtmlImage(src);
     const naturalWidth = asNumber(background.naturalWidth, image.naturalWidth);
@@ -152,7 +135,7 @@ function normalizeProjectLayer(layer: unknown): SlideLayerModel {
   return normalizeImageLayer(
     {
       ...normalized,
-      src: normalizeAssetSrc(normalized.src),
+      src: normalizeProjectImageSource(normalized.src),
     },
     false,
   );
@@ -162,6 +145,7 @@ export async function normalizeProjectFile(parsed: unknown): Promise<ProjectLoad
   if (!isRecord(parsed) || parsed.type !== "tiktok-slide-project" || !Array.isArray(parsed.slides)) {
     throw new Error("Content JSON 형식이 아닙니다.");
   }
+  assertBoundedProject(parsed);
 
   const project = parsed as Partial<ProjectFile>;
   const formatId = normalizeFormatId(parsed.formatId);

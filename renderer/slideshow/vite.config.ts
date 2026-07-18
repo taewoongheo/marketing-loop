@@ -1,8 +1,9 @@
-import { access, mkdir, readdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { access, mkdir, readdir, readFile, stat, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Connect, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
+import { assertBoundedProject, MAX_PROJECT_BYTES } from "./src/projectValidation.ts";
 
 const formatsDirectory = fileURLToPath(new URL("./formats", import.meta.url));
 const FORMAT_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
@@ -10,13 +11,14 @@ const FORMAT_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
-const isContent = (value: unknown): value is Record<string, unknown> & { formatId: string; slides: unknown[] } =>
-  isRecord(value)
-  && value.type === "tiktok-slide-project"
-  && typeof value.formatId === "string"
-  && FORMAT_ID_PATTERN.test(value.formatId)
-  && Array.isArray(value.slides)
-  && value.slides.length > 0;
+const isContent = (value: unknown): value is Record<string, unknown> & { formatId: string; slides: unknown[] } => {
+  try {
+    assertBoundedProject(value);
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 const fileIdFromName = (name: string, fallback: string) => {
   const id = name
@@ -45,7 +47,9 @@ const readJsonLibrary = async (
   const projects = await Promise.all(
     fileNames.map(async (fileName) => {
       try {
-        const value = JSON.parse(await readFile(path.join(directory, fileName), "utf8"));
+        const filePath = path.join(directory, fileName);
+        if ((await stat(filePath)).size > MAX_PROJECT_BYTES) return null;
+        const value = JSON.parse(await readFile(filePath, "utf8"));
         if (!isContent(value) || value.formatId !== formatId) return null;
 
         const id = path.basename(fileName, ".json");
@@ -120,14 +124,35 @@ const contentApiMiddleware: Connect.NextHandleFunction = async (request, respons
       return;
     }
 
+    const contentLength = Number(request.headers["content-length"] ?? 0);
+    if (Number.isFinite(contentLength) && contentLength > MAX_PROJECT_BYTES) {
+      sendJson(response, 413, { error: "Content JSON is too large." });
+      request.resume();
+      return;
+    }
+
     request.setEncoding("utf8");
     let rawBody = "";
-    for await (const chunk of request) rawBody += chunk;
+    let bodyBytes = 0;
+    for await (const chunk of request) {
+      bodyBytes += Buffer.byteLength(chunk);
+      if (bodyBytes > MAX_PROJECT_BYTES) {
+        sendJson(response, 413, { error: "Content JSON is too large." });
+        return;
+      }
+      rawBody += chunk;
+    }
 
     const value = JSON.parse(rawBody);
     const name = isRecord(value) && typeof value.name === "string" ? value.name.trim() : "";
-    if (!name || !isContent(value)) {
-      sendJson(response, 400, { error: "A format id, content name, and at least one slide are required." });
+    if (!name) {
+      sendJson(response, 400, { error: "A content name is required." });
+      return;
+    }
+    try {
+      assertBoundedProject(value);
+    } catch (error) {
+      sendJson(response, 400, { error: error instanceof Error ? error.message : "Content JSON is invalid." });
       return;
     }
 
@@ -147,12 +172,17 @@ const contentApiMiddleware: Connect.NextHandleFunction = async (request, respons
       name,
       updatedAt: new Date().toISOString(),
     };
+    const storedPayload = `${JSON.stringify(storedValue, null, 2)}\n`;
+    if (Buffer.byteLength(storedPayload) > MAX_PROJECT_BYTES) {
+      sendJson(response, 413, { error: "Stored content JSON is too large." });
+      return;
+    }
 
     const contentsDirectory = getContentsDirectory(value.formatId);
     await mkdir(contentsDirectory, { recursive: true });
     await writeFile(
       path.join(contentsDirectory, `${id}.json`),
-      `${JSON.stringify(storedValue, null, 2)}\n`,
+      storedPayload,
       "utf8",
     );
 

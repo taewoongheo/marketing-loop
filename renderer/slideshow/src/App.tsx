@@ -54,6 +54,7 @@ import {
   type TextLayerModel,
 } from "./editorModel";
 import { normalizeProjectFile } from "./projectIO";
+import { MAX_PROJECT_BYTES } from "./projectValidation.ts";
 import { getFittedTextWidth, getTextHeight, getTextUnderlineSegments, renderSlideToDataUrl } from "./slideRenderer";
 
 type SnapGuide = {
@@ -1218,6 +1219,9 @@ export default function App() {
   const importContent = async (file?: File) => {
     if (!file) return;
     try {
+      if (file.size > MAX_PROJECT_BYTES) {
+        throw new Error(`Content JSON must not exceed ${MAX_PROJECT_BYTES} bytes.`);
+      }
       const content = JSON.parse(await file.text()) as ProjectFile;
       await loadContent(content, file.name.replace(/\.json$/i, ""));
     } catch (error) {
