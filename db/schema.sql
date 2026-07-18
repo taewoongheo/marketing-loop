@@ -132,6 +132,18 @@ BEGIN
     SELECT RAISE(ABORT, 'branched hypotheses cannot be closed');
 END;
 
+CREATE TRIGGER IF NOT EXISTS preserve_hypothesis_closure
+BEFORE UPDATE OF closed_at, closure_reason ON hypotheses
+WHEN
+    OLD.closed_at IS NOT NULL
+    AND (
+        NEW.closed_at IS NOT OLD.closed_at
+        OR NEW.closure_reason IS NOT OLD.closure_reason
+    )
+BEGIN
+    SELECT RAISE(ABORT, 'closed hypothesis cannot be reopened or rewritten');
+END;
+
 CREATE TRIGGER IF NOT EXISTS require_active_leaf_content
 BEFORE INSERT ON contents
 WHEN
@@ -199,6 +211,7 @@ WHEN
             FROM json_each(NEW.slide_copy_json) AS slide
             WHERE
                 slide.type <> 'array'
+                OR json_array_length(slide.value) = 0
                 OR EXISTS (
                     SELECT 1
                     FROM json_each(slide.value) AS text_layer
@@ -222,6 +235,7 @@ WHEN
             FROM json_each(NEW.slide_copy_json) AS slide
             WHERE
                 slide.type <> 'array'
+                OR json_array_length(slide.value) = 0
                 OR EXISTS (
                     SELECT 1
                     FROM json_each(slide.value) AS text_layer

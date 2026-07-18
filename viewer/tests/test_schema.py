@@ -102,7 +102,7 @@ class ContentSlideCopySchemaTests(unittest.TestCase):
             )
 
     def test_rejects_empty_or_invalid_slide_copy(self):
-        for value in ("[]", "{}", '"hook"', '["hook"]', "[[1]]", "not-json"):
+        for value in ("[]", "{}", '"hook"', '["hook"]', "[[1]]", "[[]]", "not-json"):
             with self.subTest(value=value):
                 with self.assertRaises(sqlite3.IntegrityError):
                     self.insert_content(value)
@@ -153,6 +153,14 @@ class ContentSlideCopySchemaTests(unittest.TestCase):
             """,
             ("2026-07-19T00:00:00Z", "Test closure"),
         )
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "cannot be reopened"):
+            self.connection.execute(
+                """
+                UPDATE hypotheses
+                SET closed_at = NULL, closure_reason = NULL
+                WHERE id = 'H-002'
+                """
+            )
         with self.assertRaisesRegex(sqlite3.IntegrityError, "active leaf"):
             self.insert_content('[["hook"]]', hypothesis_id="H-002")
         with self.assertRaisesRegex(sqlite3.IntegrityError, "must exist and be open"):

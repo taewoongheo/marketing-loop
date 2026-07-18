@@ -404,7 +404,7 @@ published_at
 - `message_id`, `message_version`: exact versioned message identity;
 - `copywriting_version`: exact slideshow copy grammar used;
 - `caption`: final TikTok caption;
-- `slide_copy_json`: exact ordered text-layer strings for every slide, stored as one outer array per slideshow and one inner array per slide. It contains no geometry or image bytes. New contents require at least one slide; `[]` is reserved for pre-v11 rows whose already-missing projects made exact recovery impossible;
+- `slide_copy_json`: exact ordered text-layer strings for every slide, stored as one outer array per slideshow and one non-empty inner text array per slide. It contains no geometry or image bytes. New contents require at least one slide; `[]` is reserved for pre-v11 rows whose already-missing projects made exact recovery impossible;
 - `final_project_path`, `final_project_sha256`: provenance for the publication-ready renderer project. The path may no longer resolve after authorized local pruning, and the hash identifies but does not reconstruct deleted bytes;
 - `tiktok_url`: URL supplied after manual publication;
 - `published_at`: timestamp recorded when the TikTok URL is first registered. When the user supplies only a URL in Telegram, use the receipt/registration time of that message after its content identity has been resolved; it is not a claim about TikTok's exact upload time.

@@ -36,6 +36,7 @@ function insertContent(
   copywritingVersion,
   messageVersion = "1",
   formatId = "denzel",
+  slideCopyJson = '[["hook"]]',
 ) {
   const suffix = `${copywritingVersion}-${messageVersion}`.replace(
     /[^a-z0-9]/gi,
@@ -52,6 +53,7 @@ function insertContent(
         message_version,
         copywriting_version,
         caption,
+        slide_copy_json,
         final_project_path,
         final_project_sha256
       ) VALUES (
@@ -62,6 +64,7 @@ function insertContent(
         ${messageVersion},
         ${copywritingVersion},
         'caption',
+        '${slideCopyJson.replaceAll("'", "''")}',
         'renderer/slideshow/formats/${formatId}/contents/c-${suffix}.json',
         '${"b".repeat(64)}'
       );
@@ -96,11 +99,14 @@ test("contents records format and strategy versions with the self-contained proj
       (column) => column.name === "copywriting_version",
     );
     const formatId = columns.find((column) => column.name === "format_id");
+    const slideCopyJson = columns.find((column) => column.name === "slide_copy_json");
 
     assert.ok(copywritingVersion);
     assert.equal(copywritingVersion.notnull, 1);
     assert.ok(formatId);
     assert.equal(formatId.notnull, 1);
+    assert.ok(slideCopyJson);
+    assert.equal(slideCopyJson.notnull, 1);
 
     for (const removedColumn of ["imagery_version", "template_path", "template_sha256"]) {
       assert.equal(columns.some((column) => column.name === removedColumn), false);
@@ -131,6 +137,42 @@ test("contents accepts positive integer strategy versions", async () => {
     const inserted = insertContent(databasePath, "1", "1");
 
     assert.equal(inserted.status, 0, inserted.stderr);
+  });
+});
+
+test("contents rejects slides without text strings", async () => {
+  await withDatabase(async (databasePath) => {
+    execFileSync("sqlite3", [databasePath, `
+      INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
+    `]);
+
+    for (const slideCopyJson of ["[]", '["hook"]', "[[1]]", "[[]]"]) {
+      const inserted = insertContent(databasePath, "1", "1", "denzel", slideCopyJson);
+      assert.notEqual(inserted.status, 0, `accepted ${slideCopyJson}`);
+      assert.match(inserted.stderr, /slide_copy_json/);
+    }
+  });
+});
+
+test("closed hypotheses cannot be reopened", async () => {
+  await withDatabase(async (databasePath) => {
+    execFileSync("sqlite3", [databasePath, `
+      INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
+      UPDATE hypotheses
+      SET closed_at = '2026-07-18T00:00:00Z', closure_reason = 'closed'
+      WHERE id = 'h-1';
+    `]);
+
+    const reopened = spawnSync("sqlite3", [databasePath], {
+      input: `
+        UPDATE hypotheses
+        SET closed_at = NULL, closure_reason = NULL
+        WHERE id = 'h-1';
+      `,
+      encoding: "utf8",
+    });
+    assert.notEqual(reopened.status, 0);
+    assert.match(reopened.stderr, /closed hypothesis cannot be reopened/);
   });
 });
 
@@ -189,6 +231,6 @@ test("contents rejects invalid message versions", async () => {
 test("schema version identifies the current structure", async () => {
   await withDatabase(async (databasePath) => {
     const version = query(databasePath, "PRAGMA user_version;").trim();
-    assert.equal(version, '[{"user_version":9}]');
+    assert.equal(version, '[{"user_version":11}]');
   });
 });
