@@ -4,9 +4,11 @@ This document owns the operating model through which hypotheses generate content
 
 ## Purpose
 
-Continue producing `n` contents per day while preserving which hypothesis generated each content and how its results influenced later hypotheses.
+Advance three project goals while producing `n` contents per day: continuously improve message strategy, continuously improve copywriting, and grow the env TikTok account to 1,000 followers. Preserve which hypothesis generated each content and how its results influenced later hypotheses.
 
 Content production does not wait for performance collection. Results that arrive after 24, 48, or 72 hours remain connected to the existing hypothesis lineage.
+
+Message and copywriting improvement are open-ended goals and remain the only hypothesis axes. The follower target is a finite account-level outcome, not a third hypothesis axis.
 
 ## Confirmed boundaries
 
@@ -22,6 +24,12 @@ Hypotheses may improve two axes:
 - `copywriting`: how to express the same message.
 
 Each child hypothesis changes only one of these axes from its parent.
+
+### Account outcome
+
+Follower count measures progress toward the 1,000-follower account goal. Store it as a timestamped account-level observation independently of content checkpoints. A follower increase may motivate further investigation, but it does not by itself validate a message or copywriting hypothesis, identify the content that caused the change, or replace direct content evidence.
+
+When a public third-party endpoint is the available source, preserve its response and named provenance, and treat caching, retrieval timing, and attribution as explicit limitations. Collection failure does not block content production.
 
 Message definitions use seven semantic sections: target situation, problem pattern, belief shift, persuasion logic, resistance and response, product role, and evidence and limits. Each slideshow format's copywriting structure remains versioned under `renderer/slideshow/formats/<format-id>/copywriting/`; do not impose one format's language grammar on another format or medium.
 
@@ -165,6 +173,8 @@ H-001 → closed
 Do not delete the record.
 
 ## Daily hypothesis confirmation gate
+
+Interactive content runs use the confirmation gate below. A project may grant standing authorization to a recurring scheduled production job because cron sessions have no user present. Under env's scheduled autonomous production mode, the job itself applies its evidence-based hypothesis actions, owner updates, and one-content allocation without waiting for confirmation, while preserving the same lineage, evidence, single-axis, and ownership rules. This exception applies only to the configured scheduled job; interactive runs retain the gate unless the user explicitly says otherwise.
 
 Before generating the day's content, the assistant presents a concise proposal covering every active leaf affected by newly reviewed evidence:
 
@@ -323,6 +333,8 @@ hypotheses
 ├── contents
 │   └── content_results
 └── hypothesis_evidence
+
+account_results
 ```
 
 Exact columns, foreign keys, indexes, and checks belong only to `db/schema.sql`.
@@ -430,6 +442,22 @@ raw_json
 - `collection_source` solely owns the normalized retrieval provenance for the checkpoint, such as the named public API or manual observation method. It must be non-empty.
 - `raw_json` owns the unmodified collector response and source-specific retrieval details. It does not replace the normalized provenance field.
 
+### `account_results`
+
+Owns timestamped follower-count observations for the account-level 1,000-follower goal. These rows do not belong to a content or hypothesis and never become direct evidence for a message or copywriting change.
+
+```text
+id
+collected_at
+followers
+collection_source
+raw_json
+```
+
+- `followers` is the non-negative follower count observed at collection time.
+- `collection_source` names the retrieval provenance, such as the TikWM public user-info API or a manual observation.
+- `raw_json` preserves the unmodified source response and does not replace the normalized follower count.
+
 ### `hypothesis_evidence`
 
 Connects a child hypothesis to the exact content-result rows that influenced its creation.
@@ -473,6 +501,9 @@ reference-led, content-specific, recorded in the final project
 
 Optimization axes:
 message | copywriting
+
+Account outcome:
+reach 1,000 followers; observe separately from hypothesis evidence
 
 Production limit:
 total daily content count n

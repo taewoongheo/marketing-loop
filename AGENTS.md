@@ -2,7 +2,11 @@
 
 ## Scope
 
-- This repository exists to produce increasingly viral organic TikTok slideshow content for `env` through autonomous, evidence-driven improvement.
+- This repository pursues three simultaneous goals: continuously improve message strategy, continuously improve copywriting, and grow the env TikTok account to 1,000 followers.
+- Message and copywriting improvement are open-ended goals with no terminal threshold. They remain the only hypothesis axes.
+- The 1,000-follower target is a finite account-level outcome that message and copywriting improvements should support. Observe follower movement separately; never treat it by itself as proof that either axis caused the change.
+- Reaching 1,000 followers completes that finite goal but does not stop scheduled production; continue improving message and copywriting until the user changes or stops the scheduler job.
+- This is a personal-use, non-deployed workspace. When the user authorizes a structural change, prefer direct restructuring over backward-compatible migrations, legacy schemas, or compatibility artifacts.
 - The two primary optimization axes are message and copywriting.
 - **Message strategy** decides what perception or belief should change and how the audience is persuaded.
 - **Copywriting** decides how the message is expressed: hook wording, specificity, information density, rhythm, product reveal, CTA, and caption.
@@ -38,12 +42,24 @@ The user controls:
 
 Ask for information only when a missing fact would materially affect product truth, audience fit, or the ability to produce a valid final copy. Do not publish to TikTok, commit changes, delete data, or contact anyone without explicit instruction.
 
+### Scheduled autonomous production
+
+Recurring content-generation cron runs operate under standing user authorization and are the exception to the interactive hypothesis-confirmation, copy-approval, and publication-ready designation gates below. They advance all three project goals while preserving truthful claims and the existing repository structure. The scheduler job is the sole owner of exact run times and delivery routing; do not duplicate its schedule here.
+
+For each scheduled run, the assistant may autonomously collect due evidence, continue or close leaves, create root or child hypotheses, adopt supported rules into their proper owners, allocate one content, enrich existing materials, add new approved materials, refine unused message or copywriting versions, create new messages, and create new immutable versions when used guidance changes. These changes must stay inside the current owner map and schema; scheduled autonomy does not authorize repository restructuring, new workflow infrastructure, TikTok publication, or unrelated work.
+
+After a scheduled cycle has produced and verified its publication-ready content and updated all proper owners, commit and push that cycle's repository changes. Capture the pre-run working tree first, stage only exact files created or changed by the cycle, and never include unrelated or pre-existing user changes. If the cycle must modify a file that was already dirty, stop and report the conflicting path through Telegram instead of absorbing it. Use a new commit for later rejection-driven revisions; do not amend or rewrite pushed history. Report commit or push failures through Telegram and preserve the local verified artifact.
+
+When a scheduled run judges that an additional Hermes skill, plugin, package, API-backed integration, or other external capability is materially needed, it may inspect and install that capability without advance approval. Admit only the narrow missing operational capability: do not install anything that creates a parallel owner for product truth, messages, copywriting, imagery, hypotheses, content records, or publication, and do not install automatic TikTok publishing. Inspect source, trust, credentials, network calls, cost, telemetry, generated files, and side effects before installation. After any installation, report through Telegram what was installed, its source, why it was needed, and any ongoing cost, credential requirement, or material side effect. If installation cannot succeed without a new credential or structural change, request that exact user action through Telegram instead of bypassing the boundary.
+
+The assistant autonomously drafts, creates, validates, renders, records, and sends one publication-ready slideshow to the configured Telegram destination. The user publishes it manually. A delivered content row remains unpublished until a TikTok URL is received; the receipt time of that URL is `published_at`. If a previously delivered content has no URL, ask for it in the next scheduled Telegram update without blocking the next content run. If the user rejects a delivered post, apply the feedback, revise or regenerate the same unpublished content and project, update its caption and checksum, and redeliver it rather than creating another content identity. If credentials, unavailable product truth, or a structural change blocks valid completion, explain the exact blocker and required user action through Telegram instead of guessing or changing the structure.
+
 ## Required context before creating content
 
 1. Read product truth, user-language evidence, and the current account-wide imagery guidance in `context/`.
 2. Review available versioned message definitions in `messages/`.
 3. Review the selected `renderer/slideshow/formats/<format-id>/copywriting/v<version>.md`, its `materials.md`, and all designated posts in its `references/` directory.
-4. Query SQLite for relevant publication-ready content projects and inspect their actual project JSON as account execution evidence.
+4. Query SQLite for relevant publication-ready content projects and inspect their actual project JSON as account execution evidence. If a historical project path is missing, preserve its DB content and results, treat its exact copy and geometry as unavailable evidence, record that limitation in the evaluation, and continue from the remaining valid evidence without reconstruction or invention.
 5. Read `docs/hypothesis-loop.md` and query SQLite for active leaves, relevant ancestors, generated content, and results.
 6. Ask only for missing information that would materially affect product truth, audience fit, or valid copy.
 7. Prepare the day's hypothesis-action and allocation proposal, then obtain user confirmation before creating or closing nodes, promoting a supported rule, or assigning content.

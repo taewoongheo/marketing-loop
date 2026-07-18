@@ -103,6 +103,18 @@ CREATE TABLE IF NOT EXISTS content_results (
     UNIQUE (content_id, target_hours)
 );
 
+CREATE TABLE IF NOT EXISTS account_results (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    collected_at TEXT NOT NULL
+        CHECK (length(trim(collected_at)) > 0),
+    followers NOT NULL
+        CHECK (typeof(followers) = 'integer' AND followers >= 0),
+    collection_source TEXT NOT NULL
+        CHECK (length(trim(collection_source)) > 0),
+    raw_json TEXT NOT NULL DEFAULT '{}'
+        CHECK (json_valid(raw_json))
+);
+
 CREATE TABLE IF NOT EXISTS hypothesis_evidence (
     hypothesis_id TEXT NOT NULL,
     content_result_id INTEGER NOT NULL,
@@ -140,9 +152,12 @@ CREATE INDEX IF NOT EXISTS idx_contents_format_copywriting
 CREATE INDEX IF NOT EXISTS idx_content_results_content
     ON content_results(content_id, target_hours);
 
+CREATE INDEX IF NOT EXISTS idx_account_results_collected
+    ON account_results(collected_at);
+
 CREATE INDEX IF NOT EXISTS idx_hypothesis_evidence_result
     ON hypothesis_evidence(content_result_id);
 
-PRAGMA user_version = 9;
+PRAGMA user_version = 10;
 
 COMMIT;

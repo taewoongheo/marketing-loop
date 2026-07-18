@@ -2,14 +2,15 @@
 
 A local workspace for autonomously producing and improving env's organic TikTok slideshow content.
 
-## Goal
+## Goals
 
-The final goal is to create increasingly viral content by learning from editorial feedback and published performance.
+The workspace pursues three simultaneous goals:
 
-The two primary optimization axes are:
+1. Continuously improve **message strategy**: what should persuade the audience.
+2. Continuously improve **copywriting**: how that message should be expressed in the slideshow.
+3. Grow the env TikTok account to **1,000 followers**.
 
-- **Message strategy:** what should persuade the audience.
-- **Copywriting:** how that message should be expressed in the slideshow.
+Message strategy and copywriting are open-ended improvement goals with no terminal threshold. They remain the only two hypothesis axes. The follower target is the finite account-level outcome those improvements should support; follower movement is observed separately and does not by itself prove that a message or copywriting change caused it. Reaching 1,000 followers completes that finite goal but does not stop the two open-ended improvement goals. `AGENTS.md` is the authoritative operating contract for these goals.
 
 The slideshow evidence, self-contained content projects, and local editor live in `renderer/slideshow/`. The rest of this repository owns the marketing knowledge, evidence, and learning loop. Project-wide operating rules live in `AGENTS.md`; the detailed hypothesis lineage model lives in `docs/hypothesis-loop.md`.
 
@@ -72,7 +73,7 @@ External owners — not inside this repository
   - **`product.md`** owns product truth, market scope, positioning, and claim boundaries.
   - **`user-language.md`** stores project-wide collected expressions, situations, sources, and confidence without interpreting them.
 - **`messages/`** holds explicitly versioned target situations, problem patterns, belief shifts, persuasion logic, resistance and response, product roles, and evidence limits. A version's generation-affecting meaning becomes immutable after content first references it.
-- **`db/`** holds the exact schema and local runtime record of hypotheses, generated content, observed results, and evidence links.
+- **`db/`** holds the exact schema and local runtime record of hypotheses, generated content, content results, account-level follower snapshots, and evidence links.
 - **`viewer/hypothesis_tree/`** derives a read-only tree from the runtime database. It owns no hypothesis state and cannot replace SQLite as the evidence source.
 - **`.hermes/plans/`** holds implementation plans, not runtime marketing knowledge.
 - **`renderer/slideshow/`** owns slideshow production. Each `formats/<format-id>/` bundle groups that format's copywriting, approved materials, ordered references, and self-contained content projects. `formatId` identifies the evidence/content namespace; it does not provide reusable coordinates. There is no template or format JSON. The assistant uses references as primary visual-grammar evidence and same-format publication-ready projects as secondary account-execution evidence, then constructs each layout directly in its content project.
