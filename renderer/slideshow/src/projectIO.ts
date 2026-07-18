@@ -4,6 +4,7 @@ import {
   MAX_BACKGROUNDS,
   createSlide,
   normalizeCanvasPreset,
+  normalizeFormatId,
   normalizeImageLayer,
   normalizeSlideBackground,
   normalizeSlideLayer,
@@ -17,6 +18,7 @@ import {
 } from "./editorModel";
 
 type ProjectLoadResult = {
+  formatId: string;
   slides: Slide[];
   warnings: string[];
 };
@@ -162,12 +164,13 @@ export async function normalizeProjectFile(parsed: unknown): Promise<ProjectLoad
   }
 
   const project = parsed as Partial<ProjectFile>;
+  const formatId = normalizeFormatId(parsed.formatId);
   const projectSlides = parsed.slides as Record<string, unknown>[];
   const projectPreset = normalizeCanvasPreset(project.preset);
   const warnings: string[] = [];
 
   if (projectSlides.length === 0) {
-    return { slides: [createSlide(1)], warnings: ["Content had no slides. Created one empty slide."] };
+    return { formatId, slides: [createSlide(1)], warnings: ["Content had no slides. Created one empty slide."] };
   }
 
   const slides = await Promise.all(
@@ -190,5 +193,5 @@ export async function normalizeProjectFile(parsed: unknown): Promise<ProjectLoad
     }),
   );
 
-  return { slides, warnings };
+  return { formatId, slides, warnings };
 }

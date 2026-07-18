@@ -1,21 +1,22 @@
-import { mkdir, readdir, readFile, unlink, writeFile } from "node:fs/promises";
+import { access, mkdir, readdir, readFile, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { defineConfig, type Connect, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
-import { readTemplatePackages } from "./template-storage";
 
-const templatesDirectory = fileURLToPath(new URL("./templates", import.meta.url));
-const contentsDirectory = fileURLToPath(new URL("./contents", import.meta.url));
+const formatsDirectory = fileURLToPath(new URL("./formats", import.meta.url));
+const FORMAT_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
-const isTemplate = (value: unknown): value is Record<string, unknown> & { slides: unknown[] } =>
-  isRecord(value) && value.type === "tiktok-slide-template" && Array.isArray(value.slides) && value.slides.length > 0;
-
-const isContent = (value: unknown): value is Record<string, unknown> & { slides: unknown[] } =>
-  isRecord(value) && value.type === "tiktok-slide-project" && Array.isArray(value.slides) && value.slides.length > 0;
+const isContent = (value: unknown): value is Record<string, unknown> & { formatId: string; slides: unknown[] } =>
+  isRecord(value)
+  && value.type === "tiktok-slide-project"
+  && typeof value.formatId === "string"
+  && FORMAT_ID_PATTERN.test(value.formatId)
+  && Array.isArray(value.slides)
+  && value.slides.length > 0;
 
 const fileIdFromName = (name: string, fallback: string) => {
   const id = name
@@ -34,18 +35,18 @@ const sendJson = (response: Parameters<Connect.NextHandleFunction>[1], status: n
 
 const readJsonLibrary = async (
   directory: string,
-  acceptsFile: (value: unknown) => value is Record<string, unknown> & { slides: unknown[] },
+  formatId: string,
 ) => {
   await mkdir(directory, { recursive: true });
   const fileNames = (await readdir(directory))
     .filter((fileName) => fileName.endsWith(".json"))
     .sort();
 
-  const templates = await Promise.all(
+  const projects = await Promise.all(
     fileNames.map(async (fileName) => {
       try {
         const value = JSON.parse(await readFile(path.join(directory, fileName), "utf8"));
-        if (!acceptsFile(value)) return null;
+        if (!isContent(value) || value.formatId !== formatId) return null;
 
         const id = path.basename(fileName, ".json");
         return {
@@ -59,45 +60,53 @@ const readJsonLibrary = async (
     }),
   );
 
-  return templates.filter((template) => template !== null);
+  return projects.filter((project) => project !== null);
 };
 
-const readTemplates = () => readTemplatePackages(templatesDirectory, isTemplate);
-const readContents = () => readJsonLibrary(contentsDirectory, isContent);
+const getFormatDirectory = (formatId: string) => path.join(formatsDirectory, formatId);
+const getContentsDirectory = (formatId: string) => path.join(getFormatDirectory(formatId), "contents");
 
-const templateApiMiddleware: Connect.NextHandleFunction = async (request, response, next) => {
+const readContents = async () => {
+  await mkdir(formatsDirectory, { recursive: true });
+  const formatIds = (await readdir(formatsDirectory, { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory() && FORMAT_ID_PATTERN.test(entry.name))
+    .map((entry) => entry.name)
+    .sort();
+  const libraries = await Promise.all(
+    formatIds.map((formatId) => readJsonLibrary(getContentsDirectory(formatId), formatId)),
+  );
+  return libraries.flat();
+};
+
+const contentApiMiddleware: Connect.NextHandleFunction = async (request, response, next) => {
   const pathname = new URL(request.url ?? "/", "http://localhost").pathname;
   const isContentItemRequest = pathname.startsWith("/api/contents/");
-  if (pathname !== "/api/templates" && pathname !== "/api/contents" && !isContentItemRequest) {
+  if (pathname !== "/api/contents" && !isContentItemRequest) {
     next();
     return;
   }
 
   try {
-    if (request.method === "GET" && pathname === "/api/templates") {
-      sendJson(response, 200, { templates: await readTemplates() });
-      return;
-    }
-
     if (request.method === "GET" && pathname === "/api/contents") {
       sendJson(response, 200, { contents: await readContents() });
       return;
     }
 
-    if (pathname === "/api/templates") {
-      sendJson(response, 405, { error: "Method not allowed." });
-      return;
-    }
-
     if (request.method === "DELETE" && isContentItemRequest) {
-      const id = decodeURIComponent(pathname.slice("/api/contents/".length));
-      if (!id || fileIdFromName(id, "") !== id) {
-        sendJson(response, 400, { error: "Content id is invalid." });
+      const segments = pathname.slice("/api/contents/".length).split("/").map(decodeURIComponent);
+      const [formatId, id] = segments;
+      if (
+        segments.length !== 2
+        || !FORMAT_ID_PATTERN.test(formatId)
+        || !id
+        || fileIdFromName(id, "") !== id
+      ) {
+        sendJson(response, 400, { error: "Format or content id is invalid." });
         return;
       }
 
       try {
-        await unlink(path.join(contentsDirectory, `${id}.json`));
+        await unlink(path.join(getContentsDirectory(formatId), `${id}.json`));
       } catch (error) {
         if ((error as { code?: string }).code !== "ENOENT") throw error;
       }
@@ -118,7 +127,14 @@ const templateApiMiddleware: Connect.NextHandleFunction = async (request, respon
     const value = JSON.parse(rawBody);
     const name = isRecord(value) && typeof value.name === "string" ? value.name.trim() : "";
     if (!name || !isContent(value)) {
-      sendJson(response, 400, { error: "A content name and at least one slide are required." });
+      sendJson(response, 400, { error: "A format id, content name, and at least one slide are required." });
+      return;
+    }
+
+    try {
+      await access(getFormatDirectory(value.formatId));
+    } catch {
+      sendJson(response, 400, { error: `Unknown format: ${value.formatId}.` });
       return;
     }
 
@@ -132,6 +148,7 @@ const templateApiMiddleware: Connect.NextHandleFunction = async (request, respon
       updatedAt: new Date().toISOString(),
     };
 
+    const contentsDirectory = getContentsDirectory(value.formatId);
     await mkdir(contentsDirectory, { recursive: true });
     await writeFile(
       path.join(contentsDirectory, `${id}.json`),
@@ -141,8 +158,7 @@ const templateApiMiddleware: Connect.NextHandleFunction = async (request, respon
 
     sendJson(response, 200, { content: storedValue, contents: await readContents() });
   } catch (error) {
-    const label = pathname === "/api/templates" ? "Template" : "Content";
-    const message = error instanceof SyntaxError ? `${label} JSON is invalid.` : `${label} could not be saved.`;
+    const message = error instanceof SyntaxError ? "Content JSON is invalid." : "Content could not be saved.";
     sendJson(response, 500, { error: message });
   }
 };
@@ -150,10 +166,10 @@ const templateApiMiddleware: Connect.NextHandleFunction = async (request, respon
 const rendererStoragePlugin = (): Plugin => ({
   name: "slideshow-renderer-storage",
   configureServer(server) {
-    server.middlewares.use(templateApiMiddleware);
+    server.middlewares.use(contentApiMiddleware);
   },
   configurePreviewServer(server) {
-    server.middlewares.use(templateApiMiddleware);
+    server.middlewares.use(contentApiMiddleware);
   },
 });
 

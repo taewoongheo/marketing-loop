@@ -10,7 +10,6 @@ import {
   ImageUp,
   Layers,
   LayoutGrid,
-  Lock,
   Plus,
   Rows3,
   Save,
@@ -40,9 +39,7 @@ import {
   normalizeImageLayer,
   normalizeCanvasPreset,
   normalizeSlideBackground,
-  normalizeSlideLayer,
   normalizeTextLayer,
-  slideToTemplateSlide,
   isTextRangeUnderlined,
   toggleUnderlineMark,
   uid,
@@ -54,8 +51,6 @@ import {
   type Selection,
   type Slide,
   type SlideLayerModel,
-  type TemplateEditableProperty,
-  type TemplateFile,
   type TextLayerModel,
 } from "./editorModel";
 import { normalizeProjectFile } from "./projectIO";
@@ -88,49 +83,6 @@ type ImagePlacementSlot = {
 
 type ImageCrop = NonNullable<ImageLayerModel["crop"]>;
 
-type TemplateRuleProperty = {
-  property: TemplateEditableProperty;
-  label: string;
-};
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;
-
-const parseTemplateFile = (value: unknown, fallbackName: string): TemplateFile => {
-  if (!isRecord(value) || value.type !== "tiktok-slide-template" || !Array.isArray(value.slides) || value.slides.length === 0) {
-    throw new Error("Template JSON format is invalid.");
-  }
-
-  if (!isRecord(value.preset) || typeof value.preset.width !== "number" || typeof value.preset.height !== "number") {
-    throw new Error("Template canvas preset is invalid.");
-  }
-
-  if (value.slides.some((slide) => !isRecord(slide) || !Array.isArray(slide.layers))) {
-    throw new Error("Template slides are invalid.");
-  }
-
-  return {
-    ...(value as TemplateFile),
-    id: typeof value.id === "string" && value.id.trim() ? value.id : fallbackName,
-    name: typeof value.name === "string" && value.name.trim() ? value.name : fallbackName,
-  };
-};
-
-const createSlidesFromTemplate = (template: TemplateFile): Slide[] =>
-  template.slides.map((templateSlide, index) => ({
-    id: uid("slide"),
-    name: templateSlide.name || `Slide ${index + 1}`,
-    canvas: normalizeCanvasPreset(templateSlide.canvas ?? template.preset),
-    background: normalizeSlideBackground({ fill: templateSlide.background?.fill }),
-    layers: templateSlide.layers.map((layer) => normalizeSlideLayer(layer)),
-  }));
-
-type TemplateRuleSection = {
-  id: string;
-  label: string;
-  properties: TemplateRuleProperty[];
-};
-
 type CropPanState = {
   pointer: {
     x: number;
@@ -140,160 +92,6 @@ type CropPanState = {
 };
 
 const SNAP_THRESHOLD = 12;
-
-const TEXT_TEMPLATE_RULE_SECTIONS: TemplateRuleSection[] = [
-  {
-    id: "content",
-    label: "Content",
-    properties: [
-      { property: "text", label: "Text" },
-      { property: "marks", label: "Underline marks" },
-      { property: "name", label: "Layer name" },
-    ],
-  },
-  {
-    id: "typography",
-    label: "Typography",
-    properties: [
-      { property: "fontSize", label: "Font size" },
-      { property: "fontFamily", label: "Font family" },
-      { property: "fontWeight", label: "Font weight" },
-      { property: "lineHeight", label: "Line height" },
-      { property: "letterSpacing", label: "Letter spacing" },
-      { property: "align", label: "Alignment" },
-    ],
-  },
-  {
-    id: "layout",
-    label: "Layout",
-    properties: [
-      { property: "x", label: "X position" },
-      { property: "y", label: "Y position" },
-      { property: "width", label: "Width" },
-      { property: "rotation", label: "Rotation" },
-    ],
-  },
-  {
-    id: "style",
-    label: "Style",
-    properties: [
-      { property: "fill", label: "Text color" },
-      { property: "stroke", label: "Border color" },
-      { property: "strokeWidth", label: "Border width" },
-      { property: "box", label: "Box style" },
-      { property: "opacity", label: "Opacity" },
-    ],
-  },
-];
-
-const IMAGE_TEMPLATE_RULE_SECTIONS: TemplateRuleSection[] = [
-  {
-    id: "image",
-    label: "Image content",
-    properties: [
-      { property: "src", label: "Image source" },
-      { property: "crop", label: "Visible crop" },
-      { property: "name", label: "Layer name" },
-    ],
-  },
-  {
-    id: "layout",
-    label: "Layout",
-    properties: [
-      { property: "x", label: "X position" },
-      { property: "y", label: "Y position" },
-      { property: "width", label: "Width" },
-      { property: "height", label: "Height" },
-      { property: "rotation", label: "Rotation" },
-      { property: "placement", label: "Placement slot" },
-    ],
-  },
-  {
-    id: "style",
-    label: "Style",
-    properties: [{ property: "opacity", label: "Opacity" }],
-  },
-];
-
-const getAiEditableProperties = (layer: SlideLayerModel) => layer.templateRules?.aiEditableProperties ?? [];
-
-const getTemplateRuleSections = (layer: SlideLayerModel) =>
-  isImageLayer(layer) ? IMAGE_TEMPLATE_RULE_SECTIONS : TEXT_TEMPLATE_RULE_SECTIONS;
-
-const getTemplateRuleProperties = (layer: SlideLayerModel) =>
-  getTemplateRuleSections(layer).flatMap((section) => section.properties.map(({ property }) => property));
-
-const isTemplatePropertyEditable = (layer: SlideLayerModel, property: TemplateEditableProperty) =>
-  getAiEditableProperties(layer).includes(property);
-
-const areTemplatePropertiesEditable = (layer: SlideLayerModel, properties: TemplateEditableProperty[]) =>
-  properties.every((property) => isTemplatePropertyEditable(layer, property));
-
-const toggleTemplateRuleProperties = (layer: SlideLayerModel, properties: TemplateEditableProperty[]) => {
-  const editableProperties = new Set(getAiEditableProperties(layer));
-  const shouldLock = areTemplatePropertiesEditable(layer, properties);
-  for (const property of properties) {
-    if (shouldLock) {
-      editableProperties.delete(property);
-    } else {
-      editableProperties.add(property);
-    }
-  }
-  return Array.from(editableProperties);
-};
-
-const toTemplateLockProperties = (properties: TemplateEditableProperty | TemplateEditableProperty[]) =>
-  Array.isArray(properties) ? properties : [properties];
-
-const getTemplateLockState = (layer: SlideLayerModel, properties: TemplateEditableProperty[]) => {
-  if (areTemplatePropertiesEditable(layer, properties)) {
-    return { locked: false, titlePrefix: "Lock" };
-  }
-
-  if (properties.some((property) => isTemplatePropertyEditable(layer, property))) {
-    return { locked: true, titlePrefix: "Lock all of" };
-  }
-
-  return { locked: true, titlePrefix: "Allow AI to edit" };
-};
-
-function TemplateLockButton({
-  layer,
-  properties,
-  label,
-  onToggle,
-}: {
-  layer: SlideLayerModel;
-  properties: TemplateEditableProperty | TemplateEditableProperty[];
-  label: string;
-  onToggle: (properties: TemplateEditableProperty[]) => void;
-}) {
-  const targetProperties = toTemplateLockProperties(properties);
-  const lockState = getTemplateLockState(layer, targetProperties);
-
-  return (
-    <button
-      type="button"
-      className={`property-lock-button ${lockState.locked ? "locked" : ""}`}
-      title={`${lockState.titlePrefix} ${label}`}
-      aria-label={`${lockState.titlePrefix} ${label}`}
-      aria-pressed={lockState.locked}
-      onClick={(event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        onToggle(targetProperties);
-      }}
-    >
-      <Lock size={11} strokeWidth={2.4} />
-    </button>
-  );
-}
-
-const summarizeEditableProperties = (layer: SlideLayerModel) => {
-  const properties = getTemplateRuleProperties(layer);
-  const editableCount = properties.filter((property) => isTemplatePropertyEditable(layer, property)).length;
-  return `${editableCount}/${properties.length} AI-editable`;
-};
 
 const getImageCoverCrop = (naturalWidth: number, naturalHeight: number, targetWidth: number, targetHeight: number) => {
   const sourceRatio = naturalWidth / naturalHeight;
@@ -731,23 +529,12 @@ function ImageLayerNode({
   );
 }
 
-function Field({
-  label,
-  lockControl,
-  children,
-}: {
-  label: string;
-  lockControl?: ReactNode;
-  children: ReactNode;
-}) {
+function Field({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="field">
-      <div className="field-heading">
-        <span>{label}</span>
-        {lockControl}
-      </div>
+    <label className="field">
+      <span>{label}</span>
       {children}
-    </div>
+    </label>
   );
 }
 
@@ -757,7 +544,6 @@ function NumericField({
   min,
   max,
   step = 1,
-  lockControl,
   onChange,
 }: {
   label: string;
@@ -765,11 +551,10 @@ function NumericField({
   min?: number;
   max?: number;
   step?: number;
-  lockControl?: ReactNode;
   onChange: (value: number) => void;
 }) {
   return (
-    <Field label={label} lockControl={lockControl}>
+    <Field label={label}>
       <input
         type="number"
         value={Number.isFinite(value) ? value : 0}
@@ -785,16 +570,14 @@ function NumericField({
 function ColorField({
   label,
   value,
-  lockControl,
   onChange,
 }: {
   label: string;
   value: string;
-  lockControl?: ReactNode;
   onChange: (value: string) => void;
 }) {
   return (
-    <Field label={label} lockControl={lockControl}>
+    <Field label={label}>
       <div className="color-field">
         <input type="color" value={value} onChange={(event) => onChange(event.target.value)} />
         <input value={value} onChange={(event) => onChange(event.target.value)} />
@@ -812,14 +595,11 @@ export default function App() {
   const [isExporting, setIsExporting] = useState(false);
   const [isImageDragging, setIsImageDragging] = useState(false);
   const [imageUploadMode, setImageUploadMode] = useState<ImageUploadMode>("free");
+  const [formatId, setFormatId] = useState("denzel");
   const [contentName, setContentName] = useState("");
   const [contentLibrary, setContentLibrary] = useState<ProjectFile[]>([]);
   const [contentStatus, setContentStatus] = useState("");
   const [isContentSaving, setIsContentSaving] = useState(false);
-  const [templateName, setTemplateName] = useState("");
-  const [templateLibrary, setTemplateLibrary] = useState<TemplateFile[]>([]);
-  const [templateStatus, setTemplateStatus] = useState("");
-  const [isTemplateSaving, setIsTemplateSaving] = useState(false);
   const [draggingSlideId, setDraggingSlideId] = useState<string | null>(null);
   const [dragOverSlideId, setDragOverSlideId] = useState<string | null>(null);
   const [draggingLayerId, setDraggingLayerId] = useState<string | null>(null);
@@ -831,7 +611,6 @@ export default function App() {
   const transformerRef = useRef<Konva.Transformer>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const contentInputRef = useRef<HTMLInputElement>(null);
-  const templateInputRef = useRef<HTMLInputElement>(null);
   const contentTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   const selectedSlide = slides.find((slide) => slide.id === selectedSlideId) ?? slides[0];
@@ -848,16 +627,7 @@ export default function App() {
 
     const loadLibraries = async () => {
       try {
-        const [templateResponse, contentResponse] = await Promise.all([
-          fetch("/api/templates"),
-          fetch("/api/contents"),
-        ]);
-
-        if (templateResponse.ok) {
-          const data = (await templateResponse.json()) as { templates?: TemplateFile[] };
-          if (isCurrent && data.templates?.length) setTemplateLibrary(data.templates);
-        }
-
+        const contentResponse = await fetch("/api/contents");
         if (contentResponse.ok) {
           const data = (await contentResponse.json()) as { contents?: ProjectFile[] };
           if (isCurrent && data.contents) setContentLibrary(data.contents);
@@ -931,30 +701,6 @@ export default function App() {
     }));
   };
 
-  const updateLayerTemplateRules = (layer: SlideLayerModel, properties: TemplateEditableProperty[]) => {
-    updateLayer(layer.id, {
-      templateRules: {
-        aiEditableProperties: properties,
-      },
-    } as Partial<TextLayerModel> | Partial<ImageLayerModel>);
-  };
-
-  const toggleLayerRuleProperties = (layer: SlideLayerModel, properties: TemplateEditableProperty[]) => {
-    updateLayerTemplateRules(layer, toggleTemplateRuleProperties(layer, properties));
-  };
-
-  const renderLayerLock = (
-    layer: SlideLayerModel,
-    properties: TemplateEditableProperty | TemplateEditableProperty[],
-    label: string,
-  ) => (
-    <TemplateLockButton
-      layer={layer}
-      properties={properties}
-      label={label}
-      onToggle={(targetProperties) => toggleLayerRuleProperties(layer, targetProperties)}
-    />
-  );
 
   const updateTextSelectionRange = () => {
     const textarea = contentTextareaRef.current;
@@ -1075,14 +821,6 @@ export default function App() {
     setSelection(nextSlide.layers[0]?.id ?? null);
   };
 
-  const applyTemplate = (template: TemplateFile) => {
-    const nextSlides = createSlidesFromTemplate(template);
-    if (nextSlides.length === 0) return;
-    setSlides(nextSlides);
-    setSelectedSlideId(nextSlides[0].id);
-    setSelection(nextSlides[0].layers[0]?.id ?? null);
-    setTemplateStatus(`Applied "${template.name}".`);
-  };
 
   const duplicateSlide = () => {
     const slideCopy: Slide = {
@@ -1409,6 +1147,7 @@ export default function App() {
     const content: ProjectFile = {
       type: "tiktok-slide-project",
       version: 2,
+      formatId,
       name,
       preset: makePreset(selectedCanvas),
       slides,
@@ -1431,7 +1170,7 @@ export default function App() {
       if (!response.ok || !data.content) throw new Error(data.error || "Content could not be saved.");
 
       if (data.contents) setContentLibrary(data.contents);
-      setContentStatus(`Saved to contents/${data.content.id}.json.`);
+      setContentStatus(`Saved to formats/${data.content.formatId}/contents/${data.content.id}.json.`);
     } catch (error) {
       setContentStatus(error instanceof Error ? error.message : "Content could not be saved.");
     } finally {
@@ -1440,13 +1179,16 @@ export default function App() {
   };
 
   const deleteContent = async (content: ProjectFile) => {
-    if (!content.id) {
+    if (!content.id || !content.formatId) {
       setContentStatus("Content could not be deleted.");
       return;
     }
 
     try {
-      const response = await fetch(`/api/contents/${encodeURIComponent(content.id)}`, { method: "DELETE" });
+      const response = await fetch(
+        `/api/contents/${encodeURIComponent(content.formatId)}/${encodeURIComponent(content.id)}`,
+        { method: "DELETE" },
+      );
       const data = (await response.json()) as { error?: string; contents?: ProjectFile[] };
       if (!response.ok || !data.contents) throw new Error(data.error || "Content could not be deleted.");
 
@@ -1457,57 +1199,11 @@ export default function App() {
     }
   };
 
-  const saveTemplate = async () => {
-    const name = templateName.trim() || selectedSlide.name.trim() || "Untitled template";
-    const filename = `${name.replace(/\.json$/i, "").replace(/[/:]/g, "-")}.json`;
-    const template: TemplateFile = {
-      type: "tiktok-slide-template",
-      version: 2,
-      name,
-      preset: makePreset(selectedCanvas),
-      slides: slides.map(slideToTemplateSlide),
-    };
-    setTemplateName(name);
-    setTemplateStatus("");
-    setIsTemplateSaving(true);
-
-    try {
-      const result = await saveTextFile(filename, `${JSON.stringify(template, null, 2)}\n`);
-      setTemplateStatus(
-        result === "saved"
-          ? `Saved ${filename}.`
-          : result === "downloaded"
-            ? `Downloaded ${filename}.`
-            : "Template save cancelled.",
-      );
-    } catch (error) {
-      setTemplateStatus(error instanceof Error ? error.message : "Template could not be saved.");
-    } finally {
-      setIsTemplateSaving(false);
-    }
-  };
-
-  const importTemplate = async (file?: File) => {
-    if (!file) return;
-
-    try {
-      const fallbackName = file.name.replace(/\.json$/i, "") || "Imported template";
-      const template = parseTemplateFile(JSON.parse(await file.text()), fallbackName);
-      setTemplateLibrary((current) => [
-        ...current.filter((item) => item.id !== template.id && item.name !== template.name),
-        template,
-      ]);
-      setTemplateName(template.name);
-      applyTemplate(template);
-      setTemplateStatus(`Loaded and applied "${template.name}".`);
-    } catch (error) {
-      setTemplateStatus(error instanceof Error ? error.message : "Template load failed.");
-    }
-  };
 
   const loadContent = async (content: ProjectFile, fallbackName = "Untitled content") => {
     try {
-      const { slides: importedSlides, warnings } = await normalizeProjectFile(content);
+      const { formatId: importedFormatId, slides: importedSlides, warnings } = await normalizeProjectFile(content);
+      setFormatId(importedFormatId);
       setSlides(importedSlides);
       setSelectedSlideId(importedSlides[0].id);
       setSelection(importedSlides[0].layers[0]?.id ?? null);
@@ -1610,16 +1306,7 @@ export default function App() {
           event.currentTarget.value = "";
         }}
       />
-      <input
-        ref={templateInputRef}
-        className="hidden-input"
-        type="file"
-        accept=".json,application/json"
-        onChange={(event) => {
-          void importTemplate(event.target.files?.[0]);
-          event.currentTarget.value = "";
-        }}
-      />
+
 
       <header className="topbar">
         <div className="brand-block">
@@ -1739,6 +1426,14 @@ export default function App() {
             Contents
           </div>
           <label className="content-name-field">
+            <span>Format</span>
+            <input
+              value={formatId}
+              placeholder="denzel"
+              onChange={(event) => setFormatId(event.target.value)}
+            />
+          </label>
+          <label className="content-name-field">
             <span>Content name</span>
             <input
               value={contentName}
@@ -1751,7 +1446,7 @@ export default function App() {
               contentLibrary.map((content) => {
                 const preset = normalizeCanvasPreset(content.preset ?? content.slides[0]?.canvas);
 
-                return <div key={content.id ?? content.name} className="content-row">
+                return <div key={`${content.formatId}:${content.id ?? content.name}`} className="content-row">
                   <button
                     className="content-card"
                     title={`Load ${content.name ?? content.id} content`}
@@ -1760,7 +1455,7 @@ export default function App() {
                   >
                     <strong>{content.name ?? content.id}</strong>
                     <small>
-                      {content.slides.length} slides · {preset.width}×{preset.height}
+                      {content.formatId} · {content.slides.length} slides · {preset.width}×{preset.height}
                     </small>
                   </button>
                   <button
@@ -1768,7 +1463,7 @@ export default function App() {
                     title={`Delete ${content.name ?? content.id}`}
                     aria-label={`Delete ${content.name ?? content.id}`}
                     onClick={() => void deleteContent(content)}
-                    disabled={!content.id}
+                    disabled={!content.id || !content.formatId}
                   >
                     <Trash2 size={15} />
                   </button>
@@ -1836,61 +1531,6 @@ export default function App() {
             </div>
           ))}
 
-          <div className="panel-title template-title">
-            <FileJson size={17} />
-            Templates
-          </div>
-          <div className="template-save-box">
-            <input
-              value={templateName}
-              aria-label="Template name"
-              placeholder="Template name"
-              onChange={(event) => setTemplateName(event.target.value)}
-            />
-            <button
-              title="Choose where to save the template JSON"
-              aria-label="Choose where to save the template JSON"
-              onClick={saveTemplate}
-              disabled={isTemplateSaving}
-            >
-              <Save size={16} />
-              {isTemplateSaving ? "Saving" : "Save"}
-            </button>
-            <button
-              className="template-load-button"
-              title="Choose a template JSON to load"
-              aria-label="Choose a template JSON to load"
-              onClick={() => templateInputRef.current?.click()}
-            >
-              <Upload size={16} />
-              Load Template
-            </button>
-          </div>
-          <div className="template-list">
-            {templateLibrary.length > 0 ? (
-              templateLibrary.map((template) => (
-                <button
-                  key={template.id ?? template.name}
-                  className="template-card"
-                  title={`Apply ${template.name} template`}
-                  aria-label={`Apply ${template.name} template`}
-                  onClick={() => applyTemplate(template)}
-                >
-                  <strong>{template.name}</strong>
-                  <small>
-                    {template.slides.length} slides · {template.preset.width}×{template.preset.height}
-                  </small>
-                </button>
-              ))
-            ) : (
-              <div className="content-empty">No loaded templates.</div>
-            )}
-          </div>
-          {templateStatus ? (
-            <div className="template-status" role="status" aria-live="polite">
-              {templateStatus}
-            </div>
-          ) : null}
         </aside>
 
         <section
@@ -2093,16 +1733,15 @@ export default function App() {
                 {selectedImageLayer.placement ? (
                   <span>{selectedImageLayer.placement.mode === "grid-2x2" ? "2x2" : "3 rows"} slot {selectedImageLayer.placement.slotIndex + 1}</span>
                 ) : null}
-                <span>AI can edit: {summarizeEditableProperties(selectedImageLayer)}</span>
               </div>
-              <Field label="Name" lockControl={renderLayerLock(selectedImageLayer, "name", "Name")}>
+              <Field label="Name">
                 <input value={selectedImageLayer.name} onChange={(event) => updateLayer(selectedImageLayer.id, { name: event.target.value })} />
               </Field>
-              <Field label="Image source" lockControl={renderLayerLock(selectedImageLayer, "src", "Image source")}>
+              <Field label="Image source">
                 <div className="readonly-value">{selectedImageLayer.src.split("/").pop() || "Image"}</div>
               </Field>
               {selectedImageLayer.placement ? (
-                <Field label="Placement" lockControl={renderLayerLock(selectedImageLayer, "placement", "Placement")}>
+                <Field label="Placement">
                   <div className="readonly-value">
                     {selectedImageLayer.placement.mode === "grid-2x2" ? "2x2" : "3 rows"} slot {selectedImageLayer.placement.slotIndex + 1}
                   </div>
@@ -2114,13 +1753,13 @@ export default function App() {
                     <NumericField
                       label="X"
                       value={selectedImageLayer.x}
-                      lockControl={renderLayerLock(selectedImageLayer, "x", "X")}
+
                       onChange={(value) => updateLayer(selectedImageLayer.id, { x: value })}
                     />
                     <NumericField
                       label="Y"
                       value={selectedImageLayer.y}
-                      lockControl={renderLayerLock(selectedImageLayer, "y", "Y")}
+
                       onChange={(value) => updateLayer(selectedImageLayer.id, { y: value })}
                     />
                   </div>
@@ -2129,22 +1768,22 @@ export default function App() {
                       label="Width"
                       value={selectedImageLayer.width}
                       min={24}
-                      lockControl={renderLayerLock(selectedImageLayer, "width", "Width")}
+
                       onChange={(value) => updateLayer(selectedImageLayer.id, { width: value })}
                     />
-                    <Field label="Height" lockControl={renderLayerLock(selectedImageLayer, "height", "Height")}>
+                    <Field label="Height">
                       <div className="readonly-value">{Math.round(selectedImageLayer.height)} auto</div>
                     </Field>
                   </div>
                   <NumericField
                     label="Rotation"
                     value={selectedImageLayer.rotation}
-                    lockControl={renderLayerLock(selectedImageLayer, "rotation", "Rotation")}
+
                     onChange={(value) => updateLayer(selectedImageLayer.id, { rotation: value })}
                   />
                 </>
               )}
-              <Field label="Opacity" lockControl={renderLayerLock(selectedImageLayer, "opacity", "Opacity")}>
+              <Field label="Opacity">
                 <input
                   type="range"
                   min="0.05"
@@ -2155,11 +1794,11 @@ export default function App() {
                 />
               </Field>
               {selectedImageLayer.placement ? (
-                <Field label="Crop" lockControl={renderLayerLock(selectedImageLayer, "crop", "Crop")}>
+                <Field label="Crop">
                   <button className="wide-button" onClick={() => resetImageCrop(selectedImageLayer)}>Reset crop</button>
                 </Field>
               ) : (
-                <Field label="Canvas fit" lockControl={renderLayerLock(selectedImageLayer, ["x", "y", "width", "height"], "Canvas fit")}>
+                <Field label="Canvas fit">
                   <button className="wide-button" onClick={() => coverCanvasWithImage(selectedImageLayer)}>Cover canvas</button>
                 </Field>
               )}
@@ -2171,12 +1810,11 @@ export default function App() {
             <div className="inspector-stack">
               <div className="selection-card">
                 <strong>{selectedTextLayer.name}</strong>
-                <span>AI can edit: {summarizeEditableProperties(selectedTextLayer)}</span>
               </div>
-              <Field label="Name" lockControl={renderLayerLock(selectedTextLayer, "name", "Name")}>
+              <Field label="Name">
                 <input value={selectedTextLayer.name} onChange={(event) => updateLayer(selectedTextLayer.id, { name: event.target.value })} />
               </Field>
-              <Field label="Content" lockControl={renderLayerLock(selectedTextLayer, ["text", "marks"], "Content")}>
+              <Field label="Content">
                 <div className="rich-text-toolbar">
                   <button
                     type="button"
@@ -2216,13 +1854,13 @@ export default function App() {
                 <NumericField
                   label="X"
                   value={selectedTextLayer.x}
-                  lockControl={renderLayerLock(selectedTextLayer, "x", "X")}
+
                   onChange={(value) => updateLayer(selectedTextLayer.id, { x: value })}
                 />
                 <NumericField
                   label="Y"
                   value={selectedTextLayer.y}
-                  lockControl={renderLayerLock(selectedTextLayer, "y", "Y")}
+
                   onChange={(value) => updateLayer(selectedTextLayer.id, { y: value })}
                 />
               </div>
@@ -2231,7 +1869,7 @@ export default function App() {
                   label="Width"
                   value={selectedTextLayer.width}
                   min={80}
-                  lockControl={renderLayerLock(selectedTextLayer, "width", "Width")}
+
                   onChange={(value) => updateLayer(selectedTextLayer.id, { width: value })}
                 />
                 <button title="Fit width to current text" onClick={() => fitTextLayerWidth(selectedTextLayer)}>
@@ -2243,18 +1881,18 @@ export default function App() {
                   label="Font size"
                   value={selectedTextLayer.fontSize}
                   min={12}
-                  lockControl={renderLayerLock(selectedTextLayer, "fontSize", "Font size")}
+
                   onChange={(value) => updateLayer(selectedTextLayer.id, { fontSize: value })}
                 />
                 <NumericField
                   label="Stroke"
                   value={selectedTextLayer.strokeWidth}
                   min={0}
-                  lockControl={renderLayerLock(selectedTextLayer, "strokeWidth", "Stroke")}
+
                   onChange={(value) => updateLayer(selectedTextLayer.id, { strokeWidth: value })}
                 />
               </div>
-              <Field label="Font" lockControl={renderLayerLock(selectedTextLayer, "fontFamily", "Font")}>
+              <Field label="Font">
                 <select value={selectedTextLayer.fontFamily} onChange={(event) => updateLayer(selectedTextLayer.id, { fontFamily: event.target.value })}>
                   <option>Inter</option>
                   <option>Arial</option>
@@ -2265,7 +1903,7 @@ export default function App() {
                   <option>Georgia</option>
                 </select>
               </Field>
-              <Field label="Weight" lockControl={renderLayerLock(selectedTextLayer, "fontWeight", "Weight")}>
+              <Field label="Weight">
                 <select
                   value={selectedTextLayer.fontWeight}
                   disabled={FIXED_WEIGHT_FONTS.has(selectedTextLayer.fontFamily)}
@@ -2282,7 +1920,7 @@ export default function App() {
                   <span className="field-note">This font has a fixed visual weight.</span>
                 ) : null}
               </Field>
-              <Field label="Align" lockControl={renderLayerLock(selectedTextLayer, "align", "Align")}>
+              <Field label="Align">
                 <div className="segmented">
                   {(["left", "center", "right"] as Align[]).map((align) => (
                     <button
@@ -2298,13 +1936,13 @@ export default function App() {
               <ColorField
                 label="Text"
                 value={selectedTextLayer.fill}
-                lockControl={renderLayerLock(selectedTextLayer, "fill", "Text color")}
+
                 onChange={(value) => updateLayer(selectedTextLayer.id, { fill: value })}
               />
               <ColorField
                 label="Border"
                 value={selectedTextLayer.stroke}
-                lockControl={renderLayerLock(selectedTextLayer, "stroke", "Border color")}
+
                 onChange={(value) => updateLayer(selectedTextLayer.id, { stroke: value })}
               />
               <div className="two-col">
@@ -2314,7 +1952,7 @@ export default function App() {
                   min={0.8}
                   max={2}
                   step={0.05}
-                  lockControl={renderLayerLock(selectedTextLayer, "lineHeight", "Line height")}
+
                   onChange={(value) => updateLayer(selectedTextLayer.id, { lineHeight: value })}
                 />
                 <NumericField
@@ -2323,17 +1961,17 @@ export default function App() {
                   min={0}
                   max={80}
                   step={1}
-                  lockControl={renderLayerLock(selectedTextLayer, "letterSpacing", "Letter spacing")}
+
                   onChange={(value) => updateLayer(selectedTextLayer.id, { letterSpacing: value })}
                 />
               </div>
               <NumericField
                 label="Rotation"
                 value={selectedTextLayer.rotation}
-                lockControl={renderLayerLock(selectedTextLayer, "rotation", "Rotation")}
+
                 onChange={(value) => updateLayer(selectedTextLayer.id, { rotation: value })}
               />
-              <Field label="Opacity" lockControl={renderLayerLock(selectedTextLayer, "opacity", "Opacity")}>
+              <Field label="Opacity">
                 <input
                   type="range"
                   min="0.1"
@@ -2343,7 +1981,7 @@ export default function App() {
                   onChange={(event) => updateLayer(selectedTextLayer.id, { opacity: Number(event.target.value) })}
                 />
               </Field>
-              <Field label="Box" lockControl={renderLayerLock(selectedTextLayer, "box", "Box")}>
+              <Field label="Box">
                 <label className="switch-row">
                   <input
                     type="checkbox"
@@ -2358,7 +1996,7 @@ export default function App() {
                   <ColorField
                     label="Box fill"
                     value={selectedTextLayer.box.fill}
-                    lockControl={renderLayerLock(selectedTextLayer, "box", "Box fill")}
+
                     onChange={(value) => updateLayerBox(selectedTextLayer.id, { fill: value })}
                   />
                   <div className="two-col">
@@ -2366,14 +2004,14 @@ export default function App() {
                       label="Radius"
                       value={selectedTextLayer.box.radius}
                       min={0}
-                      lockControl={renderLayerLock(selectedTextLayer, "box", "Radius")}
+
                       onChange={(value) => updateLayerBox(selectedTextLayer.id, { radius: value })}
                     />
                     <NumericField
                       label="Pad X"
                       value={selectedTextLayer.box.paddingX}
                       min={0}
-                      lockControl={renderLayerLock(selectedTextLayer, "box", "Pad X")}
+
                       onChange={(value) => updateLayerBox(selectedTextLayer.id, { paddingX: value })}
                     />
                   </div>
@@ -2381,7 +2019,7 @@ export default function App() {
                     label="Pad Y"
                     value={selectedTextLayer.box.paddingY}
                     min={0}
-                    lockControl={renderLayerLock(selectedTextLayer, "box", "Pad Y")}
+
                     onChange={(value) => updateLayerBox(selectedTextLayer.id, { paddingY: value })}
                   />
                 </>

@@ -41,7 +41,6 @@ export type TextLayerModel = {
   name: string;
   text: string;
   marks: TextMark[];
-  templateRules?: TemplateRules;
   x: number;
   y: number;
   width: number;
@@ -80,7 +79,6 @@ export type ImageLayerModel = {
   naturalHeight: number;
   crop?: ImageLayerCrop;
   placement?: ImageLayerPlacement;
-  templateRules?: TemplateRules;
   x: number;
   y: number;
   width: number;
@@ -103,34 +101,6 @@ export type ImageLayerPlacement = {
   slotIndex: number;
 };
 
-export type TemplateEditableProperty =
-  | "text"
-  | "marks"
-  | "src"
-  | "crop"
-  | "fontSize"
-  | "fontFamily"
-  | "fontWeight"
-  | "lineHeight"
-  | "letterSpacing"
-  | "align"
-  | "x"
-  | "y"
-  | "width"
-  | "height"
-  | "rotation"
-  | "fill"
-  | "stroke"
-  | "strokeWidth"
-  | "box"
-  | "opacity"
-  | "placement"
-  | "name";
-
-export type TemplateRules = {
-  aiEditableProperties: TemplateEditableProperty[];
-};
-
 export type SlideLayerModel = TextLayerModel | ImageLayerModel;
 
 export type SlideBackground = {
@@ -149,6 +119,7 @@ export type Slide = {
 export type ProjectFile = {
   type: "tiktok-slide-project";
   version: 2;
+  formatId: string;
   id?: string;
   name?: string;
   updatedAt?: string;
@@ -156,19 +127,16 @@ export type ProjectFile = {
   slides: Slide[];
 };
 
-export type TemplateSlide = Omit<Slide, "id"> & { id?: string };
-
-export type TemplateFile = {
-  type: "tiktok-slide-template";
-  version: 2;
-  id?: string;
-  name: string;
-  updatedAt?: string;
-  preset: ProjectFile["preset"];
-  slides: TemplateSlide[];
-};
-
 export type Selection = "background" | string | null;
+
+const FORMAT_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+
+export const normalizeFormatId = (value: unknown) => {
+  if (typeof value !== "string" || !FORMAT_ID_PATTERN.test(value)) {
+    throw new Error("A lowercase format ID is required.");
+  }
+  return value;
+};
 
 export const uid = (prefix: string) => `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 
@@ -177,67 +145,6 @@ export const clamp = (value: number, min: number, max: number) => Math.max(min, 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null;
 
-export const DEFAULT_TEXT_AI_EDITABLE_PROPERTIES = ["text", "marks"] as const satisfies readonly TemplateEditableProperty[];
-export const DEFAULT_IMAGE_AI_EDITABLE_PROPERTIES = ["src", "crop"] as const satisfies readonly TemplateEditableProperty[];
-
-export const TEXT_AI_EDITABLE_PROPERTIES = [
-  "text",
-  "marks",
-  "fontSize",
-  "fontFamily",
-  "fontWeight",
-  "lineHeight",
-  "letterSpacing",
-  "align",
-  "x",
-  "y",
-  "width",
-  "rotation",
-  "fill",
-  "stroke",
-  "strokeWidth",
-  "box",
-  "opacity",
-  "name",
-] as const satisfies readonly TemplateEditableProperty[];
-
-export const IMAGE_AI_EDITABLE_PROPERTIES = [
-  "src",
-  "crop",
-  "x",
-  "y",
-  "width",
-  "height",
-  "rotation",
-  "opacity",
-  "placement",
-  "name",
-] as const satisfies readonly TemplateEditableProperty[];
-
-const uniqueEditableProperties = (properties: TemplateEditableProperty[]) => Array.from(new Set(properties));
-
-export const getDefaultTemplateRules = (layerType: SlideLayerModel["type"]): TemplateRules => ({
-  aiEditableProperties: [
-    ...(layerType === "image" ? DEFAULT_IMAGE_AI_EDITABLE_PROPERTIES : DEFAULT_TEXT_AI_EDITABLE_PROPERTIES),
-  ],
-});
-
-export const normalizeTemplateRules = (
-  rules: unknown,
-  layerType: SlideLayerModel["type"],
-): TemplateRules => {
-  if (!isRecord(rules) || !Array.isArray(rules.aiEditableProperties)) {
-    return getDefaultTemplateRules(layerType);
-  }
-
-  const allowed = layerType === "image" ? IMAGE_AI_EDITABLE_PROPERTIES : TEXT_AI_EDITABLE_PROPERTIES;
-  const allowedSet = new Set<TemplateEditableProperty>(allowed);
-  return {
-    aiEditableProperties: uniqueEditableProperties(
-      rules.aiEditableProperties.filter((property): property is TemplateEditableProperty => allowedSet.has(property)),
-    ),
-  };
-};
 
 const normalizeRangeBoundary = (value: unknown, textLength: number) => {
   if (typeof value !== "number" || !Number.isFinite(value)) return 0;
@@ -362,7 +269,6 @@ export const defaultTextLayer = (): TextLayerModel => ({
   name: "Hook text",
   text: "",
   marks: [],
-  templateRules: getDefaultTemplateRules("text"),
   x: 100,
   y: 760,
   width: DEFAULT_TEXT_WIDTH,
@@ -392,7 +298,6 @@ export const defaultLabelLayer = (): TextLayerModel => ({
   name: "Pill label",
   text: "active recall",
   marks: [],
-  templateRules: getDefaultTemplateRules("text"),
   x: 350,
   y: 620,
   width: DEFAULT_LABEL_WIDTH,
@@ -431,15 +336,16 @@ export const normalizeSlideBackground = (background?: Partial<SlideBackground>):
 
 export const normalizeTextLayer = (layer: Partial<TextLayerModel>, resetId = true): TextLayerModel => {
   const fallback = defaultTextLayer();
+  const normalizedLayer = { ...layer } as Partial<TextLayerModel> & { templateRules?: unknown };
+  delete normalizedLayer.templateRules;
   const text = String(layer.text ?? fallback.text);
   return {
     ...fallback,
-    ...layer,
+    ...normalizedLayer,
     id: resetId ? uid("text") : String(layer.id ?? fallback.id),
     type: "text",
     text,
     marks: normalizeTextMarks(layer.marks, text.length),
-    templateRules: normalizeTemplateRules(layer.templateRules, "text"),
     letterSpacing: layer.letterSpacing ?? 0,
     box: {
       ...fallback.box,
@@ -502,7 +408,6 @@ export const normalizeImageLayer = (layer: Partial<ImageLayerModel>, resetId = t
     naturalHeight,
     crop,
     placement,
-    templateRules: normalizeTemplateRules(layer.templateRules, "image"),
     x: typeof layer.x === "number" && Number.isFinite(layer.x) ? layer.x : 0,
     y: typeof layer.y === "number" && Number.isFinite(layer.y) ? layer.y : 0,
     width,
@@ -520,13 +425,6 @@ export const normalizeSlideLayer = (layer: unknown, resetId = true): SlideLayerM
   if (isRecord(layer) && layer.type === "image") return normalizeImageLayer(layer as Partial<ImageLayerModel>, resetId);
   return normalizeTextLayer(isRecord(layer) ? (layer as Partial<TextLayerModel>) : {}, resetId);
 };
-
-export const slideToTemplateSlide = (slide: Slide): TemplateSlide => ({
-  name: slide.name,
-  canvas: normalizeCanvasPreset(slide.canvas),
-  background: normalizeSlideBackground(slide.background),
-  layers: slide.layers.map((layer) => ({ ...layer })),
-});
 
 export const makePreset = (preset = DEFAULT_CANVAS_PRESET): ProjectFile["preset"] => normalizeCanvasPreset(preset);
 

@@ -308,57 +308,6 @@ p {
   font-weight: 700;
 }
 
-.template-title {
-  margin-top: 24px;
-}
-
-.template-save-box {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 78px;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.template-save-box button {
-  min-height: 44px;
-}
-
-.template-save-box .template-load-button {
-  grid-column: 1 / -1;
-}
-
-.template-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-top: 8px;
-}
-
-.template-card {
-  width: 100%;
-  min-height: 52px;
-  padding: 9px 12px;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 3px;
-}
-
-.template-card strong {
-  font-size: 12px;
-}
-
-.template-card small {
-  color: var(--muted);
-  font-size: 10px;
-}
-
-.template-status {
-  margin-top: 8px;
-  color: var(--muted);
-  font-size: 11px;
-  line-height: 1.4;
-}
-
 .content-title {
   margin-top: 24px;
 }
@@ -655,34 +604,10 @@ p {
   gap: 7px;
 }
 
-.field-heading {
-  min-height: 18px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.field-heading > span {
+.field > span {
   color: var(--muted);
   font-size: 12px;
   font-weight: 700;
-}
-
-.property-lock-button {
-  width: 18px;
-  min-width: 18px;
-  height: 18px;
-  min-height: 18px;
-  padding: 0;
-  border-radius: 4px;
-  color: var(--muted);
-  background: #171a17;
-}
-
-.property-lock-button.locked {
-  border-color: var(--accent);
-  color: var(--accent);
-  background: rgba(38, 224, 127, 0.12);
 }
 
 .field .field-note {
