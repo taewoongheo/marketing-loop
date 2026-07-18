@@ -26,6 +26,9 @@ renderer/slideshow/formats/*/references/**/*.jpg
 renderer/slideshow/formats/*/references/**/*.jpeg
 renderer/slideshow/formats/*/references/**/*.webp
 
+# Local self-contained slideshow projects
+renderer/slideshow/formats/*/contents/*.json
+
 # Local credentials
 .env
 .env.*
