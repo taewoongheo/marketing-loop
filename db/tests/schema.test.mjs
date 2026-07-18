@@ -70,6 +70,25 @@ function insertContent(
   });
 }
 
+function insertResult(databasePath, collectionSource) {
+  return spawnSync("sqlite3", [databasePath], {
+    input: `
+      INSERT INTO content_results (
+        content_id,
+        target_hours,
+        collected_at,
+        collection_source
+      ) VALUES (
+        'c-1-1',
+        24,
+        '2026-07-18T00:00:00Z',
+        ${collectionSource}
+      );
+    `,
+    encoding: "utf8",
+  });
+}
+
 test("contents records format and strategy versions with the self-contained project identity", async () => {
   await withDatabase(async (databasePath) => {
     const columns = JSON.parse(query(databasePath, "PRAGMA table_info(contents);"));
@@ -115,6 +134,29 @@ test("contents accepts positive integer strategy versions", async () => {
   });
 });
 
+test("content results require normalized collection provenance", async () => {
+  await withDatabase(async (databasePath) => {
+    execFileSync("sqlite3", [databasePath, `
+      INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
+    `]);
+    const content = insertContent(databasePath, "1", "1");
+    assert.equal(content.status, 0, content.stderr);
+
+    const columns = JSON.parse(query(databasePath, "PRAGMA table_info(content_results);"));
+    const collectionSource = columns.find((column) => column.name === "collection_source");
+    assert.ok(collectionSource);
+    assert.equal(collectionSource.notnull, 1);
+
+    for (const source of ["NULL", "''", "'   '"]) {
+      const inserted = insertResult(databasePath, source);
+      assert.notEqual(inserted.status, 0, `accepted ${source}`);
+      assert.match(inserted.stderr, /(NOT NULL|CHECK) constraint failed/);
+    }
+
+    const inserted = insertResult(databasePath, "'TikWM public API'");
+    assert.equal(inserted.status, 0, inserted.stderr);
+  });
+});
 
 test("contents rejects invalid copywriting versions", async () => {
   await withDatabase(async (databasePath) => {
@@ -147,6 +189,6 @@ test("contents rejects invalid message versions", async () => {
 test("schema version identifies the current structure", async () => {
   await withDatabase(async (databasePath) => {
     const version = query(databasePath, "PRAGMA user_version;").trim();
-    assert.equal(version, '[{"user_version":8}]');
+    assert.equal(version, '[{"user_version":9}]');
   });
 });

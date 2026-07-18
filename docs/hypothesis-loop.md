@@ -410,6 +410,26 @@ A hypothesis's direct contents are reverse-queried through `contents.hypothesis_
 
 Owns one result row for each 24-hour, 48-hour, or 72-hour checkpoint of a content. Observation and interpretation remain separate columns in the same result row. Continue planned result collection regardless of whether the generating hypothesis or branch is now closed.
 
+```text
+id
+content_id
+target_hours
+collected_at
+views
+likes
+comments
+shares
+saves
+observed_summary
+interpretation
+limitations
+collection_source
+raw_json
+```
+
+- `collection_source` solely owns the normalized retrieval provenance for the checkpoint, such as the named public API or manual observation method. It must be non-empty.
+- `raw_json` owns the unmodified collector response and source-specific retrieval details. It does not replace the normalized provenance field.
+
 ### `hypothesis_evidence`
 
 Connects a child hypothesis to the exact content-result rows that influenced its creation.

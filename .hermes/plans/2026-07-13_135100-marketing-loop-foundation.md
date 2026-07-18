@@ -1,6 +1,6 @@
-# env Marketing Loop Folder Plan — Revised
+# env Marketing Loop Folder Plan — Superseded
 
-**Status:** Historical planning artifact. `AGENTS.md` and `README.md` are authoritative for the current project.
+**Status:** Superseded pre-refactor planning artifact. Everything below records the architecture proposed at that time and is non-normative; its paths and ownership statements must not be used as current instructions. `AGENTS.md`, `README.md`, `docs/hypothesis-loop.md`, and `db/schema.sql` are authoritative for the current project.
 
 **Goal:** Keep durable env marketing knowledge and evidence in their project owners while `renderer/slideshow/` owns visual templates, editable content JSON, and rendered images.
 

@@ -94,6 +94,8 @@ CREATE TABLE IF NOT EXISTS content_results (
     observed_summary TEXT,
     interpretation TEXT,
     limitations TEXT,
+    collection_source TEXT NOT NULL
+        CHECK (length(trim(collection_source)) > 0),
     raw_json TEXT NOT NULL DEFAULT '{}'
         CHECK (json_valid(raw_json)),
     FOREIGN KEY (content_id)
@@ -141,6 +143,6 @@ CREATE INDEX IF NOT EXISTS idx_content_results_content
 CREATE INDEX IF NOT EXISTS idx_hypothesis_evidence_result
     ON hypothesis_evidence(content_result_id);
 
-PRAGMA user_version = 8;
+PRAGMA user_version = 9;
 
 COMMIT;

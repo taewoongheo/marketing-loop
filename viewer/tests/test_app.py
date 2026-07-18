@@ -44,12 +44,14 @@ class LoadTreeTests(unittest.TestCase):
                 """
                 INSERT INTO content_results (
                     content_id, target_hours, collected_at, views,
-                    observed_summary, interpretation, limitations
-                ) VALUES (?, ?, ?, ?, ?, ?, ?)
+                    observed_summary, interpretation, limitations,
+                    collection_source
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
                     "C-001", 24, "2026-07-15T00:00:00Z", 1200,
                     "Early reach", "Recognition may be present", "One post",
+                    "TikWM public API",
                 ),
             )
             connection.execute(
