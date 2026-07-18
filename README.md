@@ -76,10 +76,10 @@ External owners — not inside this repository
   - **`product.md`** owns product truth, market scope, positioning, and claim boundaries.
   - **`user-language.md`** stores project-wide collected expressions, situations, sources, and confidence without interpreting them.
 - **`messages/`** holds explicitly versioned target situations, problem patterns, belief shifts, persuasion logic, resistance and response, product roles, and evidence limits. A version's generation-affecting meaning becomes immutable after content first references it.
-- **`db/`** holds the exact schema and local runtime record of hypotheses, generated content, content results, account-level follower snapshots, and evidence links.
+- **`db/`** holds the exact schema and local runtime record of hypotheses, generated content and its final slide copy, content results, account-level follower snapshots, and evidence links.
 - **`viewer/hypothesis_tree/`** derives a read-only tree from the runtime database. It owns no hypothesis state and cannot replace SQLite as the evidence source.
 - **`.hermes/plans/`** holds implementation plans, not runtime marketing knowledge.
-- **`renderer/slideshow/`** owns slideshow production. Each `formats/<format-id>/` bundle groups that format's copywriting, approved materials, ordered references, and self-contained content projects. `formatId` identifies the evidence/content namespace; it does not provide reusable coordinates. There is no template or format JSON. The assistant uses references as primary visual-grammar evidence and same-format publication-ready projects as secondary account-execution evidence, then constructs each layout directly in its content project.
+- **`renderer/slideshow/`** owns slideshow production. Each `formats/<format-id>/` bundle groups that format's copywriting, approved materials, ordered references, and self-contained content projects. `formatId` identifies the evidence/content namespace; it does not provide reusable coordinates. There is no template or format JSON. The assistant uses references as primary visual-grammar evidence and up to three retained same-format projects as secondary renderer-feasibility and composition evidence, then constructs each layout directly in its content project.
 - **Profile `SOUL.md`** owns the dedicated agent identity.
 - **Profile `MEMORY.md`** owns approved compact lessons that must persist across sessions.
 - **Hermes skills** own reusable procedures.
@@ -103,4 +103,4 @@ Run the read-only local monitor from the repository root:
 npm run viewer:hypothesis-tree
 ```
 
-Open `http://127.0.0.1:4174`. The viewer derives active, branched, and closed node states together with direct content, publication state, result checkpoints, and child-creation evidence from `db/hypothesis-loop.sqlite`. It exposes no write endpoint.
+Open `http://127.0.0.1:4174`. The viewer derives active, branched, and closed node states together with direct content, final slide copy, publication state, result checkpoints, and child-creation evidence from `db/hypothesis-loop.sqlite`. It exposes no write endpoint.

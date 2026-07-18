@@ -58,5 +58,142 @@ class AccountResultsSchemaTests(unittest.TestCase):
                     )
 
 
+class ContentSlideCopySchemaTests(unittest.TestCase):
+    def setUp(self):
+        self.temp_dir = tempfile.TemporaryDirectory()
+        self.db_path = Path(self.temp_dir.name) / "content-copy.sqlite"
+        self.connection = sqlite3.connect(self.db_path)
+        self.connection.executescript(SCHEMA_PATH.read_text())
+        self.connection.execute(
+            "INSERT INTO hypotheses (id, statement) VALUES (?, ?)",
+            ("H-001", "Root statement"),
+        )
+
+    def tearDown(self):
+        self.connection.close()
+        self.temp_dir.cleanup()
+
+    def insert_content(self, slide_copy_json, hypothesis_id="H-001"):
+        self.connection.execute(
+            """
+            INSERT INTO contents (
+                id, hypothesis_id, format_id, message_id, message_version,
+                copywriting_version, caption, slide_copy_json,
+                final_project_path, final_project_sha256
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                "C-001", hypothesis_id, "denzel", "msg-focus-is-a-system", 1,
+                1, "caption", slide_copy_json, "contents/C-001.json", "a" * 64,
+            ),
+        )
+
+    def test_records_ordered_slide_copy(self):
+        self.insert_content('[["hook", "support"], ["body", "cta"]]')
+
+        value = self.connection.execute(
+            "SELECT slide_copy_json FROM contents WHERE id = 'C-001'"
+        ).fetchone()[0]
+        self.assertEqual(value, '[["hook", "support"], ["body", "cta"]]')
+
+        with self.assertRaises(sqlite3.IntegrityError):
+            self.connection.execute(
+                "UPDATE contents SET slide_copy_json = '[]' WHERE id = 'C-001'"
+            )
+
+    def test_rejects_empty_or_invalid_slide_copy(self):
+        for value in ("[]", "{}", '"hook"', '["hook"]', "[[1]]", "not-json"):
+            with self.subTest(value=value):
+                with self.assertRaises(sqlite3.IntegrityError):
+                    self.insert_content(value)
+
+    def test_rejects_non_integer_content_metrics(self):
+        self.insert_content('[["hook"]]')
+
+        for views in (-1, 1.5, "abc"):
+            with self.subTest(views=views):
+                with self.assertRaises(sqlite3.IntegrityError):
+                    self.connection.execute(
+                        """
+                        INSERT INTO content_results (
+                            content_id, target_hours, collected_at,
+                            views, collection_source
+                        ) VALUES (?, ?, ?, ?, ?)
+                        """,
+                        ("C-001", 24, "2026-07-19T00:00:00Z", views, "manual"),
+                    )
+
+    def test_enforces_active_leaf_lifecycle(self):
+        self.connection.execute(
+            """
+            INSERT INTO hypotheses (
+                id, parent_hypothesis_id, change_axis, statement
+            ) VALUES (?, ?, ?, ?)
+            """,
+            ("H-002", "H-001", "copywriting", "Child statement"),
+        )
+
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "active leaf"):
+            self.insert_content('[["hook"]]')
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "branched"):
+            self.connection.execute(
+                """
+                UPDATE hypotheses
+                SET closed_at = ?, closure_reason = ?
+                WHERE id = 'H-001'
+                """,
+                ("2026-07-19T00:00:00Z", "No longer active"),
+            )
+
+        self.connection.execute(
+            """
+            UPDATE hypotheses
+            SET closed_at = ?, closure_reason = ?
+            WHERE id = 'H-002'
+            """,
+            ("2026-07-19T00:00:00Z", "Test closure"),
+        )
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "active leaf"):
+            self.insert_content('[["hook"]]', hypothesis_id="H-002")
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "must exist and be open"):
+            self.connection.execute(
+                """
+                INSERT INTO hypotheses (
+                    id, parent_hypothesis_id, change_axis, statement
+                ) VALUES (?, ?, ?, ?)
+                """,
+                ("H-003", "H-002", "message", "Grandchild statement"),
+            )
+
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "must exist and be open"):
+            self.connection.execute(
+                """
+                INSERT INTO hypotheses (
+                    id, parent_hypothesis_id, change_axis, statement
+                ) VALUES (?, ?, ?, ?)
+                """,
+                ("H-004", "H-missing", "message", "Orphan statement"),
+            )
+
+    def test_preserves_hypothesis_lineage(self):
+        self.connection.execute(
+            """
+            INSERT INTO hypotheses (
+                id, parent_hypothesis_id, change_axis, statement
+            ) VALUES (?, ?, ?, ?)
+            """,
+            ("H-002", "H-001", "message", "Child statement"),
+        )
+
+        with self.assertRaisesRegex(sqlite3.IntegrityError, "lineage"):
+            self.connection.execute(
+                """
+                UPDATE hypotheses
+                SET parent_hypothesis_id = NULL, change_axis = NULL
+                WHERE id = 'H-002'
+                """
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

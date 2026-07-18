@@ -62,6 +62,14 @@ CREATE TABLE IF NOT EXISTS contents (
             AND copywriting_version > 0
         ),
     caption TEXT NOT NULL,
+    slide_copy_json TEXT NOT NULL DEFAULT '[]'
+        CHECK (
+            CASE
+                WHEN json_valid(slide_copy_json)
+                THEN json_type(slide_copy_json) = 'array'
+                ELSE 0
+            END
+        ),
     final_project_path TEXT NOT NULL UNIQUE
         CHECK (length(trim(final_project_path)) > 0),
     final_project_sha256 TEXT NOT NULL
@@ -80,6 +88,151 @@ CREATE TABLE IF NOT EXISTS contents (
         (tiktok_url IS NOT NULL AND published_at IS NOT NULL)
     )
 );
+
+CREATE TRIGGER IF NOT EXISTS preserve_hypothesis_lineage
+BEFORE UPDATE OF parent_hypothesis_id, change_axis ON hypotheses
+WHEN
+    NEW.parent_hypothesis_id IS NOT OLD.parent_hypothesis_id
+    OR NEW.change_axis IS NOT OLD.change_axis
+BEGIN
+    SELECT RAISE(ABORT, 'hypothesis lineage cannot change after creation');
+END;
+
+CREATE TRIGGER IF NOT EXISTS require_open_hypothesis_parent
+BEFORE INSERT ON hypotheses
+WHEN
+    NEW.parent_hypothesis_id IS NOT NULL
+    AND (
+        NOT EXISTS (
+            SELECT 1
+            FROM hypotheses AS parent
+            WHERE parent.id = NEW.parent_hypothesis_id
+        )
+        OR EXISTS (
+            SELECT 1
+            FROM hypotheses AS parent
+            WHERE parent.id = NEW.parent_hypothesis_id
+              AND parent.closed_at IS NOT NULL
+        )
+    )
+BEGIN
+    SELECT RAISE(ABORT, 'hypothesis parent must exist and be open');
+END;
+
+CREATE TRIGGER IF NOT EXISTS require_leaf_hypothesis_closure
+BEFORE UPDATE OF closed_at ON hypotheses
+WHEN
+    NEW.closed_at IS NOT NULL
+    AND EXISTS (
+        SELECT 1
+        FROM hypotheses AS child
+        WHERE child.parent_hypothesis_id = NEW.id
+    )
+BEGIN
+    SELECT RAISE(ABORT, 'branched hypotheses cannot be closed');
+END;
+
+CREATE TRIGGER IF NOT EXISTS require_active_leaf_content
+BEFORE INSERT ON contents
+WHEN
+    NOT EXISTS (
+        SELECT 1
+        FROM hypotheses AS selected
+        WHERE selected.id = NEW.hypothesis_id
+    )
+    OR EXISTS (
+        SELECT 1
+        FROM hypotheses AS selected
+        WHERE selected.id = NEW.hypothesis_id
+          AND (
+              selected.closed_at IS NOT NULL
+              OR EXISTS (
+                  SELECT 1
+                  FROM hypotheses AS child
+                  WHERE child.parent_hypothesis_id = selected.id
+              )
+          )
+)
+BEGIN
+    SELECT RAISE(ABORT, 'contents must belong to an active leaf hypothesis');
+END;
+
+CREATE TRIGGER IF NOT EXISTS preserve_content_hypothesis
+BEFORE UPDATE OF hypothesis_id ON contents
+WHEN NEW.hypothesis_id IS NOT OLD.hypothesis_id
+BEGIN
+    SELECT RAISE(ABORT, 'content hypothesis cannot change after creation');
+END;
+
+CREATE TRIGGER IF NOT EXISTS require_contents_slide_copy
+BEFORE INSERT ON contents
+WHEN
+    CASE
+        WHEN json_valid(NEW.slide_copy_json)
+        THEN json_array_length(NEW.slide_copy_json) = 0
+        ELSE 0
+    END
+BEGIN
+    SELECT RAISE(ABORT, 'slide_copy_json must contain at least one slide');
+END;
+
+CREATE TRIGGER IF NOT EXISTS preserve_contents_slide_copy
+BEFORE UPDATE OF slide_copy_json ON contents
+WHEN
+    CASE
+        WHEN json_valid(NEW.slide_copy_json)
+        THEN json_array_length(NEW.slide_copy_json) = 0
+        ELSE 0
+    END
+BEGIN
+    SELECT RAISE(ABORT, 'slide_copy_json must contain at least one slide');
+END;
+
+CREATE TRIGGER IF NOT EXISTS require_contents_slide_copy_shape_insert
+BEFORE INSERT ON contents
+WHEN
+    CASE
+        WHEN json_valid(NEW.slide_copy_json)
+             AND json_type(NEW.slide_copy_json) = 'array'
+        THEN EXISTS (
+            SELECT 1
+            FROM json_each(NEW.slide_copy_json) AS slide
+            WHERE
+                slide.type <> 'array'
+                OR EXISTS (
+                    SELECT 1
+                    FROM json_each(slide.value) AS text_layer
+                    WHERE text_layer.type <> 'text'
+                )
+        )
+        ELSE 0
+    END
+BEGIN
+    SELECT RAISE(ABORT, 'slide_copy_json must contain arrays of text strings');
+END;
+
+CREATE TRIGGER IF NOT EXISTS require_contents_slide_copy_shape_update
+BEFORE UPDATE OF slide_copy_json ON contents
+WHEN
+    CASE
+        WHEN json_valid(NEW.slide_copy_json)
+             AND json_type(NEW.slide_copy_json) = 'array'
+        THEN EXISTS (
+            SELECT 1
+            FROM json_each(NEW.slide_copy_json) AS slide
+            WHERE
+                slide.type <> 'array'
+                OR EXISTS (
+                    SELECT 1
+                    FROM json_each(slide.value) AS text_layer
+                    WHERE text_layer.type <> 'text'
+                )
+        )
+        ELSE 0
+    END
+BEGIN
+    SELECT RAISE(ABORT, 'slide_copy_json must contain arrays of text strings');
+END;
 
 CREATE TABLE IF NOT EXISTS content_results (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -137,6 +290,30 @@ BEGIN
     SELECT RAISE(ABORT, 'published_at cannot change after publication');
 END;
 
+CREATE TRIGGER IF NOT EXISTS require_integer_content_metrics_insert
+BEFORE INSERT ON content_results
+WHEN
+    (NEW.views IS NOT NULL AND typeof(NEW.views) <> 'integer')
+    OR (NEW.likes IS NOT NULL AND typeof(NEW.likes) <> 'integer')
+    OR (NEW.comments IS NOT NULL AND typeof(NEW.comments) <> 'integer')
+    OR (NEW.shares IS NOT NULL AND typeof(NEW.shares) <> 'integer')
+    OR (NEW.saves IS NOT NULL AND typeof(NEW.saves) <> 'integer')
+BEGIN
+    SELECT RAISE(ABORT, 'content metrics must be integers');
+END;
+
+CREATE TRIGGER IF NOT EXISTS require_integer_content_metrics_update
+BEFORE UPDATE OF views, likes, comments, shares, saves ON content_results
+WHEN
+    (NEW.views IS NOT NULL AND typeof(NEW.views) <> 'integer')
+    OR (NEW.likes IS NOT NULL AND typeof(NEW.likes) <> 'integer')
+    OR (NEW.comments IS NOT NULL AND typeof(NEW.comments) <> 'integer')
+    OR (NEW.shares IS NOT NULL AND typeof(NEW.shares) <> 'integer')
+    OR (NEW.saves IS NOT NULL AND typeof(NEW.saves) <> 'integer')
+BEGIN
+    SELECT RAISE(ABORT, 'content metrics must be integers');
+END;
+
 CREATE INDEX IF NOT EXISTS idx_hypotheses_parent
     ON hypotheses(parent_hypothesis_id);
 
@@ -149,8 +326,11 @@ CREATE INDEX IF NOT EXISTS idx_contents_message
 CREATE INDEX IF NOT EXISTS idx_contents_format_copywriting
     ON contents(format_id, copywriting_version);
 
-CREATE INDEX IF NOT EXISTS idx_content_results_content
-    ON content_results(content_id, target_hours);
+DROP INDEX IF EXISTS idx_content_results_content;
+
+CREATE INDEX IF NOT EXISTS idx_contents_published_at
+    ON contents(published_at, id)
+    WHERE tiktok_url IS NOT NULL AND published_at IS NOT NULL;
 
 CREATE INDEX IF NOT EXISTS idx_account_results_collected
     ON account_results(collected_at);
@@ -158,6 +338,6 @@ CREATE INDEX IF NOT EXISTS idx_account_results_collected
 CREATE INDEX IF NOT EXISTS idx_hypothesis_evidence_result
     ON hypothesis_evidence(content_result_id);
 
-PRAGMA user_version = 10;
+PRAGMA user_version = 11;
 
 COMMIT;

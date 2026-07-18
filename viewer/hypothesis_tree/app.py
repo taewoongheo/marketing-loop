@@ -26,7 +26,14 @@ def load_tree(db_path=DEFAULT_DB_PATH):
             "SELECT * FROM contents ORDER BY id"
         )]
         results = [dict(row) for row in connection.execute(
-            "SELECT * FROM content_results ORDER BY content_id, target_hours"
+            """
+            SELECT id, content_id, target_hours, collected_at,
+                   views, likes, comments, shares, saves,
+                   observed_summary, interpretation, limitations,
+                   collection_source
+            FROM content_results
+            ORDER BY content_id, target_hours
+            """
         )]
         evidence = [dict(row) for row in connection.execute(
             """
@@ -47,6 +54,7 @@ def load_tree(db_path=DEFAULT_DB_PATH):
 
     contents_by_hypothesis = {}
     for content in contents:
+        content["slide_copy"] = json.loads(content.pop("slide_copy_json"))
         content["checkpoints"] = {
             checkpoint: results_by_content.get(content["id"], {}).get(checkpoint)
             for checkpoint in ("24", "48", "72")

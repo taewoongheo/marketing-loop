@@ -39,9 +39,9 @@ class DueContentResultCollectorTests(unittest.TestCase):
             """
             INSERT INTO contents (
                 id, hypothesis_id, format_id, message_id, message_version,
-                copywriting_version, caption, final_project_path,
+                copywriting_version, caption, slide_copy_json, final_project_path,
                 final_project_sha256, tiktok_url, published_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 content_id,
@@ -51,6 +51,7 @@ class DueContentResultCollectorTests(unittest.TestCase):
                 1,
                 1,
                 "caption",
+                '[["hook"],["body"]]',
                 f"contents/{content_id}.json",
                 content_id[-1].lower() * 64,
                 f"https://www.tiktok.com/@nextpagelog/photo/{content_id[-1]}",
@@ -176,6 +177,47 @@ class DueContentResultCollectorTests(unittest.TestCase):
                 self.connection,
                 now=NOW,
                 fetch_metrics=fetch_with_one_failure,
+            )
+
+        rows = self.connection.execute(
+            "SELECT content_id, target_hours FROM content_results ORDER BY content_id"
+        ).fetchall()
+        self.assertEqual(rows, [("C-002", 24)])
+
+    def test_one_invalid_publication_timestamp_does_not_block_other_due_content(self):
+        self.add_content("C-001", "not-a-timestamp")
+        self.add_content("C-002", "2026-07-19T11:00:00Z")
+
+        with self.assertRaisesRegex(RuntimeError, "C-001: Invalid isoformat string"):
+            collect_due_results(
+                self.connection,
+                now=NOW,
+                fetch_metrics=self.fetch_metrics,
+            )
+
+        rows = self.connection.execute(
+            "SELECT content_id, target_hours FROM content_results ORDER BY content_id"
+        ).fetchall()
+        self.assertEqual(rows, [("C-002", 24)])
+
+    def test_one_observation_failure_does_not_block_other_due_content(self):
+        self.add_content("C-001", "2026-07-19T11:00:00Z")
+        self.add_content("C-002", "2026-07-19T11:00:00Z")
+        clock_calls = 0
+
+        def observation_clock():
+            nonlocal clock_calls
+            clock_calls += 1
+            if clock_calls == 1:
+                raise RuntimeError("clock unavailable")
+            return NOW
+
+        with self.assertRaisesRegex(RuntimeError, "C-001: clock unavailable"):
+            collect_due_results(
+                self.connection,
+                now=NOW,
+                fetch_metrics=self.fetch_metrics,
+                observation_clock=observation_clock,
             )
 
         rows = self.connection.execute(

@@ -128,7 +128,11 @@ def collect_due_results(connection, now, fetch_metrics, observation_clock=None):
 
     for content_id, tiktok_url, published_at_text in rows:
         existing_targets = existing_by_content.get(content_id, set())
-        published_at = parse_timestamp(published_at_text)
+        try:
+            published_at = parse_timestamp(published_at_text)
+        except Exception as error:
+            failures.append(f"{content_id}: {error}")
+            continue
         target = due_target(published_at, existing_targets, now)
         if target is None:
             continue
@@ -143,56 +147,55 @@ def collect_due_results(connection, now, fetch_metrics, observation_clock=None):
 
         try:
             metrics = validate_metrics(fetch_metrics(tiktok_url))
+            observed_at = observation_clock()
+            due_at = published_at + timedelta(hours=target)
+            lag_minutes = max(0, int((observed_at - due_at).total_seconds() // 60))
+            observed_summary = (
+                f"Public counts at collection: {metrics['views']} views, "
+                f"{metrics['likes']} likes, {metrics['comments']} comments, "
+                f"{metrics['shares']} shares, and {metrics['saves']} saves."
+            )
+            limitations = (
+                f"Collected {lag_minutes} minutes after the {target}h target. "
+                "Public third-party API cache and timing semantics are not independently verified; "
+                "the counts may include activity after the target time."
+            )
+            if skipped_targets:
+                skipped_label = ", ".join(f"{checkpoint}h" for checkpoint in skipped_targets)
+                noun = "checkpoint was" if len(skipped_targets) == 1 else "checkpoints were"
+                limitations += (
+                    f" The {skipped_label} {noun} left missing rather than backfilled "
+                    "with this later observation."
+                )
+
+            with connection:
+                cursor = connection.execute(
+                    """
+                    INSERT OR IGNORE INTO content_results (
+                        content_id, target_hours, collected_at,
+                        views, likes, comments, shares, saves,
+                        observed_summary, interpretation, limitations,
+                        collection_source, raw_json
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)
+                    """,
+                    (
+                        content_id,
+                        target,
+                        format_timestamp(observed_at),
+                        metrics["views"],
+                        metrics["likes"],
+                        metrics["comments"],
+                        metrics["shares"],
+                        metrics["saves"],
+                        observed_summary,
+                        limitations,
+                        COLLECTION_SOURCE,
+                        metrics["raw_json"],
+                    ),
+                )
+            inserted += cursor.rowcount
         except Exception as error:
             failures.append(f"{content_id}: {error}")
-            continue
-        observed_at = observation_clock()
-        due_at = published_at + timedelta(hours=target)
-        lag_minutes = max(0, int((observed_at - due_at).total_seconds() // 60))
-        observed_summary = (
-            f"Public counts at collection: {metrics['views']} views, "
-            f"{metrics['likes']} likes, {metrics['comments']} comments, "
-            f"{metrics['shares']} shares, and {metrics['saves']} saves."
-        )
-        limitations = (
-            f"Collected {lag_minutes} minutes after the {target}h target. "
-            "Public third-party API cache and timing semantics are not independently verified; "
-            "the counts may include activity after the target time."
-        )
-        if skipped_targets:
-            skipped_label = ", ".join(f"{checkpoint}h" for checkpoint in skipped_targets)
-            noun = "checkpoint was" if len(skipped_targets) == 1 else "checkpoints were"
-            limitations += (
-                f" The {skipped_label} {noun} left missing rather than backfilled "
-                "with this later observation."
-            )
-
-        with connection:
-            cursor = connection.execute(
-                """
-                INSERT OR IGNORE INTO content_results (
-                    content_id, target_hours, collected_at,
-                    views, likes, comments, shares, saves,
-                    observed_summary, interpretation, limitations,
-                    collection_source, raw_json
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, NULL, ?, ?, ?)
-                """,
-                (
-                    content_id,
-                    target,
-                    format_timestamp(observed_at),
-                    metrics["views"],
-                    metrics["likes"],
-                    metrics["comments"],
-                    metrics["shares"],
-                    metrics["saves"],
-                    observed_summary,
-                    limitations,
-                    COLLECTION_SOURCE,
-                    metrics["raw_json"],
-                ),
-            )
-        inserted += cursor.rowcount
 
     if failures:
         raise RuntimeError("; ".join(failures))
