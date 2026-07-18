@@ -54,7 +54,7 @@ marketing-loop/
 │       │       ├── copywriting/      versioned format-specific copy owner
 │       │       ├── materials.md      approved format-specific inputs
 │       │       ├── references/       ordered raw layout evidence; local
-│       │       └── contents/         local Git-ignored editable projects
+│       │       └── contents/         local rolling visual examples/current projects
 │       ├── src/                      editor and browser rendering code
 │       ├── scripts/                  project-based rendering CLI
 │       └── public/assets/            reusable production assets

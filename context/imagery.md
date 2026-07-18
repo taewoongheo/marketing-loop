@@ -76,6 +76,7 @@ These exclusions guide the provider request. They do not authorize subjective se
 - Subjective regeneration: none
 - Final embedded format: PNG
 - Source aspect ratio or size: choose one option supported by the active tool after the content-specific image geometry is selected
+- Embed the first technically usable provider PNG bytes as returned. Do not resize, downscale, recompress, or convert generated imagery merely to reduce Project JSON or storage size; layer crop and display geometry do not authorize mutating the source image bytes.
 - Maximum technical retries after the initial request: `3`
 - Maximum total attempts per eligible slot: `4`
 

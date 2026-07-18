@@ -10,7 +10,7 @@
 - The two primary optimization axes are message and copywriting.
 - **Message strategy** decides what perception or belief should change and how the audience is persuaded.
 - **Copywriting** decides how the message is expressed: hook wording, specificity, information density, rhythm, product reveal, CTA, and caption.
-- Visual composition is not template-driven. The assistant designs each content project's text and image geometry from the designated references, approved copy, current imagery guidance, and recurring visual patterns in publication-ready content projects.
+- Visual composition is not template-driven. The assistant designs each content project's text and image geometry from the designated references, approved copy, current imagery guidance, and up to three retained same-format visual execution examples.
 - `context/imagery.md` owns the current app/account-wide image tone, content rules, runtime request constraints, and generation/selection policy. It is updated in place from user direction and is not versioned because imagery is not a hypothesis axis.
 - `renderer/slideshow/formats/<format-id>/copywriting/v<version>.md` stores immutable used versions of that format's slideshow language grammar, `materials.md` owns its pre-approved content inputs, `references/` stores ordered raw layout evidence, and `contents/` stores self-contained editable projects generated in that format.
 - `renderer/slideshow/formats/<format-id>/` is an evidence and content namespace, not a reusable coordinate template. Each project records its `formatId`, but owns its own complete typography, geometry, crop, and image bytes.
@@ -30,7 +30,7 @@ The assistant independently selects:
 - the recommended hypothesis actions and daily content allocation across active leaves;
 - the copy approach.
 
-Base those recommendations on project context, designated references, relevant publication-ready projects, the hypothesis lineage, and relevant DB performance. Do not ask the user to choose the evaluation criteria or develop the hypothesis direction, but obtain confirmation before applying the day's hypothesis actions.
+Base hypothesis recommendations on project context, the hypothesis lineage, and relevant DB performance. Use designated references and retained same-format Project JSON only for visual execution, not as hypothesis evidence. Do not ask the user to choose the evaluation criteria or develop the hypothesis direction, but obtain confirmation before applying the day's hypothesis actions.
 
 The user controls:
 
@@ -52,6 +52,8 @@ After a scheduled cycle has produced and verified its publication-ready content 
 
 The shared delayed-metric collector is the sole scheduled owner of due 24h, 48h, and 72h public checkpoint retrieval. Production runs read normalized stored results and do not fetch due content metrics again. Account follower observations use a separate low-frequency cadence: reuse the latest `account_results` row when it is less than 24 hours old, and refresh it only after that interval has elapsed.
 
+After a scheduled cycle has successfully delivered and recorded its new content, prune local same-format Project JSON that was not selected as one of that cycle's visual references, except DB-linked projects whose `tiktok_url` is still NULL and the newly delivered project. This is standing authorization to delete only those exact local Project JSON files. Never delete content rows, results, reference screenshots, or the current editable/rejection target. Project pruning is storage hygiene, not hypothesis evidence mutation.
+
 When a scheduled run judges that an additional Hermes skill, plugin, package, API-backed integration, or other external capability is materially needed, it may inspect and install that capability without advance approval. Admit only the narrow missing operational capability: do not install anything that creates a parallel owner for product truth, messages, copywriting, imagery, hypotheses, content records, or publication, and do not install automatic TikTok publishing. Inspect source, trust, credentials, network calls, cost, telemetry, generated files, and side effects before installation. After any installation, report through Telegram what was installed, its source, why it was needed, and any ongoing cost, credential requirement, or material side effect. If installation cannot succeed without a new credential or structural change, request that exact user action through Telegram instead of bypassing the boundary.
 
 The assistant autonomously drafts, creates, validates, renders, records, and sends one publication-ready slideshow to the configured Telegram destination. The user publishes it manually. A delivered content row remains unpublished until a TikTok URL is received; the receipt time of that URL is `published_at`. If a previously delivered content has no URL, ask for it in the next scheduled Telegram update without blocking the next content run. If the user rejects a delivered post, apply the feedback, revise or regenerate the same unpublished content and project, update its caption and checksum, and redeliver it rather than creating another content identity. If credentials, unavailable product truth, or a structural change blocks valid completion, explain the exact blocker and required user action through Telegram instead of guessing or changing the structure.
@@ -61,19 +63,15 @@ The assistant autonomously drafts, creates, validates, renders, records, and sen
 1. Read product truth, user-language evidence, and the current account-wide imagery guidance in `context/`.
 2. Review available versioned message definitions in `messages/`.
 3. Review the selected `renderer/slideshow/formats/<format-id>/copywriting/v<version>.md`, its `materials.md`, and all designated posts in its `references/` directory.
-4. Query SQLite for relevant publication-ready content projects and inspect their actual project JSON as account execution evidence. Also inspect available same-format projects under `contents/` that have no content row as unpublished, non-performance execution examples. They may inform feasible composition but are not publication or performance evidence and must never become hidden coordinate templates. If a historical DB-linked project path is missing, preserve its content and results, treat its exact copy and geometry as unavailable evidence, record that limitation in the evaluation, and continue from the remaining valid evidence without reconstruction or invention.
+4. Inventory available same-format Project JSON under `contents/` as visual execution candidates. Publication status, hypothesis lineage, message/copywriting versions, and performance do not make one candidate visually authoritative. A missing historical DB-linked project is expected after pruning and does not limit message or copywriting evaluation; preserve its DB content and results without reconstruction.
 5. Read `docs/hypothesis-loop.md` and query SQLite for active leaves, relevant ancestors, generated content, and results.
 6. Ask only for missing information that would materially affect product truth, audience fit, or valid copy.
 7. Prepare the day's hypothesis-action and allocation proposal, then obtain user confirmation before creating or closing nodes, promoting a supported rule, or assigning content.
 8. Apply the confirmed hypothesis actions and draft to a self-contained content project whose visual composition is designed from the approved evidence.
 
-Before opening prior Project JSON, select at most three same-format projects from metadata, lineage, file existence, and checksum checks:
+Before opening prior Project JSON, select at most three same-format projects solely as visual execution references. Select from metadata, file validity, composition relevance to the current approved copy and geometry, recency, and cross-project compositional diversity. Do not rank or select them by hypothesis lineage, message/copywriting identity, publication status, or performance. Three is a maximum, not a target; do not add a weaker candidate merely to fill the count.
 
-1. the most recent exact DB-linked project from the selected hypothesis or its detailed ancestor range;
-2. the most recent distinct exact DB-linked project from the same format;
-3. the most recent distinct unpublished same-format project with no DB content row.
-
-If one category has no valid project, do not fill the slot merely to reach three. Never load embedded base64 image bytes from prior projects into the reasoning context. Extract text, typography, geometry, image dimensions/crops, and checksum with a bounded script, and inspect rendered slides or a contact sheet for pixels. Full image bytes may pass only through file/render/validation tools. Query and aggregate normalized SQLite metrics for all relevant contents, but read `raw_json` only when verifying provenance, diagnosing a collection problem, or reintroducing a late correction.
+Never load embedded base64 image bytes from prior projects into the reasoning context. Extract text roles and lengths, typography, geometry, image dimensions/crops, and checksum with a bounded script, and inspect rendered slides or a contact sheet for pixels. Prior wording is not copy input. Full image bytes may pass only through file/render/validation tools. Query and aggregate normalized SQLite metrics for all relevant contents, but read `raw_json` only when verifying provenance, diagnosing a collection problem, or reintroducing a late correction.
 
 ## Content workflow
 
@@ -112,7 +110,7 @@ If the previous final content has no TikTok URL, ask naturally at the start of t
 - Adopted compact profile-level lessons: `~/.hermes/profiles/marketing-env/memories/MEMORY.md`
 - Reusable multi-step procedures: Hermes skills
 - Ordered raw slideshow layout evidence: `renderer/slideshow/formats/<format-id>/references/`
-- Exact slide count, typography, geometry, editable layers, final image bytes, and rendered media for one content: its project under `renderer/slideshow/formats/<format-id>/contents/`
+- While retained, exact slide count, typography, geometry, editable layers, final image bytes, and rendered media for one content: its local project under `renderer/slideshow/formats/<format-id>/contents/`
 
 Do not duplicate one fact, rule, layout value, or result across owners.
 
@@ -135,8 +133,7 @@ Do not duplicate one fact, rule, layout value, or result across owners.
 - Store durable reference screenshots under `renderer/slideshow/formats/<format-id>/references/<post-id>/` in the exact slide order designated by the user, using numeric filenames such as `1.png`, `2.png`, `3.png`, and `4.png`.
 - References are the primary visual-grammar evidence for hook hierarchy, slide roles, copy density, progression, image-text relationships, relative visual area, whitespace, asymmetry, crop, and cross-slide compositional rhythm.
 - Before creating each project, inspect every designated reference post through one transient ordered contact sheet per post. Open an individual full-resolution reference slide only when it is selected as a primary composition source or its detail is illegible in the sheet; do not load every raw slide independently. Use one primary reference-derived composition principle per slide rather than blending several posts into one composition. Re-read the full output as a contact sheet against the references and revise layouts that merely repeat recent contents or drift outside the reference family. Delete transient reference contact sheets after review.
-- Publication-ready content projects are secondary account-execution evidence. Infer stable account style only from recurring patterns across projects; never promote one project's incidental coordinates into a reusable rule or treat one project as a hidden template.
-- A same-format project under `contents/` with no DB content row is an unpublished, non-performance execution example. It may demonstrate renderer feasibility and composition possibilities, but it does not prove account style or performance and must not be treated as a coordinate source.
+- Retained same-format Project JSON is secondary visual execution evidence only. Use recurring composition patterns and renderer feasibility without treating publication, hypothesis lineage, or performance as visual validation; never promote one project's incidental coordinates into a reusable rule or hidden template.
 - Reference screenshots are the raw evidence, not renderer assets. Copywriting versions and `context/imagery.md` may own separate language and visual interpretations derived from that evidence. Do not use reference screenshots as production imagery unless the user separately adds them to `renderer/slideshow/public/assets/` for that purpose.
 - A user-designated viral reference does not automatically validate the env adaptation, and its wording, subject matter, and distinctive expressions must not be copied.
 
