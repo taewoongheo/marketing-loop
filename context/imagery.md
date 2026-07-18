@@ -24,13 +24,14 @@ For each generated image layer selected for the content project, derive one visu
 - Show one dominant idea per image. Do not combine every sentence or method from the slide into one scene.
 - Keep all necessary argumentative meaning in the copy; the image must not introduce an unsupported claim or a second method.
 - Do not default to a visible person when an environment, relationship between visual elements, trace of recent action, or partial human presence can communicate the same meaning.
+- When a study surface such as a notebook, worksheet, or textbook should look actively used, keep it visibly populated with realistic but illegible study structure—partial handwriting, problem shapes, diagrams, underlines, or worked marks—rather than turning the readable-text exclusion into a blank placeholder. Individual words, sentences, labels, and equations must remain unreadable.
 - Preserve product imagery intentionally selected as a fixed layer in the content project.
 
 ## Art direction and cross-image variation
 
 - Make the image feel like a familiar moment casually captured on a phone by the person living it or someone nearby.
 - Use natural available light and believable indoor light, favoring warm or neutral exposure over dramatic or highly stylized lighting.
-- Keep the palette soft and lived-in, with warm neutrals and occasional muted color. Create a gentle everyday aesthetic through light, texture, framing, and personal familiarity; never translate that aesthetic into a subject's gender.
+- Keep the palette natural and lived-in without washing the scene into gray or beige. Preserve clear local color and warm–cool separation—such as blue daylight against warm wood or lamps, green outdoor tones against dark devices, or one restrained colored object against neutral surroundings—so adjacent materials and planes remain visually distinct. The result may stay gentle, but it should not look globally desaturated or uniformly muted. Create the everyday aesthetic through light, texture, framing, and personal familiarity; never translate it into a subject's gender.
 - Favor candid, slightly imperfect framing: off-center subjects, natural cropping, partial human presence, and the perspective of an ordinary observer rather than a directed shoot.
 - Preserve believable texture and incidental imperfection, including mild grain or compression, uneven shadows, reflections, small overlaps, and ordinary visual variation.
 - Show people, when present, in unposed posture or mid-action rather than performing for the camera.
