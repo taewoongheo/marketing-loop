@@ -39,6 +39,9 @@ marketing-loop/
 │   ├── schema.sql                    database structure
 │   └── hypothesis-loop.sqlite         local runtime database
 │
+├── scripts/
+│   └── collect_due_content_results.py shared delayed-metric collector
+│
 ├── viewer/
 │   └── hypothesis_tree/               read-only local lineage monitor
 │       ├── app.py                     SQLite API and local server

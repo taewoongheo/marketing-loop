@@ -230,6 +230,8 @@ This rule prevents parent and child nodes from expanding simultaneously and maki
 
 Closing a hypothesis or branch does not stop result collection for content that has already been published.
 
+One shared hourly collector scans every published content and inserts only a due checkpoint whose unique `(content_id, target_hours)` row is absent. The scan itself stays silent when nothing is due; it does not create hypotheses or interpretations. Under normal operation, each content therefore triggers only three public API retrievals in total. If downtime makes several missing checkpoints overdue at once, collect only the latest due checkpoint and leave older historical checkpoints missing rather than copying one current observation backward into several target times. If a later checkpoint already exists, never backfill an earlier one.
+
 ```text
 24h → early exploration signal
 48h → intermediate observation
@@ -306,6 +308,8 @@ Detailed H-004 range: H-004 → H-003 → H-002 → H-001
 `72h evaluation complete` means that every planned direct content for that node has received its 72-hour result and that those results have been reviewed. A node is not a cutoff merely because one of its contents has reached 72 hours.
 
 Do not reread the raw content and results of nodes older than the `72h-complete ancestor` on every evaluation. Treat that earlier lineage as inherited context already reflected when the mature ancestor was formed.
+
+Within the detailed range, query normalized result columns for every relevant content and aggregate them in SQL before reasoning. Do not load every collector `raw_json` or every native Project JSON. Read raw collector payloads only for provenance checks, collection failures, or late corrections; select prior visual projects through the bounded project-selection rule in `AGENTS.md`.
 
 Exception: if a missing or corrected late result arrives for an older node after the mature ancestor was evaluated, read that older node directly again and reevaluate its effect on the current descendant branch.
 
