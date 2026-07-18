@@ -9,9 +9,9 @@ The final goal is to create increasingly viral content by learning from editoria
 The two primary optimization axes are:
 
 - **Message strategy:** what should persuade the audience.
-- **Copywriting:** how that message should be expressed within the user-controlled fixed visual format.
+- **Copywriting:** how that message should be expressed in the slideshow.
 
-The fixed slideshow structure and its local editor live in `renderer/slideshow/`. The rest of this repository owns the marketing knowledge, evidence, and learning loop. Project-wide operating rules live in `AGENTS.md`; the detailed hypothesis lineage model lives in `docs/hypothesis-loop.md`.
+The slideshow evidence, self-contained content projects, and local editor live in `renderer/slideshow/`. The rest of this repository owns the marketing knowledge, evidence, and learning loop. Project-wide operating rules live in `AGENTS.md`; the detailed hypothesis lineage model lives in `docs/hypothesis-loop.md`.
 
 ## Structure
 
@@ -45,17 +45,15 @@ marketing-loop/
 │
 ├── renderer/                         visual production implementations
 │   └── slideshow/                    local slideshow editor and renderer
+│       ├── formats/
+│       │   └── denzel/               one format evidence/content namespace
+│       │       ├── copywriting/      versioned format-specific copy owner
+│       │       ├── materials.md      approved format-specific inputs
+│       │       ├── references/       ordered raw layout evidence; local
+│       │       └── contents/         self-contained editable projects
 │       ├── src/                      editor and browser rendering code
-│       ├── contents/                 saved editable content JSON
-│       ├── templates/                colocated format packages
-│       │   └── <format-id>/          current example: denzel/
-│       │       ├── template.json     fixed visual structure
-│       │       ├── copywriting/      versioned format-copy owner
-│       │       │   ├── v1.md
-│       │       │   └── ...
-│       │       ├── materials.md      optional approved content inputs
-│       │       └── references/       ordered reference screenshots
-│       └── public/assets/             assets required by those templates
+│       ├── scripts/                  project-based rendering CLI
+│       └── public/assets/            reusable production assets
 │
 └── .hermes/                          non-runtime Hermes planning artifacts
     └── plans/
@@ -70,14 +68,14 @@ External owners — not inside this repository
 - **`README.md`** maps the system and points to each source of truth.
 - **`docs/hypothesis-loop.md`** owns the detailed hypothesis-branch and delayed-evidence operating model.
 - **`context/`** holds stable inputs used to make content decisions.
-  - **`imagery.md`** owns current app/account-wide image tone, content rules, generation settings, and selection policy. User direction updates it in place; it is not versioned.
+  - **`imagery.md`** owns current app/account-wide image tone, content rules, runtime request constraints, and generation/selection policy. Hermes tool/profile configuration separately owns the active backend and model. User direction updates imagery guidance in place; it is not versioned.
   - **`product.md`** owns product truth, market scope, positioning, and claim boundaries.
   - **`user-language.md`** stores project-wide collected expressions, situations, sources, and confidence without interpreting them.
 - **`messages/`** holds explicitly versioned target situations, problem patterns, belief shifts, persuasion logic, resistance and response, product roles, and evidence limits. A version's generation-affecting meaning becomes immutable after content first references it.
 - **`db/`** holds the exact schema and local runtime record of hypotheses, generated content, observed results, and evidence links.
 - **`viewer/hypothesis_tree/`** derives a read-only tree from the runtime database. It owns no hypothesis state and cannot replace SQLite as the evidence source.
 - **`.hermes/plans/`** holds implementation plans, not runtime marketing knowledge.
-- **`renderer/slideshow/`** owns slideshow production. Each `templates/<format-id>/` package colocates its visual and image-layout `template.json`, versioned language rules under `copywriting/`, optional format-specific `materials.md`, and ordered raw reference screenshots under `references/`; generated editable content belongs in `contents/`. The assistant reads `context/imagery.md`, approved copy, and live template slots together, constructs the content-specific provider request transiently, and stores only the resulting image and content-specific geometry in the editable project. Each format defines its own materials structure when it needs one.
+- **`renderer/slideshow/`** owns slideshow production. Each `formats/<format-id>/` bundle groups that format's copywriting, approved materials, ordered references, and self-contained content projects. `formatId` identifies the evidence/content namespace; it does not provide reusable coordinates. There is no template or format JSON. The assistant uses references as primary visual-grammar evidence and same-format publication-ready projects as secondary account-execution evidence, then constructs each layout directly in its content project.
 - **Profile `SOUL.md`** owns the dedicated agent identity.
 - **Profile `MEMORY.md`** owns approved compact lessons that must persist across sessions.
 - **Hermes skills** own reusable procedures.
@@ -91,7 +89,7 @@ npm --prefix renderer/slideshow ci
 npm run renderer:slideshow
 ```
 
-The editor starts with a blank slide. It saves editable content JSON to `renderer/slideshow/contents/` through a small Vite middleware, loads format-package templates from `renderer/slideshow/templates/`, and saves or imports template JSON through the browser file picker so colocated format context is never overwritten. It also imports compatible content JSON from the browser and exports either the current PNG or a ZIP of all slides. The renderer does not run a separate application server.
+The editor starts with a blank `denzel` project and can change or preserve a project's `formatId`. It saves editable JSON to `renderer/slideshow/formats/<format-id>/contents/` through a small Vite middleware, loads projects across format bundles, imports compatible project JSON from the browser, and exports either the current PNG or a ZIP of all slides. Every text and image property is directly editable; there is no template library or property-lock layer. The renderer does not run a separate application server.
 
 ## Hypothesis tree viewer
 

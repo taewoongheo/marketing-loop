@@ -44,20 +44,22 @@ CREATE TABLE IF NOT EXISTS contents (
     id TEXT PRIMARY KEY
         CHECK (length(trim(id)) > 0),
     hypothesis_id TEXT NOT NULL,
+    format_id TEXT NOT NULL
+        CHECK (
+            length(format_id) > 0
+            AND format_id = lower(format_id)
+            AND format_id NOT GLOB '*[^a-z0-9-]*'
+            AND format_id NOT GLOB '-*'
+            AND format_id NOT GLOB '*-'
+            AND format_id NOT GLOB '*--*'
+        ),
     message_id TEXT NOT NULL CHECK (length(trim(message_id)) > 0),
     message_version NOT NULL
         CHECK (typeof(message_version) = 'integer' AND message_version > 0),
-    format_id TEXT NOT NULL CHECK (length(trim(format_id)) > 0),
     copywriting_version NOT NULL
         CHECK (
             typeof(copywriting_version) = 'integer'
             AND copywriting_version > 0
-        ),
-    template_path TEXT NOT NULL CHECK (length(trim(template_path)) > 0),
-    template_sha256 TEXT NOT NULL
-        CHECK (
-            length(template_sha256) = 64
-            AND template_sha256 NOT GLOB '*[^0-9a-f]*'
         ),
     caption TEXT NOT NULL,
     final_project_path TEXT NOT NULL UNIQUE
@@ -139,6 +141,6 @@ CREATE INDEX IF NOT EXISTS idx_content_results_content
 CREATE INDEX IF NOT EXISTS idx_hypothesis_evidence_result
     ON hypothesis_evidence(content_result_id);
 
-PRAGMA user_version = 6;
+PRAGMA user_version = 8;
 
 COMMIT;

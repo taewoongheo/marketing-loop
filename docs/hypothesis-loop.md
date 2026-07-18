@@ -23,7 +23,7 @@ Hypotheses may improve two axes:
 
 Each child hypothesis changes only one of these axes from its parent.
 
-Message definitions use seven semantic sections: target situation, problem pattern, belief shift, persuasion logic, resistance and response, product role, and evidence and limits. Copywriting structure remains format-specific in versioned files under `renderer/slideshow/templates/<format-id>/copywriting/`; do not impose one cross-format taxonomy.
+Message definitions use seven semantic sections: target situation, problem pattern, belief shift, persuasion logic, resistance and response, product role, and evidence and limits. Each slideshow format's copywriting structure remains versioned under `renderer/slideshow/formats/<format-id>/copywriting/`; do not impose one format's language grammar on another format or medium.
 
 ### Hypothesis statement requirements
 
@@ -58,21 +58,21 @@ Use “3 things students do before studying.”
 This is a content idea, not a reusable hypothesis.
 
 ```text
-Change the hook, message, product reveal, and format.
+Change the hook, message, product reveal, and visual composition.
 ```
 
-This changes several elements and includes the fixed format.
+This changes several elements and mixes a hypothesis change with execution variation.
 
 Do not repeat the 24-hour, 48-hour, and 72-hour workflow in every statement. The statement owns the proposed change and expected response; the shared evaluation workflow owns when that response is reviewed and how it affects the branch.
 
-### Fixed condition
+### Visual execution
 
-`format` and the renderer template are not hypothesis axes.
+Visual composition is content-specific execution, not a hypothesis axis.
 
-- The format is a fixed condition that preserves the account's consistent brand tone.
-- The user decides when to add or replace a format.
-- A meaningful format change receives a new `format_id`; it is not treated as an internal version of the existing format.
-- The content record stores the `format_id`, selected `copywriting_version`, and renderer-template identity used for that execution.
+- Design each project from the designated references, approved copy, current imagery guidance, and recurring patterns across publication-ready projects.
+- References are the primary visual-grammar evidence; prior projects are secondary account-execution evidence and never become hidden templates.
+- The final project and its hash preserve the exact typography, geometry, crop, image bytes, and slide structure used for that content.
+- Treat meaningful layout differences as execution confounders when interpreting performance rather than creating visual-layout hypothesis nodes.
 
 ## Hypothesis branch model
 
@@ -259,7 +259,7 @@ Two or more contents generated directly by the hypothesis showing a consistent r
 - whether the compared contents actually isolate the stated `message` or `copywriting` change;
 - whether the selected metric is relevant to the expected audience response;
 - whether the available 24-hour, 48-hour, or 72-hour checkpoints are mature enough for the decision;
-- whether the comparison context and fixed format/template conditions are sufficiently similar;
+- whether the comparison context and visual executions are sufficiently comparable;
 - whether one outlier, topic difference, visual execution, or publication condition could explain the signal;
 - whether direct results are meaningfully varied rather than near-duplicate executions;
 - whether later or inherited evidence contradicts the apparent direction;
@@ -272,7 +272,7 @@ After the user confirms that a hypothesis should be operationally adopted:
 1. Keep its source observations, interpretations, evidence links, and lineage in SQLite.
 2. Update exactly one final owner directly; do not create a separate pending-learning file.
 3. For a message-strategy conclusion, create the next version under `messages/msg-<message-name>/` when an already-used message changes, or a distinctly named `msg-<message-name>` when the strategy identity changes; do not add a numeric sequence to the message ID.
-4. For a template-coupled copywriting conclusion, create the next `renderer/slideshow/templates/<format-id>/copywriting/v<version>.md` when the selected version has already been used. Refine an unreferenced current version in place instead of creating empty version noise.
+4. For a slideshow copywriting conclusion, create the next `renderer/slideshow/formats/<format-id>/copywriting/v<version>.md` when the selected version has already been used. Refine an unreferenced current version in place instead of creating empty version noise.
 5. Do not infer product facts, verified user language, or audience facts from engagement metrics alone.
 6. If later evidence conflicts, revise or narrow the current owner in a new used-state version while preserving historical message and copywriting versions, hypotheses, contents, and results.
 
@@ -364,19 +364,17 @@ A simple SQL check can prevent self-parenting but not every longer cycle. Before
 
 ### `contents`
 
-Owns publication-ready content generated by a hypothesis, the fixed execution conditions it used, and its publication identity.
+Owns publication-ready content generated by a hypothesis, its exact self-contained visual project, and its publication identity.
 
 It records:
 
 ```text
 id
 hypothesis_id
+format_id
 message_id
 message_version
-format_id
 copywriting_version
-template_path
-template_sha256
 caption
 final_project_path
 final_project_sha256
@@ -386,15 +384,15 @@ published_at
 
 - `id`: immutable content identity;
 - `hypothesis_id`: the hypothesis node that generated the content;
+- `format_id`: the slideshow evidence/content namespace used to generate the project; it is not a coordinate template;
 - `message_id`, `message_version`: exact versioned message identity;
-- `format_id`, `copywriting_version`: exact format and format-coupled copy grammar used;
-- `template_path`, `template_sha256`: exact renderer template used as the fixed visual condition;
+- `copywriting_version`: exact slideshow copy grammar used;
 - `caption`: final TikTok caption;
 - `final_project_path`, `final_project_sha256`: exact publication-ready renderer project;
 - `tiktok_url`: URL supplied after manual publication;
 - `published_at`: timestamp recorded when the TikTok URL is first registered. When the user supplies only a URL in Telegram, use the receipt/registration time of that message after its content identity has been resolved; it is not a claim about TikTok's exact upload time.
 
-`renderer/slideshow/templates/<format-id>/template.json` is a `tiktok-slide-template` containing the visual structure and placeholder content. The final editable content is a `tiktok-slide-project` stored under `renderer/slideshow/contents/<id>.json`.
+The final editable content is a self-contained `tiktok-slide-project` stored under `renderer/slideshow/formats/<format-id>/contents/<id>.json` with the same `formatId`. No reusable template or format JSON participates in generation.
 
 The renderer content project is the source of truth for final slide text and visuals. Do not duplicate its visible text as `slide_copy_json`; read text layers from the exact project when copy analysis is required.
 
@@ -428,7 +426,7 @@ Several rows may connect several results to one child. Referencing the result ra
 Do not add:
 
 - a fixed cap on historical hypothesis nodes;
-- format hypotheses or format versions;
+- visual-layout hypotheses or visual-layout versions;
 - hypothesis merging;
 - deletion of hypothesis or content history;
 - subjective confidence scores;
@@ -450,8 +448,8 @@ The assistant resolves the following case by case from the current lineage and e
 ## Core principles
 
 ```text
-Fixed condition:
-format + renderer template
+Visual execution:
+reference-led, content-specific, recorded in the final project
 
 Optimization axes:
 message | copywriting

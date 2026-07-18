@@ -35,6 +35,7 @@ function insertContent(
   databasePath,
   copywritingVersion,
   messageVersion = "1",
+  formatId = "denzel",
 ) {
   const suffix = `${copywritingVersion}-${messageVersion}`.replace(
     /[^a-z0-9]/gi,
@@ -46,26 +47,22 @@ function insertContent(
       INSERT INTO contents (
         id,
         hypothesis_id,
+        format_id,
         message_id,
         message_version,
-        format_id,
         copywriting_version,
-        template_path,
-        template_sha256,
         caption,
         final_project_path,
         final_project_sha256
       ) VALUES (
         'c-${suffix}',
         'h-1',
+        '${formatId}',
         'msg-focus-is-a-system',
         ${messageVersion},
-        'denzel',
         ${copywritingVersion},
-        'renderer/slideshow/templates/denzel/template.json',
-        '${"a".repeat(64)}',
         'caption',
-        'renderer/slideshow/contents/c-${suffix}.json',
+        'renderer/slideshow/formats/${formatId}/contents/c-${suffix}.json',
         '${"b".repeat(64)}'
       );
     `,
@@ -73,31 +70,36 @@ function insertContent(
   });
 }
 
-test("contents records the format execution versions used by publication-ready content", async () => {
+test("contents records format and strategy versions with the self-contained project identity", async () => {
   await withDatabase(async (databasePath) => {
     const columns = JSON.parse(query(databasePath, "PRAGMA table_info(contents);"));
     const copywritingVersion = columns.find(
       (column) => column.name === "copywriting_version",
     );
+    const formatId = columns.find((column) => column.name === "format_id");
 
     assert.ok(copywritingVersion);
     assert.equal(copywritingVersion.notnull, 1);
+    assert.ok(formatId);
+    assert.equal(formatId.notnull, 1);
 
-    assert.equal(columns.some((column) => column.name === "imagery_version"), false);
+    for (const removedColumn of ["imagery_version", "template_path", "template_sha256"]) {
+      assert.equal(columns.some((column) => column.name === removedColumn), false);
+    }
+  });
+});
 
-    const indexes = JSON.parse(query(databasePath, "PRAGMA index_list(contents);"));
-    const formatIndex = indexes.find(
-      (index) => index.name === "idx_contents_format_copywriting",
-    );
-    assert.ok(formatIndex);
+test("contents rejects unsafe format IDs", async () => {
+  await withDatabase(async (databasePath) => {
+    execFileSync("sqlite3", [databasePath, `
+      INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
+    `]);
 
-    const indexColumns = JSON.parse(
-      query(databasePath, "PRAGMA index_info(idx_contents_format_copywriting);"),
-    );
-    assert.deepEqual(
-      indexColumns.map((column) => column.name),
-      ["format_id", "copywriting_version"],
-    );
+    for (const formatId of ["", "Denzel", "../denzel", "denzel/reference", "denzel space"]) {
+      const inserted = insertContent(databasePath, "1", "1", formatId);
+      assert.notEqual(inserted.status, 0, `accepted ${formatId}`);
+      assert.match(inserted.stderr, /CHECK constraint failed/);
+    }
   });
 });
 
@@ -145,6 +147,6 @@ test("contents rejects invalid message versions", async () => {
 test("schema version identifies the current structure", async () => {
   await withDatabase(async (databasePath) => {
     const version = query(databasePath, "PRAGMA user_version;").trim();
-    assert.equal(version, '[{"user_version":6}]');
+    assert.equal(version, '[{"user_version":8}]');
   });
 });
