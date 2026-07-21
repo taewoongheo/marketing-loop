@@ -342,7 +342,7 @@ const run = async () => {
   let server;
   let browser;
   try {
-    profileDirectory = await mkdtemp(path.join(os.tmpdir(), "env-render-chrome-"));
+    profileDirectory = await mkdtemp(path.join(os.tmpdir(), "lift-code-render-chrome-"));
     server = await createServer({
       root: rendererRoot,
       configFile: path.join(rendererRoot, "vite.config.ts"),

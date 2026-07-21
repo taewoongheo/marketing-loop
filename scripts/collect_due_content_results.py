@@ -30,7 +30,7 @@ class CollectorAlreadyRunning(RuntimeError):
 @contextmanager
 def collector_lock(db_path):
     db_key = hashlib.sha256(str(Path(db_path).resolve()).encode("utf-8")).hexdigest()[:16]
-    lock_path = Path(tempfile.gettempdir()) / f"env-content-results-{db_key}.lock"
+    lock_path = Path(tempfile.gettempdir()) / f"lift-code-content-results-{db_key}.lock"
     with lock_path.open("a+") as lock_file:
         try:
             fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -204,7 +204,7 @@ def collect_due_results(connection, now, fetch_metrics, observation_clock=None):
 
 def fetch_tikwm_metrics(tiktok_url, timeout=30):
     request_url = f"{TIKWM_ENDPOINT}?{urlencode({'url': tiktok_url})}"
-    request = Request(request_url, headers={"User-Agent": "env-metrics-collector/1.0"})
+    request = Request(request_url, headers={"User-Agent": "lift-code-metrics-collector/1.0"})
     with urlopen(request, timeout=timeout) as response:
         raw_json = read_bounded_response(response).decode("utf-8")
     payload = json.loads(raw_json)

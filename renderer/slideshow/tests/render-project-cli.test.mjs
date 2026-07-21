@@ -25,7 +25,7 @@ const pngDimensions = (payload) => ({
 });
 
 test("render CLI rejects project JSON without a format identity", async () => {
-  const directory = await mkdtemp(path.join(os.tmpdir(), "env-render-cli-format-test-"));
+  const directory = await mkdtemp(path.join(os.tmpdir(), "lift-code-render-cli-format-test-"));
   const projectPath = path.join(directory, "project.json");
 
   try {
@@ -53,7 +53,7 @@ test("render CLI rejects project JSON without a format identity", async () => {
 });
 
 test("render CLI creates exact-size slide PNGs and a contact sheet from project JSON", async () => {
-  const directory = await mkdtemp(path.join(os.tmpdir(), "env-render-cli-test-"));
+  const directory = await mkdtemp(path.join(os.tmpdir(), "lift-code-render-cli-test-"));
   const projectPath = path.join(directory, "project.json");
   const outputDirectory = path.join(directory, "rendered");
 

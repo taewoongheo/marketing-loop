@@ -1,6 +1,6 @@
-# env marketing loop
+# LIFT CODE marketing loop
 
-A local workspace for autonomously producing and improving env's organic TikTok slideshow content.
+A local workspace for autonomously producing and improving LIFT CODE's U.S.-English organic TikTok slideshow content.
 
 ## Goals
 
@@ -8,7 +8,7 @@ The workspace pursues three simultaneous goals:
 
 1. Continuously improve **message strategy**: what should persuade the audience.
 2. Continuously improve **copywriting**: how that message should be expressed in the slideshow.
-3. Grow the env TikTok account to **1,000 followers**.
+3. Grow the LIFT CODE TikTok account to **1,000 followers** while building justified trust in its planned weight-and-rep recommendations.
 
 Message strategy and copywriting are open-ended improvement goals with no terminal threshold. They remain the only two hypothesis axes. The follower target is the finite account-level outcome those improvements should support; follower movement is observed separately and does not by itself prove that a message or copywriting change caused it. Reaching 1,000 followers completes that finite goal but does not stop the two open-ended improvement goals. `AGENTS.md` is the authoritative operating contract for these goals.
 
@@ -17,7 +17,7 @@ The slideshow evidence, self-contained content projects, and local editor live i
 ## Structure
 
 ```text
-marketing-loop/
+liftcode-marketing-loop/
 ├── AGENTS.md                         agent operating contract
 ├── README.md                         human-facing project map
 ├── .gitignore                        local/generated file exclusions
@@ -26,6 +26,7 @@ marketing-loop/
 │   └── hypothesis-loop.md            hypothesis branching and delayed evidence
 │
 ├── context/                          stable decision inputs
+│   ├── expertise.md                  accumulating strength-training knowledge
 │   ├── imagery.md                    current app/account-wide image guidance
 │   ├── product.md                    product truth and claim boundaries
 │   └── user-language.md              collected expressions and provenance
@@ -52,7 +53,6 @@ marketing-loop/
 │       ├── formats/
 │       │   └── denzel/               one format evidence/content namespace
 │       │       ├── copywriting/      versioned format-specific copy owner
-│       │       ├── materials.md      approved format-specific inputs
 │       │       ├── references/       ordered raw layout evidence; local
 │       │       └── contents/         local rolling visual examples/current projects
 │       ├── src/                      editor and browser rendering code
@@ -63,7 +63,7 @@ marketing-loop/
     └── plans/
 
 External owners — not inside this repository
-└── ~/.hermes/profiles/marketing-env/
+└── ~/.hermes/profiles/marketing-liftcode/
     ├── SOUL.md                        dedicated agent identity
     └── memories/MEMORY.md             approved compact lessons; created on first save
 ```
@@ -72,6 +72,7 @@ External owners — not inside this repository
 - **`README.md`** maps the system and points to each source of truth.
 - **`docs/hypothesis-loop.md`** owns the detailed hypothesis-branch and delayed-evidence operating model.
 - **`context/`** holds stable inputs used to make content decisions.
+  - **`expertise.md`** owns project-wide accumulating strength-training facts, mechanisms, practical applications, provenance, evidence status, and content-use limits. It is shared by every content format and platform.
   - **`imagery.md`** owns current app/account-wide image tone, content rules, runtime request constraints, and generation/selection policy. Hermes tool/profile configuration separately owns the active backend and model. User direction updates imagery guidance in place; it is not versioned.
   - **`product.md`** owns product truth, market scope, positioning, and claim boundaries.
   - **`user-language.md`** stores project-wide collected expressions, situations, sources, and confidence without interpreting them.
@@ -79,7 +80,7 @@ External owners — not inside this repository
 - **`db/`** holds the exact schema and local runtime record of hypotheses, generated content and its final slide copy, content results, account-level follower snapshots, and evidence links.
 - **`viewer/hypothesis_tree/`** derives a read-only tree from the runtime database. It owns no hypothesis state and cannot replace SQLite as the evidence source.
 - **`.hermes/plans/`** holds implementation plans, not runtime marketing knowledge.
-- **`renderer/slideshow/`** owns slideshow production. Each `formats/<format-id>/` bundle groups that format's copywriting, approved materials, ordered references, and self-contained content projects. `formatId` identifies the evidence/content namespace; it does not provide reusable coordinates. There is no template or format JSON. The assistant uses references as primary visual-grammar evidence and up to three retained same-format projects as secondary renderer-feasibility and composition evidence, then constructs each layout directly in its content project.
+- **`renderer/slideshow/`** owns slideshow production. Each `formats/<format-id>/` bundle groups that format's copywriting, ordered references, and self-contained content projects. Project-wide subject expertise remains in `context/expertise.md`; formats own expression and visual evidence, not domain knowledge. `formatId` identifies the evidence/content namespace; it does not provide reusable coordinates. There is no template or format JSON. The assistant uses references as primary visual-grammar evidence and up to three retained same-format projects as secondary renderer-feasibility and composition evidence, then constructs each layout directly in its content project.
 - **Profile `SOUL.md`** owns the dedicated agent identity.
 - **Profile `MEMORY.md`** owns approved compact lessons that must persist across sessions.
 - **Hermes skills** own reusable procedures.

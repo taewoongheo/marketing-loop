@@ -1,8 +1,9 @@
-# env Marketing Loop
+# LIFT CODE Marketing Loop
 
 ## Scope
 
-- This repository pursues three simultaneous goals: continuously improve message strategy, continuously improve copywriting, and grow the env TikTok account to 1,000 followers.
+- This repository pursues three simultaneous goals: continuously improve message strategy, continuously improve copywriting, and grow the LIFT CODE TikTok account to 1,000 followers.
+- Across those goals, the marketing mission is to make the target audience aware of LIFT CODE and build justified trust that its planned weight-and-rep recommendations are worth following.
 - Message and copywriting improvement are open-ended goals with no terminal threshold. They remain the only hypothesis axes.
 - The 1,000-follower target is a finite account-level outcome that message and copywriting improvements should support. Observe follower movement separately; never treat it by itself as proof that either axis caused the change.
 - Reaching 1,000 followers completes that finite goal but does not stop scheduled production; continue improving message and copywriting until the user changes or stops the scheduler job.
@@ -12,10 +13,10 @@
 - **Copywriting** decides how the message is expressed: hook wording, specificity, information density, rhythm, product reveal, CTA, and caption.
 - Visual composition is not template-driven. The assistant designs each content project's text and image geometry from the designated references, approved copy, current imagery guidance, and up to three retained same-format visual execution examples.
 - `context/imagery.md` owns the current app/account-wide image tone, content rules, runtime request constraints, and generation/selection policy. It is updated in place from user direction and is not versioned because imagery is not a hypothesis axis.
-- `renderer/slideshow/formats/<format-id>/copywriting/v<version>.md` stores immutable used versions of that format's slideshow language grammar, `materials.md` owns its pre-approved content inputs, `references/` stores ordered raw layout evidence, and `contents/` stores self-contained editable projects generated in that format.
+- `context/expertise.md` stores project-wide accumulating strength-training knowledge and provenance. `renderer/slideshow/formats/<format-id>/copywriting/v<version>.md` stores immutable used versions of that format's slideshow language grammar, `references/` stores ordered raw layout evidence, and `contents/` stores self-contained editable projects generated in that format.
 - `renderer/slideshow/formats/<format-id>/` is an evidence and content namespace, not a reusable coordinate template. Each project records its `formatId`, but owns its own complete typography, geometry, crop, and image bytes.
 - `renderer/slideshow/` owns format-scoped slideshow bundles, shared editor and renderer code, and rendered outputs. It owns no reusable template or format JSON.
-- Do not place project-wide product context, general raw user-language evidence, message strategy, content records, or performance data under `renderer/`.
+- Do not place project-wide product context, domain expertise, general raw user-language evidence, message strategy, content records, or performance data under `renderer/`.
 
 ## Decision rights
 
@@ -46,7 +47,9 @@ Ask for information only when a missing fact would materially affect product tru
 
 Recurring content-generation cron runs operate under standing user authorization and are the exception to the interactive hypothesis-confirmation, copy-approval, and publication-ready designation gates below. They advance all three project goals while preserving truthful claims and the existing repository structure. The scheduler job is the sole owner of exact run times and delivery routing; do not duplicate its schedule here.
 
-For each scheduled run, the assistant may autonomously read newly collected evidence, continue or close leaves, create root or child hypotheses, adopt supported rules into their proper owners, allocate one content, enrich existing materials, add new approved materials, refine unused message or copywriting versions, create new messages, and create new immutable versions when used guidance changes. These changes must stay inside the current owner map and schema; scheduled autonomy does not authorize repository restructuring, new workflow infrastructure, TikTok publication, or unrelated work.
+Production may start only during the exact cron minute configured on its scheduler job. A delayed or wake-time catch-up trigger outside a configured production minute must be suppressed before the agent starts: create no content, mutate no project or database owner, render nothing, and deliver nothing. A missed production slot is abandoned and production resumes at the next configured slot. This restriction applies only to content production; the shared delayed-metric collector retains its own due-check and catch-up behavior.
+
+For each scheduled run, the assistant may autonomously read newly collected evidence, continue or close leaves, create root or child hypotheses, adopt supported rules into their proper owners, allocate one content, enrich `context/expertise.md` with bounded sourced domain knowledge, refine unused message or copywriting versions, create new messages, and create new immutable versions when used guidance changes. These changes must stay inside the current owner map and schema; scheduled autonomy does not authorize repository restructuring, new workflow infrastructure, TikTok publication, or unrelated work.
 
 After a scheduled cycle has produced and verified its publication-ready content and updated all proper owners, commit and push only its tracked repository-owner changes. Project JSON under `contents/` and the runtime SQLite database are local Git-ignored artifacts: never force-add them. If the cycle changed no tracked owner file, do not create an empty commit. Capture the pre-run working tree first, stage only exact tracked files created or changed by the cycle, and never include unrelated or pre-existing user changes. If the cycle must modify a tracked file that was already dirty, stop and report the conflicting path through Telegram instead of absorbing it. Use a new commit for later rejection-driven revisions; do not amend or rewrite pushed history. Report commit or push failures through Telegram and preserve the local verified artifact.
 
@@ -58,11 +61,13 @@ When a scheduled run judges that an additional Hermes skill, plugin, package, AP
 
 The assistant autonomously drafts, creates, validates, renders, records, and sends one publication-ready slideshow to the configured Telegram destination. The user publishes it manually. A delivered content row remains unpublished until a TikTok URL is received; the receipt time of that URL is `published_at`. If a previously delivered content has no URL, ask for it in the next scheduled Telegram update without blocking the next content run. If the user rejects a delivered post, apply the feedback, revise or regenerate the same unpublished content and project, update its exact slide-copy snapshot, caption, and checksum, and redeliver it rather than creating another content identity. If credentials, unavailable product truth, or a structural change blocks valid completion, explain the exact blocker and required user action through Telegram instead of guessing or changing the structure.
 
+After a successful grouped slideshow delivery, suppress the scheduler's separate text response by returning exactly `[SILENT]`; the media group is the success notification. Send a scheduler text response only when user action is required, such as a blocker, failure, or missing publication URL, and keep it to one concise line containing only the essential action. Do not send routine hypothesis, version, hash, path, metric, verification, commit, or follower details in the scheduler response; their proper owners retain that evidence, while local cron output retains the execution audit.
+
 ## Required context before creating content
 
-1. Read product truth, user-language evidence, and the current account-wide imagery guidance in `context/`.
+1. Read product truth, project-wide domain expertise, user-language evidence, and the current account-wide imagery guidance in `context/`.
 2. Review available versioned message definitions in `messages/`.
-3. Review the selected `renderer/slideshow/formats/<format-id>/copywriting/v<version>.md`, its `materials.md`, and all designated posts in its `references/` directory.
+3. Review the selected `renderer/slideshow/formats/<format-id>/copywriting/v<version>.md` and all designated posts in its `references/` directory.
 4. Inventory available same-format Project JSON under `contents/` as Project execution candidates. Publication status, hypothesis lineage, message/copywriting versions, and performance do not make one candidate visually authoritative. A missing historical DB-linked project is expected after pruning and does not limit message or copywriting evaluation for v11+ contents because exact final slide copy remains in SQLite. Pre-v11 contents whose projects were already lost retain `[]` as an explicit unavailable-copy marker; preserve their DB content and results without reconstruction.
 5. Read `docs/hypothesis-loop.md` and query SQLite for active leaves, relevant ancestors, generated content, and results.
 6. Ask only for missing information that would materially affect product truth, audience fit, or valid copy.
@@ -76,14 +81,14 @@ Never load embedded base64 image bytes from prior projects into the reasoning co
 ## Content workflow
 
 1. Any user message expressing an intent to create content starts the workflow; no fixed command phrase or user-supplied problem, situation, hook, or direction is required.
-2. The assistant reads product truth, user-language evidence, current account-wide imagery guidance, `docs/hypothesis-loop.md`, message definitions, slideshow copywriting rules, approved materials, all designated references, retained same-format Project execution examples, and relevant DB lineage and results.
+2. The assistant reads product truth, project-wide domain expertise, user-language evidence, current account-wide imagery guidance, `docs/hypothesis-loop.md`, message definitions, slideshow copywriting rules, all designated references, retained same-format Project execution examples, and relevant DB lineage and results.
 3. Read newly collected 24h, 48h, and 72h results. When evaluating a leaf, read detailed ancestry back to the nearest 72h-complete ancestor and reintroduce older late corrections when present.
 4. Independently evaluate whether to continue an active leaf, create one or more root or child hypotheses, close a leaf, or adopt a supported hypothesis, and recommend the requested `n`-content allocation.
 5. Present the concise daily hypothesis-action proposal and wait for user confirmation or revision. Do not mutate hypothesis lineage, close a branch, update a durable owner from performance evidence, or assign new content before confirmation.
 6. Apply the confirmed hypothesis actions and allocation. A hypothesis may generate several contents; one parent may generate any number of child hypotheses.
 7. Independently select the problem, situation, message, content direction, product exposure, copy approach, and full visual composition inside the confirmed hypothesis plan.
 8. Ask the user only if a missing fact blocks truthful, audience-appropriate, or valid copy.
-9. Draft, evaluate, and improve the copy internally using the approved materials and selected copywriting version.
+9. Draft, evaluate, and improve the copy internally using the relevant bounded knowledge in `context/expertise.md`, the selected message, product truth, and the selected copywriting version. If a needed domain claim is missing, research and admit it to `context/expertise.md` with provenance before using it rather than adding an ad-hoc tip directly to copy.
 10. Show only the refined final-copy proposal, including slide copy and caption, then revise it from every user feedback without persisting intermediate versions. Infer the narrowest reusable scope of the feedback and update its proper owner immediately when it changes durable guidance.
 11. When the user approves the final copy, create a self-contained editable project under `renderer/slideshow/formats/<format-id>/contents/` with that `formatId`. Re-read every designated reference post and only the selected at-most-three prior same-format projects, derive recurring account style separately from one-off geometry, select one primary reference-derived composition principle per slide, and design the text and image layout without copying exact coordinates. When managed imagery is selected, read the approved project copy and current `context/imagery.md`, choose content-specific image geometry, then generate each eligible image accordingly. Project creation and image generation do not create a content DB record.
 12. The user fine-tunes that project and identifies the publication-ready final.
@@ -97,17 +102,17 @@ If the previous final content has no TikTok URL, ask naturally at the start of t
 ## Ownership
 
 - Verified product facts and claim boundaries: `context/product.md`
+- Project-wide accumulating strength-training facts, mechanisms, practical applications, provenance, evidence status, and content-use limits: `context/expertise.md`
 - Project-wide collected user-language expressions and provenance only: `context/user-language.md`
 - Versioned target situation, problem pattern, belief shift, persuasion logic, resistance and response, product role, and evidence limits: `messages/msg-<message-name>/v<version>.md`; use the descriptive `msg-` name as the message ID without a numeric sequence.
 - All reusable slideshow wording rules, empathy technique, voice, hook, progression, density, product reveal, CTA, title, caption, language interpretation of references, and adaptation reasoning: immutable used versions under `renderer/slideshow/formats/<format-id>/copywriting/v<version>.md`
 - Current app/account-wide image tone, content selection, image-copy relationship, within-image composition, cross-image variation, runtime request constraints, and generation/selection policy: unversioned `context/imagery.md`
-- Pre-approved slideshow content inputs: `renderer/slideshow/formats/<format-id>/materials.md`
 - Hypothesis branching, delayed-evidence traversal, and active-leaf operation: `docs/hypothesis-loop.md`
 - Hypothesis nodes, generated content, exact final slide-copy snapshots, publication details, results, and evidence links: `db/hypothesis-loop.sqlite`
 - SQLite structure: `db/schema.sql`
 - Due public checkpoint selection, TikWM normalization, retry, and insertion mechanics: `scripts/collect_due_content_results.py`
-- Agent identity: `~/.hermes/profiles/marketing-env/SOUL.md`
-- Adopted compact profile-level lessons: `~/.hermes/profiles/marketing-env/memories/MEMORY.md`
+- Agent identity: `~/.hermes/profiles/marketing-liftcode/SOUL.md`
+- Adopted compact profile-level lessons: `~/.hermes/profiles/marketing-liftcode/memories/MEMORY.md`
 - Reusable multi-step procedures: Hermes skills
 - Ordered raw slideshow layout evidence: `renderer/slideshow/formats/<format-id>/references/`
 - While retained, exact slide count, typography, geometry, editable layers, final image bytes, and rendered media for one content: its local project under `renderer/slideshow/formats/<format-id>/contents/`. The project materializes the DB-recorded final copy for editing and rendering but is not its permanent evidence owner.
@@ -123,7 +128,7 @@ Do not duplicate one fact, rule, layout value, or result across owners.
 - The selected copywriting version owns hook function, slide-copy roles, progression, rhythm, information density, reader relationship, product reveal, CTA, title, and caption approach.
 - `context/imagery.md` owns current account-wide semantic visualization, art direction, image-copy coordination, within-image composition, cross-image variation, runtime request constraints, generation/selection policy, and visual exclusions. It consumes approved copy and content-specific geometry without owning or duplicating either one.
 - The assistant derives the content-specific provider request transiently from approved copy, selected geometry, and `context/imagery.md`. Do not persist it as a separate artifact. The active Hermes image tool/profile solely owns backend/model configuration and credential resolution. The reusable image-generation procedure solely owns invocation, retry, decoding, project mutation, and verification mechanics; credential values belong only in the ignored secret environment.
-- `renderer/slideshow/formats/<format-id>/materials.md` owns that format's approved slideshow content inputs. It must not own message strategy, product truth, wording rules, layout, or final slide copy.
+- `context/expertise.md` is global across formats and platforms. A format may define how to express relevant expertise but must not duplicate or become a second owner of the underlying domain knowledge.
 - A copywriting version must not restate project coordinates or content-specific geometry.
 - Do not modify renderer code unless the user explicitly requests it.
 
@@ -135,7 +140,7 @@ Do not duplicate one fact, rule, layout value, or result across owners.
 - Before creating each project, inspect every designated reference post through one transient ordered contact sheet per post. Open an individual full-resolution reference slide only when it is selected as a primary composition source or its detail is illegible in the sheet; do not load every raw slide independently. Use one primary reference-derived composition principle per slide rather than blending several posts into one composition. Re-read the full output as a contact sheet against the references and revise layouts that merely repeat recent contents or drift outside the reference family. Delete transient reference contact sheets after review.
 - Retained same-format Project JSON is secondary visual execution evidence only. Use recurring composition patterns and renderer feasibility without treating publication, hypothesis lineage, or performance as visual validation; never promote one project's incidental coordinates into a reusable rule or hidden template.
 - Reference screenshots are the raw evidence, not renderer assets. Copywriting versions and `context/imagery.md` may own separate language and visual interpretations derived from that evidence. Do not use reference screenshots as production imagery unless the user separately adds them to `renderer/slideshow/public/assets/` for that purpose.
-- A user-designated viral reference does not automatically validate the env adaptation, and its wording, subject matter, and distinctive expressions must not be copied.
+- A user-designated viral reference does not automatically validate the LIFT CODE adaptation, and its wording, subject matter, and distinctive expressions must not be copied.
 
 ## Evidence and claims
 
@@ -150,14 +155,14 @@ Do not duplicate one fact, rule, layout value, or result across owners.
 - Apply every user feedback to the current content, including one-off feedback.
 - Infer the narrowest scope that preserves the feedback's meaning. Do not turn a content-specific edit into a universal rule, but do not discard a reusable correction merely because it appeared once.
 - When feedback changes durable guidance, update exactly one proper owner immediately. Replace or narrow conflicting guidance instead of appending a contradictory rule.
-- Product corrections belong in `context/product.md`; general expression or provenance corrections in `context/user-language.md`; app/account-wide image tone, content, and generation corrections in `context/imagery.md`; changes to a format's approved slideshow content pool in `renderer/slideshow/formats/<format-id>/materials.md`; target-situation, belief, resistance, and persuasion changes in the selected message version; every wording, voice, empathy, hook, progression, rhythm, reveal, CTA, title, and caption rule in the selected format's copywriting version; project operating and reference-interpretation rules in `AGENTS.md`.
+- Product corrections belong in `context/product.md`; strength-training domain facts, evidence, practical applications, and source corrections in `context/expertise.md`; general expression or provenance corrections in `context/user-language.md`; app/account-wide image tone, content, and generation corrections in `context/imagery.md`; target-situation, belief, resistance, and persuasion changes in the selected message version; every wording, voice, empathy, hook, progression, rhythm, reveal, CTA, title, and caption rule in the selected format's copywriting version; project operating and reference-interpretation rules in `AGENTS.md`.
 - A message or copywriting version may be refined in place until a content record references it. After first use, its generation-affecting meaning is immutable: a durable change creates the next version, while a content-specific edit remains only in the final content artifact. Do not create a new version for formatting, evidence-only corroboration, or wording cleanup that cannot change future generation decisions. `context/imagery.md` is unversioned and user-directed improvements update it immediately.
 - A message or copywriting version change does not by itself create a hypothesis node. Record the exact selected message and copywriting versions on each content row; several contents generated by one hypothesis may therefore reference different copywriting versions while testing that hypothesis. The hypothesis loop has only `message` and `copywriting` axes: create a child only when eligible performance evidence supports a distinct claim on one of those axes and the user confirms it.
 - A content-specific correction remains embodied in the approved final content and its DB slide-copy snapshot and does not need a separate durable feedback log.
 - The assistant autonomously judges whether performance evidence operationally supports a hypothesis. Two or more directly generated contents showing a consistent relevant signal are a useful default promotion signal, not a mechanical threshold; account for checkpoint maturity, comparison quality on the tested message/copywriting axis, metric relevance, topic and publication conditions, sample diversity, limitations, and contradictory evidence. Visual execution is not part of that judgment because it is not a hypothesis axis.
 - Present operational adoption as part of the daily hypothesis-action proposal. Once the user confirms it, update the one proper final owner directly. Keep the underlying observations, interpretations, and lineage in SQLite; do not duplicate them in a learning inbox.
 - Later conflicting feedback or evidence may replace, narrow, or reverse a promoted rule in a new message or copywriting version. User-directed imagery corrections replace the current rule in `context/imagery.md` immediately.
-- Use `MEMORY.md` only for compact, adopted, high-value lessons that should be present in every `marketing-env` session and do not already belong to a more specific project owner.
+- Use `MEMORY.md` only for compact, adopted, high-value lessons that should be present in every `marketing-liftcode` session and do not already belong to a more specific project owner.
 - Use a skill for repeatable procedures, not marketing facts or content-specific preferences.
 
 ## Keep the system small

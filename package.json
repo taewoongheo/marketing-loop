@@ -1,5 +1,5 @@
 {
-  "name": "env-marketing-loop",
+  "name": "lift-code-marketing-loop",
   "private": true,
   "scripts": {
     "renderer:slideshow": "npm --prefix renderer/slideshow run dev -- --host ::",

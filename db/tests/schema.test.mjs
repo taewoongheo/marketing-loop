@@ -10,7 +10,7 @@ const repoRoot = path.resolve(import.meta.dirname, "../..");
 const schemaPath = path.join(repoRoot, "db/schema.sql");
 
 async function withDatabase(run) {
-  const directory = await mkdtemp(path.join(os.tmpdir(), "env-schema-test-"));
+  const directory = await mkdtemp(path.join(os.tmpdir(), "lift-code-schema-test-"));
   const databasePath = path.join(directory, "test.sqlite");
 
   try {
@@ -60,7 +60,7 @@ function insertContent(
         'c-${suffix}',
         'h-1',
         '${formatId}',
-        'msg-focus-is-a-system',
+        'msg-trust-the-next-set',
         ${messageVersion},
         ${copywritingVersion},
         'caption',

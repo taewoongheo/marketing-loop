@@ -6,7 +6,7 @@ import * as editorModel from "../src/editorModel.ts";
 test("format IDs use a stable lowercase namespace", () => {
   assert.equal(typeof editorModel.normalizeFormatId, "function");
   assert.equal(editorModel.normalizeFormatId("denzel"), "denzel");
-  assert.equal(editorModel.normalizeFormatId("study-cards"), "study-cards");
+  assert.equal(editorModel.normalizeFormatId("strength-cards"), "strength-cards");
 });
 
 test("missing or unsafe format IDs are rejected", () => {

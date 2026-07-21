@@ -2,16 +2,16 @@
 
 ## Scope, inputs, and outputs
 
-This file owns the current account-wide rules for translating approved content meaning into imagery for env: semantic visualization, art direction, cross-image variation, within-image composition, runtime request constraints, and generation/selection policy.
+This file owns the current account-wide rules for translating approved content meaning into imagery for LIFT CODE: semantic visualization, art direction, cross-image variation, within-image composition, runtime request constraints, and generation/selection policy.
 
 - The selected message owns persuasion strategy and claim limits.
 - The approved copy owns the actual hook, body, CTA, title, caption, and all language.
-- `renderer/slideshow/formats/<format-id>/materials.md` owns that format's approved slideshow content inputs, not visual instructions.
+- `context/expertise.md` owns reusable strength-training domain knowledge and provenance, not visual instructions.
 - The content project owns image-layer presence, fixed assets, placement, dimensions, crop behavior, and all content-specific layout decisions.
-- Raw reference assets remain evidence in their designated owner. This file owns only the current account-wide visual interpretation derived from them.
+- Raw reference assets remain evidence in their designated owner. This file owns only the current account-wide visual interpretation derived from product and brand direction.
 - The editable project owns the exact approved copy, final image bytes, and content-specific image geometry used for one content.
 
-At generation time, the assistant reads the approved project copy, selected image geometry, and this file, then constructs the provider request as a transient execution value. Do not persist that request as a separate artifact. Do not store post-specific copy, duplicate layout values, final images, or object- and topic-specific default descriptions here. Concrete examples may explain a rule, but they are nonbinding and must not become default request content.
+At generation time, read the approved project copy, selected image geometry, and this file, then construct the provider request as a transient execution value. Do not persist that request as a separate artifact. Do not store post-specific copy, duplicate layout values, final images, or object-specific default scenes here.
 
 User-directed improvements update this file immediately. Imagery is not a hypothesis axis and has no imagery version.
 
@@ -19,69 +19,76 @@ User-directed improvements update this file immediately. Imagery is not a hypoth
 
 For each generated image layer selected for the content project, derive one visual scene from the approved meaning of that slide.
 
-- Let the copy make the argument. Use the image as nonverbal support through a recognizable situation, mood, texture, or human-scale action.
-- Extract the reader-facing situation, consequence, or action rather than converting the slide sentence word for word.
-- Show one dominant idea per image. Do not combine every sentence or method from the slide into one scene.
-- Keep all necessary argumentative meaning in the copy; the image must not introduce an unsupported claim or a second method.
-- Do not default to a visible person when an environment, relationship between visual elements, trace of recent action, or partial human presence can communicate the same meaning.
-- When a study surface such as a notebook, worksheet, or textbook should look actively used, keep it visibly populated with realistic but illegible study structure—partial handwriting, problem shapes, diagrams, underlines, or worked marks—rather than turning the readable-text exclusion into a blank placeholder. Individual words, sentences, labels, and equations must remain unreadable.
+- Let copy make the argument. Let the image embody the physical stake: load, effort, uncertainty, discipline, accumulated work, or controlled aggression.
+- Extract the reader-facing situation, consequence, or action rather than illustrating the sentence word for word.
+- Show one dominant idea per image. Do not combine every exercise, input, or method from the slide into one scene.
+- Keep all necessary argumentative meaning in copy; the image must not introduce an unsupported performance or physique claim.
+- Prefer moments around real strength training: preparing a bar, gripping equipment, bracing before a Set, logging a completed Set, resting under visible effort, or moving through a credible Gym environment.
+- Use bodies as evidence of effort and physical ambition, not as fabricated before/after proof or a promise that LIFT CODE produced the physique.
 - Preserve product imagery intentionally selected as a fixed layer in the content project.
 
 ## Art direction and cross-image variation
 
-- Make the image feel like a familiar moment casually captured on a phone by the person living it or someone nearby.
-- Use natural available light and believable indoor light, favoring warm or neutral exposure over dramatic or highly stylized lighting.
-- Keep the palette natural and lived-in without washing the scene into gray or beige. Preserve clear local color and warm–cool separation—such as blue daylight against warm wood or lamps, green outdoor tones against dark devices, or one restrained colored object against neutral surroundings—so adjacent materials and planes remain visually distinct. The result may stay gentle, but it should not look globally desaturated or uniformly muted. Create the everyday aesthetic through light, texture, framing, and personal familiarity; never translate it into a subject's gender.
-- Favor candid, slightly imperfect framing: off-center subjects, natural cropping, partial human presence, and the perspective of an ordinary observer rather than a directed shoot.
-- Preserve believable texture and incidental imperfection, including mild grain or compression, uneven shadows, reflections, small overlaps, and ordinary visual variation.
-- Show people, when present, in unposed posture or mid-action rather than performing for the camera.
-- Across one slideshow, do not make visible people the dominant subject of most generated images. Unless the approved meaning requires otherwise, use at most one person-centered generated image and let the remaining images communicate through environment, visual relationships, traces of action, or partial human presence.
-- Keep generated images broadly compatible through naturalism rather than repeating one person, location, object cluster, viewpoint, exact palette, or color treatment.
+The account-wide visual identity is `restrained wildness`: masculine physical force contained by deliberate training structure.
 
-Before making provider requests for one content, assign each generated slot a distinct primary visual carrier, setting, camera distance or angle, and dominant color treatment. Do not repeat the same primary object cluster or scene structure across adjacent generated images merely to create consistency.
+- Favor dark, high-contrast, near-black environments with controlled highlights, steel, rubber, chalk, worn leather, sweat, and believable Gym texture.
+- Use one restrained signal color when useful; do not flood the image with multiple neon accents.
+- Make strength feel heavy and immediate through loaded equipment, close physical detail, compressed space, and purposeful posture.
+- Make control feel visible through clean framing, stable geometry, ordered equipment, repeated Set structure, measured preparation, and the absence of chaotic spectacle.
+- Prefer grounded realism over glossy supplement advertising, superhero fantasy, luxury fitness campaigns, or generic motivational poster polish.
+- When people are present, prioritize adult male lifters consistent with the primary audience unless approved meaning requires otherwise. Show unposed concentration, strain, preparation, or recovery rather than performative flexing for the camera.
+- Do not require a face. Hands, forearms, back, torso, stance, equipment contact, and partial body crops can carry masculine physicality without turning every slide into a portrait.
+- Vary the primary carrier across a slideshow: person, loaded implement, plates and increments, training log, machine stack, empty rack after effort, or another copy-relevant scene.
+- Vary camera distance and angle across adjacent slides while maintaining the same controlled, dark visual world.
+- Do not repeat one lifter, one rack, one object cluster, or one exact composition merely to manufacture consistency.
+
+Before provider requests, assign each generated slot a distinct primary carrier, Gym setting, camera distance or angle, and dominant light treatment.
 
 ## Within-image composition
 
 - Read the selected image layer's aspect ratio, placement, dimensions, and crop behavior; do not restate or own those layout values here.
-- Compose for the final crop, with the focal subject or action inside a safe region defined by the content-specific layout.
-- Keep the dominant action immediately legible and avoid placing essential details at the edges.
-- Use one plausible environment and only the visual elements needed to make the scene recognizable.
+- Compose for the final crop, with the decisive action or equipment detail inside the content-specific safe region.
+- Protect copy space through simple local backgrounds and controlled negative space rather than empty studio backdrops.
+- Keep the primary physical action immediately legible at slideshow size.
+- Use one plausible Gym environment and only the elements needed to communicate the moment.
+- Do not place essential anatomy, hands, plates, pin settings, or bar contact at crop edges.
 
 ## Runtime request constraints
 
-Construct one provider request from the approved semantic meaning, art direction, within-image composition, and the following exclusions. Use a plain semantic description instead of copying the approved slide wording when possible.
+Construct one provider request from approved meaning, art direction, composition, and the following exclusions. Use a plain semantic scene description instead of copying approved slide wording when possible.
 
-Encode these as request constraints:
+Encode these constraints:
 
 - no readable captions, labels, logos, watermarks, or unapproved brand marks;
-- no fake env interface or unapproved product UI;
-- no visible interface content unless it is truthful, necessary, and approved;
-- no visual claim that exceeds product truth or the selected message's evidence limits;
+- no fake LIFT CODE interface or unapproved product UI;
+- no visual claim that LIFT CODE already exists, has users, or produced a depicted result;
+- no fabricated before/after transformation;
 - no copied reference subject, composition, signature, or distinctive expression;
-- no collage, split screen, before/after layout, or multiple competing scenes unless explicitly required by the approved content and content-specific layout;
-- no commercial stock-photo polish, staged lifestyle-ad composition, or showroom-like perfection;
-- no synthetic-looking smoothness, waxy or plastic surfaces, implausibly perfect symmetry, impossible lighting, excessive cinematic blur, or over-rendered detail;
-- no inference that soft, warm, personal, or aesthetic direction requires a female subject; do not specify or emphasize gender unless the approved meaning requires it;
-- no obvious anatomy defect, impossible object, or malformed visual element.
+- no collage, split screen, or multiple competing scenes unless explicitly required by approved content and layout;
+- no glossy stock-fitness advertising, supplement-ad aesthetic, stage lighting, or showroom perfection;
+- no cartoonish aggression, roaring stereotype, weapon imagery, violence, domination of another person, or sexualized humiliation;
+- no hacker, terminal, source-code, cyberpunk, or Matrix imagery used to literalize `CODE`;
+- no impossible plates, malformed barbell, broken cable path, unusable machine geometry, unsafe rack setup, or obvious anatomy defect;
+- no synthetic plastic skin, excessive sharpening, implausible symmetry, impossible lighting, or over-rendered muscle detail.
 
-These exclusions guide the provider request. They do not authorize subjective selection or another paid generation after a technically usable image has been returned.
+These exclusions guide provider requests. They do not authorize subjective selection or another paid generation after a technically usable image has been returned.
 
 ## Generation and selection policy
 
 - Execution surface: the currently configured Hermes image-generation tool.
-- Backend, provider, model, and credential resolution belong to the active Hermes tool/profile configuration and are read from its runtime contract; do not duplicate or override them here.
+- Backend, provider, model, and credential resolution belong to the active Hermes tool/profile configuration and are not duplicated here.
 - If the active tool does not expose a request parameter, do not pretend this file can select it.
-- Successful results per eligible slot: exactly `1`
-- Subjective selection: none
-- Subjective regeneration: none
-- Final embedded format: PNG
-- Source aspect ratio or size: choose one option supported by the active tool after the content-specific image geometry is selected
-- Embed the first technically usable provider PNG bytes as returned. Do not resize, downscale, recompress, or convert generated imagery merely to reduce Project JSON or storage size; layer crop and display geometry do not authorize mutating the source image bytes.
-- Maximum technical retries after the initial request: `3`
-- Maximum total attempts per eligible slot: `4`
+- Successful results per eligible slot: exactly `1`.
+- Subjective selection: none.
+- Subjective regeneration: none.
+- Final embedded format: PNG.
+- Source aspect ratio or size: choose one supported option after content-specific image geometry is selected.
+- Embed the first technically usable provider PNG bytes as returned. Do not resize, downscale, recompress, or convert generated imagery merely to reduce Project JSON or storage size.
+- Maximum technical retries after the initial request: `3`.
+- Maximum total attempts per eligible slot: `4`.
 
-A technical failure means that no usable image payload was returned because of a transport or API error, empty response, undecodable payload, or invalid output format or dimensions. Retry only such a failure and stop after at most three retries. The first technically usable image ends the attempt sequence and is used directly even when its aesthetics or adherence to non-safety request details are imperfect. Never spend another request merely because a successful image is less attractive than expected.
+A technical failure means no usable image payload was returned because of transport or API failure, empty response, undecodable payload, or invalid output format or dimensions. Retry only such failures. The first technically usable image ends the attempt sequence even when its aesthetics or adherence to non-safety details are imperfect.
 
 ## Rationale
 
-The account-wide direction is familiar, gently aesthetic, everyday, and naturally photographed. It is explicitly independent of subject gender, uses visible people sparingly, and seeks cross-image variety without making a repeated object cluster or color treatment the source of consistency. Approved copy and content-specific geometry remain runtime inputs rather than being duplicated here.
+LIFT CODE must attract men through physical ambition and controlled aggression while earning recommendation trust through precision, restraint, and visible training reality. The imagery therefore cannot be only feral, only clinical, or only motivational. It should make force feel real and system feel necessary without pretending an unbuilt product has already produced results.
