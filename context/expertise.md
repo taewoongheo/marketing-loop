@@ -51,7 +51,7 @@ A domain fact belongs here even when it is first discovered while producing one 
 
 ## Current knowledge state
 
-No LIFT CODE strength-training expertise entry has been admitted yet. The previous app's study and focus materials were intentionally not migrated because they are unrelated to this product.
+No LIFT CODE strength-training expertise entry has been admitted yet.
 
 Until entries are added, content may use verified product truth, sourced audience language, and explicitly framed message hypotheses from their existing owners, but it must not present unsourced training guidance as expert fact.
 

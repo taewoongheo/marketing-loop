@@ -83,7 +83,7 @@ class ContentSlideCopySchemaTests(unittest.TestCase):
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                "C-001", hypothesis_id, "denzel", "msg-focus-is-a-system", 1,
+                "C-001", hypothesis_id, "denzel", "msg-trust-the-next-set", 1,
                 1, "caption", slide_copy_json, "contents/C-001.json", "a" * 64,
             ),
         )

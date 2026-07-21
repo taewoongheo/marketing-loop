@@ -34,7 +34,7 @@ class LoadTreeTests(unittest.TestCase):
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    "C-001", "H-001", "denzel", "msg-focus-is-a-system", 1,
+                    "C-001", "H-001", "denzel", "msg-trust-the-next-set", 1,
                     1, "caption", '[["hook", "support"], ["body"]]',
                     "contents/C-001.json", "b" * 64,
                     "https://example.com/post", "2026-07-14T00:00:00Z",
