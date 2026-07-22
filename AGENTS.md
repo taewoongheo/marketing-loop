@@ -4,6 +4,7 @@
 
 - This repository pursues three simultaneous goals: continuously improve message strategy, continuously improve copywriting, and grow the LIFT CODE TikTok account to 1,000 followers.
 - Across those goals, the marketing mission is to make the target audience aware of LIFT CODE and build justified trust that its planned weight-and-rep recommendations are worth following.
+- During the current prelaunch phase, TikTok content does not mention or promote the app or its planned capabilities. It earns relevant audience attention and trust through useful strength-training content while growing the LIFT CODE account; product exposure begins only after launch or an explicit user change to this rule.
 - Message and copywriting improvement are open-ended goals with no terminal threshold. They remain the only hypothesis axes.
 - The 1,000-follower target is a finite account-level outcome that message and copywriting improvements should support. Observe follower movement separately; never treat it by itself as proof that either axis caused the change.
 - Reaching 1,000 followers completes that finite goal but does not stop scheduled production; continue improving message and copywriting until the user changes or stops the scheduler job.
@@ -26,7 +27,7 @@ The assistant independently selects:
 
 - the problem and situation to address;
 - hook and content direction;
-- core perspective and product exposure;
+- core perspective and, when the current launch phase permits it, product exposure;
 - the complete text-and-image composition of each visual project;
 - the recommended hypothesis actions and daily content allocation across active leaves;
 - the copy approach.
@@ -65,7 +66,7 @@ After a successful grouped slideshow delivery, suppress the scheduler's separate
 
 ## Required context before creating content
 
-1. Read product truth, project-wide domain expertise, user-language evidence, and the current account-wide imagery guidance in `context/`.
+1. Read product truth, project-wide domain expertise, user-language evidence, and the current account-wide imagery guidance in `context/`. When content uses a specific Exercise or training structure, also read the relevant linked detail under `context/product-details/`.
 2. Review available versioned message definitions in `messages/`.
 3. Review the selected `renderer/slideshow/formats/<format-id>/copywriting/v<version>.md` and all designated posts in its `references/` directory.
 4. Inventory available same-format Project JSON under `contents/` as Project execution candidates. Publication status, hypothesis lineage, message/copywriting versions, and performance do not make one candidate visually authoritative. A missing historical DB-linked project is expected after pruning and does not limit message or copywriting evaluation for v11+ contents because exact final slide copy remains in SQLite. Pre-v11 contents whose projects were already lost retain `[]` as an explicit unavailable-copy marker; preserve their DB content and results without reconstruction.
@@ -101,7 +102,8 @@ If the previous final content has no TikTok URL, ask naturally at the start of t
 
 ## Ownership
 
-- Verified product facts and claim boundaries: `context/product.md`
+- Product definition, user value, core mechanisms, reference-app differences, and boundaries: `context/product.md`
+- Detailed product-supported Exercise and training structures used to validate content compatibility: `context/product-details/`
 - Project-wide accumulating strength-training facts, mechanisms, practical applications, provenance, evidence status, and content-use limits: `context/expertise.md`
 - Project-wide collected user-language expressions and provenance only: `context/user-language.md`
 - Versioned target situation, problem pattern, belief shift, persuasion logic, resistance and response, product role, and evidence limits: `messages/msg-<message-name>/v<version>.md`; use the descriptive `msg-` name as the message ID without a numeric sequence.
@@ -148,14 +150,14 @@ Do not duplicate one fact, rule, layout value, or result across owners.
 - Keep observed metrics separate from hypotheses and interpretations.
 - Treat desk-research language as low-confidence language evidence, not testimony.
 - Treat references as evidence of structure, rhythm, and technique. Never copy their wording, subject matter, or distinctive expressions.
-- Prefer limited claims grounded in `context/product.md`.
+- Prefer limited claims grounded in `context/product.md` and, when relevant, its linked `context/product-details/` owner.
 
 ## Feedback and durable learning
 
 - Apply every user feedback to the current content, including one-off feedback.
 - Infer the narrowest scope that preserves the feedback's meaning. Do not turn a content-specific edit into a universal rule, but do not discard a reusable correction merely because it appeared once.
 - When feedback changes durable guidance, update exactly one proper owner immediately. Replace or narrow conflicting guidance instead of appending a contradictory rule.
-- Product corrections belong in `context/product.md`; strength-training domain facts, evidence, practical applications, and source corrections in `context/expertise.md`; general expression or provenance corrections in `context/user-language.md`; app/account-wide image tone, content, and generation corrections in `context/imagery.md`; target-situation, belief, resistance, and persuasion changes in the selected message version; every wording, voice, empathy, hook, progression, rhythm, reveal, CTA, title, and caption rule in the selected format's copywriting version; project operating and reference-interpretation rules in `AGENTS.md`.
+- Product corrections belong in `context/product.md`, or in its linked `context/product-details/` owner when they change a detailed support taxonomy or catalog; strength-training domain facts, evidence, practical applications, and source corrections in `context/expertise.md`; general expression or provenance corrections in `context/user-language.md`; app/account-wide image tone, content, and generation corrections in `context/imagery.md`; target-situation, belief, resistance, and persuasion changes in the selected message version; every wording, voice, empathy, hook, progression, rhythm, reveal, CTA, title, and caption rule in the selected format's copywriting version; project operating and reference-interpretation rules in `AGENTS.md`.
 - A message or copywriting version may be refined in place until a content record references it. After first use, its generation-affecting meaning is immutable: a durable change creates the next version, while a content-specific edit remains only in the final content artifact. Do not create a new version for formatting, evidence-only corroboration, or wording cleanup that cannot change future generation decisions. `context/imagery.md` is unversioned and user-directed improvements update it immediately.
 - A message or copywriting version change does not by itself create a hypothesis node. Record the exact selected message and copywriting versions on each content row; several contents generated by one hypothesis may therefore reference different copywriting versions while testing that hypothesis. The hypothesis loop has only `message` and `copywriting` axes: create a child only when eligible performance evidence supports a distinct claim on one of those axes and the user confirms it.
 - A content-specific correction remains embodied in the approved final content and its DB slide-copy snapshot and does not need a separate durable feedback log.
