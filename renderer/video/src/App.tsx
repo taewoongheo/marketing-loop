@@ -399,7 +399,7 @@ export default function App() {
         sourceDurationInFrames,
         trimStart: 0,
         trimEnd: sourceDurationInFrames,
-        from: currentFrame,
+        from: 0,
         volume: 1,
       };
       setProject((current) => ({ ...current, audioLayers: [...current.audioLayers, layer] }));
