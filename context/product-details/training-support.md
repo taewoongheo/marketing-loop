@@ -39,4 +39,4 @@ The planned workout structure also supports Supersets. A Superset links exercise
 
 - A routine or exercise example may use the structures above when relevant.
 - Do not present a Custom Exercise as eligible for automatic Smart Program generation.
-- Do not infer training advice from product support alone. Claims about when or why to use a Set Type or Exercise require sourced strength-training knowledge from `../expertise.md`.
+- Do not infer training advice from product support alone. Claims about when or why to use a Set Type or Exercise require sourced strength-training knowledge admitted under `../expertise/` according to `../expertise.md`.
