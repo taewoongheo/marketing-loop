@@ -29,6 +29,12 @@ renderer/slideshow/formats/*/references/**/*.webp
 # Local self-contained slideshow projects
 renderer/slideshow/formats/*/contents/*.json
 
+# Local video projects, uploaded media, and renders
+renderer/video/contents/*.json
+renderer/video/public/assets/*
+!renderer/video/public/assets/.gitkeep
+renderer/video/renders/*
+
 # Local credentials
 .env
 .env.*

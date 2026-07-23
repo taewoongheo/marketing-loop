@@ -3,6 +3,7 @@
   "private": true,
   "scripts": {
     "renderer:slideshow": "npm --prefix renderer/slideshow run dev -- --host ::",
+    "renderer:video": "npm --prefix renderer/video run dev -- --host ::",
     "viewer:hypothesis-tree": "python3 -m viewer.hypothesis_tree.app"
   }
 }
