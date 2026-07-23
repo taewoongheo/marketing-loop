@@ -7,7 +7,9 @@ test("storage middleware owns project, asset, and render routes", async () => {
   assert.match(source, /\/api\/projects/);
   assert.match(source, /\/api\/assets/);
   assert.match(source, /\/api\/render/);
-  assert.match(source, /\/api\/renders\//);
+assert.match(source, /\/api\/renders\//);
+assert.match(source, /normalizeVideo/);
+assert.match(source, /fps=30/);
   assert.match(source, /filename\*=UTF-8/);
   assert.doesNotMatch(source, /\^\[a-z0-9-\]\+/);
   assert.match(source, /\.mp3/);

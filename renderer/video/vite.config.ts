@@ -13,6 +13,7 @@ const contentsDirectory = path.join(root, "contents");
 const assetsDirectory = path.join(root, "public", "assets");
 const rendersDirectory = path.join(root, "renders");
 const renderScript = path.join(root, "scripts", "render-project.mjs");
+const videoExtensions = new Set([".mp4", ".mov", ".webm", ".m4v"]);
 
 const fileId = (value: string, fallback: string) => value
   .normalize("NFKC")
@@ -63,6 +64,21 @@ const runRender = (projectPath: string, outputPath: string) => new Promise<void>
   child.stderr.on("data", (chunk) => { stderr += String(chunk); });
   child.on("error", reject);
   child.on("close", (code) => code === 0 ? resolve() : reject(new Error(stderr.trim() || `Render exited with code ${code}.`)));
+});
+
+const normalizeVideo = (inputPath: string, outputPath: string) => new Promise<void>((resolve, reject) => {
+  const child = spawn("ffmpeg", [
+    "-y", "-i", inputPath,
+    "-map", "0:v:0", "-map", "0:a?",
+    "-vf", "fps=30,scale=trunc(iw/2)*2:trunc(ih/2)*2",
+    "-c:v", "libx264", "-preset", "veryfast", "-crf", "18", "-pix_fmt", "yuv420p",
+    "-c:a", "aac", "-movflags", "+faststart",
+    outputPath,
+  ], { stdio: ["ignore", "ignore", "pipe"] });
+  let stderr = "";
+  child.stderr.on("data", (chunk) => { stderr += String(chunk); });
+  child.on("error", reject);
+  child.on("close", (code) => code === 0 ? resolve() : reject(new Error(stderr.trim() || `Video conversion exited with code ${code}.`)));
 });
 
 const storageMiddleware: Connect.NextHandleFunction = async (request, response, next) => {
@@ -121,14 +137,32 @@ const storageMiddleware: Connect.NextHandleFunction = async (request, response, 
       }
       await mkdir(assetsDirectory, { recursive: true });
       const base = fileId(path.basename(rawName, extension), "video");
-      const name = `${base}-${Date.now().toString(36)}${extension}`;
+      const shouldNormalizeVideo = videoExtensions.has(extension) && extension !== ".mp4";
+      const suffix = Date.now().toString(36);
+      const name = `${base}-${suffix}${shouldNormalizeVideo ? ".mp4" : extension}`;
       const destination = path.join(assetsDirectory, name);
+      const uploadDestination = shouldNormalizeVideo
+        ? path.join(assetsDirectory, `.${base}-${suffix}${extension}`)
+        : destination;
       let bytes = 0;
       request.on("data", (chunk) => {
         bytes += Buffer.byteLength(chunk);
         if (bytes > MAX_ASSET_BYTES) request.destroy(new Error("PAYLOAD_TOO_LARGE"));
       });
-      await pipeline(request, createWriteStream(destination, { flags: "wx" }));
+      try {
+        await pipeline(request, createWriteStream(uploadDestination, { flags: "wx" }));
+        if (shouldNormalizeVideo) {
+          await normalizeVideo(uploadDestination, destination);
+        }
+      } catch (error) {
+        await Promise.all([
+          unlink(uploadDestination).catch(() => undefined),
+          uploadDestination === destination ? Promise.resolve() : unlink(destination).catch(() => undefined),
+        ]);
+        throw error;
+      } finally {
+        if (uploadDestination !== destination) await unlink(uploadDestination).catch(() => undefined);
+      }
       sendJson(response, 200, { src: `/assets/${name}` });
       return;
     }
