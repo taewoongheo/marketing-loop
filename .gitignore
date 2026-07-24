@@ -29,8 +29,18 @@ renderer/slideshow/formats/*/references/**/*.webp
 # Local self-contained slideshow projects
 renderer/slideshow/formats/*/contents/*.json
 
+# User-provided video reference evidence
+renderer/video/formats/*/references/**/*.png
+renderer/video/formats/*/references/**/*.jpg
+renderer/video/formats/*/references/**/*.jpeg
+renderer/video/formats/*/references/**/*.webp
+renderer/video/formats/*/references/**/*.mp4
+renderer/video/formats/*/references/**/*.mov
+renderer/video/formats/*/references/**/*.webm
+renderer/video/formats/*/references/**/*.m4v
+
 # Local video projects, uploaded media, and renders
-renderer/video/contents/*.json
+renderer/video/formats/*/contents/*.json
 renderer/video/public/assets/*
 !renderer/video/public/assets/.gitkeep
 renderer/video/renders/*

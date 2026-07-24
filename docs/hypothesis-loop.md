@@ -31,7 +31,7 @@ Follower count measures progress toward the 1,000-follower account goal. Store i
 
 When a public third-party endpoint is the available source, preserve its response and named provenance, and treat caching, retrieval timing, and attribution as explicit limitations. Collection failure does not block content production.
 
-Message definitions use seven semantic sections: target situation, problem pattern, belief shift, persuasion logic, resistance and response, product role, and evidence and limits. Each slideshow format's copywriting structure remains versioned under `renderer/slideshow/formats/<format-id>/copywriting/`; do not impose one format's language grammar on another format or medium.
+Message definitions use seven semantic sections: target situation, problem pattern, belief shift, persuasion logic, resistance and response, product role, and evidence and limits. Each medium and format's copywriting structure remains versioned under `renderer/<medium>/formats/<format-id>/copywriting/`; do not impose one format's language grammar on another.
 
 ### Hypothesis statement requirements
 
@@ -73,14 +73,15 @@ This changes several elements and mixes a hypothesis change with execution varia
 
 Do not repeat the 24-hour, 48-hour, and 72-hour workflow in every statement. The statement owns the proposed change and expected response; the shared evaluation workflow owns when that response is reviewed and how it affects the branch.
 
-### Visual execution
+### Execution medium and format
 
-Visual composition is content-specific execution, not a hypothesis axis.
+Every content selects exactly one `medium` (`slideshow` or `video`) and one format within that medium. Medium and format are content-specific execution choices, not hypothesis axes.
 
-- Design each project from the designated references, approved copy, current imagery guidance, and up to three retained same-format visual execution examples.
-- References are the primary visual-grammar evidence; retained prior projects are secondary renderer-feasibility and composition evidence and never become hidden templates.
-- While a local project is retained, it preserves the exact typography, geometry, crop, image bytes, and slide structure used for that content; its recorded path and hash remain provenance after local pruning but do not preserve deleted bytes.
-- Do not treat imagery, layout, crop, or other visual-execution differences as hypothesis evidence or as a reason to weaken or defer a message/copywriting decision. User feedback changes those execution owners directly.
+- Select medium and format operationally from the content's communication needs, available references and assets, recent execution diversity, and relevant DB observations.
+- Design each project from the designated references, approved copy, current imagery guidance, and up to three retained same-medium same-format execution examples.
+- References are the primary execution-grammar evidence; retained prior projects are secondary renderer-feasibility and composition evidence and never become hidden templates.
+- While a local project and its required assets are retained, they preserve the exact content-specific execution. The recorded path and hash remain provenance after local pruning but do not preserve deleted bytes.
+- Do not treat medium, format, imagery, layout, crop, motion, timing, or audio differences as hypothesis evidence or as a reason to weaken or defer a message/copywriting decision. User feedback changes those execution owners directly.
 
 ## Hypothesis branch model
 
@@ -283,7 +284,7 @@ After the user confirms that a hypothesis should be operationally adopted:
 1. Keep its source observations, interpretations, evidence links, and lineage in SQLite.
 2. Update exactly one final owner directly; do not create a separate pending-learning file.
 3. For a message-strategy conclusion, create the next version under `messages/msg-<message-name>/` when an already-used message changes, or a distinctly named `msg-<message-name>` when the strategy identity changes; do not add a numeric sequence to the message ID.
-4. For a slideshow copywriting conclusion, create the next `renderer/slideshow/formats/<format-id>/copywriting/v<version>.md` when the selected version has already been used. Refine an unreferenced current version in place instead of creating empty version noise.
+4. For a format-specific copywriting conclusion, create the next `renderer/<medium>/formats/<format-id>/copywriting/v<version>.md` when the selected version has already been used. Refine an unreferenced current version in place instead of creating empty version noise.
 5. Do not infer product facts, verified user language, or audience facts from engagement metrics alone.
 6. If later evidence conflicts, revise or narrow the current owner in a new used-state version while preserving historical message and copywriting versions, hypotheses, contents, and results.
 
@@ -379,39 +380,41 @@ A simple SQL check can prevent self-parenting but not every longer cycle. Before
 
 ### `contents`
 
-Owns publication-ready content generated by a hypothesis, its exact final slide copy, its local visual-project provenance, and its publication identity.
+Owns publication-ready content generated by a hypothesis, the selected medium and format, its exact final audience-facing copy, its local native-project provenance, and its publication identity.
 
 It records:
 
 ```text
 id
 hypothesis_id
+medium
 format_id
 message_id
 message_version
 copywriting_version
 caption
-slide_copy_json
+copy_snapshot_json
 final_project_path
 final_project_sha256
 tiktok_url
 published_at
 ```
 
-- `id`: immutable content identity;
+- `id`: immutable content identity using only ASCII letters, digits, `_`, and `-`; it is also the native Project filename stem;
 - `hypothesis_id`: the hypothesis node that generated the content;
-- `format_id`: the slideshow evidence/content namespace used to generate the project; it is not a coordinate template;
+- `medium`: exactly `slideshow` or `video`; it identifies the native renderer and namespaces the format;
+- `format_id`: the selected medium's evidence/content namespace; it is not a coordinate, timeline, or scene template;
 - `message_id`, `message_version`: exact versioned message identity;
-- `copywriting_version`: exact slideshow copy grammar used;
+- `copywriting_version`: exact selected format copy grammar used;
 - `caption`: final TikTok caption;
-- `slide_copy_json`: exact ordered text-layer strings for every slide, stored as one outer array per slideshow and one non-empty inner text array per slide. It contains no geometry or image bytes. New contents require at least one slide; `[]` is reserved for pre-v11 rows whose already-missing projects made exact recovery impossible;
+- `copy_snapshot_json`: exact medium-specific audience-facing copy without geometry, timing, or media bytes. A slideshow stores `{"slides":[[...], ...]}` with one non-empty ordered text array per slide. A video stores `{"on_screen_text":[...],"spoken_text":[...]}` with each channel ordered and either or both channels allowed to be empty;
 - `final_project_path`, `final_project_sha256`: provenance for the publication-ready renderer project. The path may no longer resolve after authorized local pruning, and the hash identifies but does not reconstruct deleted bytes;
 - `tiktok_url`: URL supplied after manual publication;
 - `published_at`: timestamp recorded when the TikTok URL is first registered. When the user supplies only a URL in Telegram, use the receipt/registration time of that message after its content identity has been resolved; it is not a claim about TikTok's exact upload time.
 
-While retained, the final editable content is a self-contained `tiktok-slide-project` stored under `renderer/slideshow/formats/<format-id>/contents/<id>.json` with the same `formatId`. No reusable template or format JSON participates in generation. Authorized pruning may later remove that local visual artifact without deleting the content row, slide-copy snapshot, publication identity, or results.
+While retained, the final editable content is the selected medium's native project stored under `renderer/<medium>/formats/<format-id>/contents/<id>.json` with the same `formatId`, plus any local production assets it references. No reusable template or format JSON participates in generation. Authorized pruning may later remove the local project and unreferenced assets without deleting the content row, copy snapshot, publication identity, or results.
 
-SQLite `slide_copy_json` is the permanent evidence owner for final slide text. The retained renderer project materializes the same text for editing and rendering and owns the exact visual execution only while the file exists.
+SQLite `copy_snapshot_json` is the permanent evidence owner for final audience-facing text. The retained renderer project materializes that text for editing and rendering and owns geometry, timing, crop, motion, and audio execution only while the required local files exist.
 
 Do not store `telegram_delivered_at`, content `created_at`, or content `status`.
 

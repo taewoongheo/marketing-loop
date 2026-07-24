@@ -702,18 +702,14 @@ export default function App() {
   };
 
   const saveProject = async () => {
-    const name = project.name.trim();
-    if (!name) {
-      setStatus("Enter a project name first.");
-      return null;
-    }
+    const projectToSave = { ...project, name: project.name.trim() || "Video project" };
     setIsSaving(true);
     setStatus("");
     try {
       const response = await fetch("/api/projects", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(project),
+        body: JSON.stringify(projectToSave),
       });
       const data = await response.json() as { project?: VideoProject; projects?: VideoProject[]; error?: string };
       if (!response.ok || !data.project) throw new Error(data.error || "Project could not be saved.");

@@ -28,16 +28,31 @@ class LoadTreeTests(unittest.TestCase):
             connection.execute(
                 """
                 INSERT INTO contents (
-                    id, hypothesis_id, format_id, message_id, message_version,
-                    copywriting_version, caption, slide_copy_json, final_project_path,
+                    id, hypothesis_id, medium, format_id, message_id, message_version,
+                    copywriting_version, caption, copy_snapshot_json, final_project_path,
                     final_project_sha256, tiktok_url, published_at
-                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                 (
-                    "C-001", "H-001", "denzel", "msg-trust-the-next-set", 1,
-                    1, "caption", '[["hook", "support"], ["body"]]',
-                    "contents/C-001.json", "b" * 64,
+                    "C-001", "H-001", "slideshow", "example-format", "msg-example", 1,
+                    1, "caption", '{"slides":[["hook","support"],["body"]]}',
+                    "renderer/slideshow/formats/example-format/contents/C-001.json", "b" * 64,
                     "https://example.com/post", "2026-07-14T00:00:00Z",
+                ),
+            )
+            connection.execute(
+                """
+                INSERT INTO contents (
+                    id, hypothesis_id, medium, format_id, message_id, message_version,
+                    copywriting_version, caption, copy_snapshot_json, final_project_path,
+                    final_project_sha256, tiktok_url, published_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    "C-002", "H-001", "video", "example-video-format", "msg-example", 1,
+                    1, "caption", '{"on_screen_text":["overlay"],"spoken_text":["voiceover"]}',
+                    "renderer/video/formats/example-video-format/contents/C-002.json", "c" * 64,
+                    None, None,
                 ),
             )
             connection.execute(
@@ -75,22 +90,33 @@ class LoadTreeTests(unittest.TestCase):
         self.assertEqual(tree["summary"], {
             "hypotheses": 2,
             "active_leaves": 1,
-            "contents": 1,
+            "contents": 2,
             "published": 1,
         })
         root = tree["roots"][0]
         self.assertEqual(root["id"], "H-001")
         self.assertEqual(root["state"], "branched")
-        self.assertEqual(root["contents"][0]["format_id"], "denzel")
+        self.assertEqual(root["contents"][0]["medium"], "slideshow")
+        self.assertEqual(root["contents"][0]["format_id"], "example-format")
         self.assertEqual(
-            root["contents"][0]["slide_copy"],
-            [["hook", "support"], ["body"]],
+            root["contents"][0]["copy_snapshot"],
+            {"slides": [["hook", "support"], ["body"]]},
         )
-        self.assertNotIn("slide_copy_json", root["contents"][0])
+        self.assertNotIn("copy_snapshot_json", root["contents"][0])
         self.assertNotIn("imagery_version", root["contents"][0])
         self.assertEqual(root["contents"][0]["checkpoints"]["24"]["views"], 1200)
         self.assertNotIn("raw_json", root["contents"][0]["checkpoints"]["24"])
         self.assertIsNone(root["contents"][0]["checkpoints"]["48"])
+        self.assertEqual(root["contents"][1]["medium"], "video")
+        self.assertEqual(root["contents"][1]["format_id"], "example-video-format")
+        self.assertEqual(
+            root["contents"][1]["copy_snapshot"],
+            {"on_screen_text": ["overlay"], "spoken_text": ["voiceover"]},
+        )
+        self.assertEqual(
+            root["contents"][1]["checkpoints"],
+            {"24": None, "48": None, "72": None},
+        )
         child = root["children"][0]
         self.assertEqual(child["state"], "active")
         self.assertEqual(child["axis"], "copywriting")
@@ -113,7 +139,8 @@ class ViewerDocumentTests(unittest.TestCase):
         self.assertIn('data-role="inspector"', document)
         self.assertIn('class="checkpoint-detail"', document)
         self.assertIn("content.format_id", document)
-        self.assertIn("content.slide_copy", document)
+        self.assertIn("content.medium", document)
+        self.assertIn("content.copy_snapshot", document)
         self.assertIn("content.caption", document)
         self.assertNotIn("imagery_version", document)
 

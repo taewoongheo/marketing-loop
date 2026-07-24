@@ -192,9 +192,9 @@
     .detail-item { padding: 11px 12px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); font-size: 12px; line-height: 1.45; }
     .detail-item strong { font-family: var(--mono); }
     .content-copy { margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line); }
-    .slide-copy + .slide-copy { margin-top: 9px; }
-    .slide-copy div { margin-top: 4px; white-space: pre-wrap; }
-    .legacy-copy { color: var(--muted); }
+    .copy-block + .copy-block { margin-top: 9px; }
+    .copy-block div { margin-top: 4px; white-space: pre-wrap; }
+    .empty-copy { color: var(--muted); }
     .checkpoint-detail { margin-top: 10px; padding-top: 9px; border-top: 1px solid var(--line); }
     .checkpoint-detail:first-of-type { margin-top: 12px; }
     .checkpoint-meta { color: var(--muted); font: 10px/1.5 var(--mono); }
@@ -362,19 +362,31 @@
 
       const contents = node.contents.length ? node.contents.map(content => {
         const completed = [24, 48, 72].filter(hour => content.checkpoints[String(hour)]).join(" / ") || "none";
-        const versions = `${content.format_id} · message v${content.message_version} · copywriting v${content.copywriting_version}`;
-        const slideCopy = Array.isArray(content.slide_copy) && content.slide_copy.length
-          ? content.slide_copy.map((layers, index) => `
-              <div class="slide-copy"><strong>Slide ${index + 1}</strong>
+        const versions = `${content.medium} · ${content.format_id} · message v${content.message_version} · copywriting v${content.copywriting_version}`;
+        const snapshot = content.copy_snapshot || {};
+        const slideshowCopy = Array.isArray(snapshot.slides)
+          ? snapshot.slides.map((layers, index) => `
+              <div class="copy-block"><strong>Slide ${index + 1}</strong>
                 ${(Array.isArray(layers) ? layers : []).map(text => `<div>${escapeHtml(text)}</div>`).join("")}
               </div>`).join("")
-          : `<div class="legacy-copy">Slide copy unavailable for this legacy content.</div>`;
+          : "";
+        const onScreenText = Array.isArray(snapshot.on_screen_text) ? snapshot.on_screen_text : [];
+        const spokenText = Array.isArray(snapshot.spoken_text) ? snapshot.spoken_text : [];
+        const videoCopy = [
+          onScreenText.length
+            ? `<div class="copy-block"><strong>On-screen text</strong>${onScreenText.map(text => `<div>${escapeHtml(text)}</div>`).join("")}</div>`
+            : "",
+          spokenText.length
+            ? `<div class="copy-block"><strong>Spoken text</strong>${spokenText.map(text => `<div>${escapeHtml(text)}</div>`).join("")}</div>`
+            : "",
+        ].join("") || `<div class="empty-copy">No on-screen or spoken text.</div>`;
+        const copySnapshot = content.medium === "slideshow" ? slideshowCopy : videoCopy;
         const details = [24, 48, 72]
           .map(hour => content.checkpoints[String(hour)])
           .filter(Boolean)
           .map(checkpointDetailMarkup)
           .join("");
-        return `<li class="detail-item"><strong>${escapeHtml(content.id)}</strong><br>${escapeHtml(versions)}<br>${content.published_at ? "Published" : "Not published"} · checkpoints: ${completed}<div class="content-copy">${slideCopy}<div class="slide-copy"><strong>Caption</strong><div>${escapeHtml(content.caption)}</div></div></div>${details}</li>`;
+        return `<li class="detail-item"><strong>${escapeHtml(content.id)}</strong><br>${escapeHtml(versions)}<br>${content.published_at ? "Published" : "Not published"} · checkpoints: ${completed}<div class="content-copy">${copySnapshot}<div class="copy-block"><strong>Caption</strong><div>${escapeHtml(content.caption)}</div></div></div>${details}</li>`;
       }).join("") : `<li class="detail-item">No direct content</li>`;
 
       const evidence = node.evidence.length ? node.evidence.map(item => `

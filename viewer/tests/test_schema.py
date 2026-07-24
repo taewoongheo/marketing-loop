@@ -58,7 +58,7 @@ class AccountResultsSchemaTests(unittest.TestCase):
                     )
 
 
-class ContentSlideCopySchemaTests(unittest.TestCase):
+class ContentCopySnapshotSchemaTests(unittest.TestCase):
     def setUp(self):
         self.temp_dir = tempfile.TemporaryDirectory()
         self.db_path = Path(self.temp_dir.name) / "content-copy.sqlite"
@@ -73,42 +73,63 @@ class ContentSlideCopySchemaTests(unittest.TestCase):
         self.connection.close()
         self.temp_dir.cleanup()
 
-    def insert_content(self, slide_copy_json, hypothesis_id="H-001"):
+    def insert_content(
+        self,
+        copy_snapshot_json,
+        hypothesis_id="H-001",
+        medium="slideshow",
+    ):
         self.connection.execute(
             """
             INSERT INTO contents (
-                id, hypothesis_id, format_id, message_id, message_version,
-                copywriting_version, caption, slide_copy_json,
+                id, hypothesis_id, medium, format_id, message_id, message_version,
+                copywriting_version, caption, copy_snapshot_json,
                 final_project_path, final_project_sha256
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
-                "C-001", hypothesis_id, "denzel", "msg-trust-the-next-set", 1,
-                1, "caption", slide_copy_json, "contents/C-001.json", "a" * 64,
+                "C-001", hypothesis_id, medium, "example-format", "msg-example", 1,
+                1, "caption", copy_snapshot_json,
+                f"renderer/{medium}/formats/example-format/contents/C-001.json",
+                "a" * 64,
             ),
         )
 
-    def test_records_ordered_slide_copy(self):
-        self.insert_content('[["hook", "support"], ["body", "cta"]]')
+    def test_records_ordered_slideshow_copy(self):
+        snapshot = '{"slides":[["hook","support"],["body","cta"]]}'
+        self.insert_content(snapshot)
 
         value = self.connection.execute(
-            "SELECT slide_copy_json FROM contents WHERE id = 'C-001'"
+            "SELECT copy_snapshot_json FROM contents WHERE id = 'C-001'"
         ).fetchone()[0]
-        self.assertEqual(value, '[["hook", "support"], ["body", "cta"]]')
+        self.assertEqual(value, snapshot)
 
         with self.assertRaises(sqlite3.IntegrityError):
             self.connection.execute(
-                "UPDATE contents SET slide_copy_json = '[]' WHERE id = 'C-001'"
+                "UPDATE contents SET copy_snapshot_json = '{}' WHERE id = 'C-001'"
             )
 
-    def test_rejects_empty_or_invalid_slide_copy(self):
-        for value in ("[]", "{}", '"hook"', '["hook"]', "[[1]]", "[[]]", "not-json"):
+    def test_rejects_empty_or_invalid_slideshow_copy(self):
+        for value in (
+            "[]", "{}", '"hook"', '{"slides":[]}',
+            '{"slides":["hook"]}', '{"slides":[[1]]}',
+            '{"slides":[[]]}', "not-json",
+        ):
             with self.subTest(value=value):
                 with self.assertRaises(sqlite3.IntegrityError):
                     self.insert_content(value)
 
+    def test_records_video_copy_channels(self):
+        snapshot = '{"on_screen_text":["overlay"],"spoken_text":["voiceover"]}'
+        self.insert_content(snapshot, medium="video")
+
+        row = self.connection.execute(
+            "SELECT medium, copy_snapshot_json FROM contents WHERE id = 'C-001'"
+        ).fetchone()
+        self.assertEqual(row, ("video", snapshot))
+
     def test_rejects_non_integer_content_metrics(self):
-        self.insert_content('[["hook"]]')
+        self.insert_content('{"slides":[["hook"]]}')
 
         for views in (-1, 1.5, "abc"):
             with self.subTest(views=views):
@@ -134,7 +155,7 @@ class ContentSlideCopySchemaTests(unittest.TestCase):
         )
 
         with self.assertRaisesRegex(sqlite3.IntegrityError, "active leaf"):
-            self.insert_content('[["hook"]]')
+            self.insert_content('{"slides":[["hook"]]}')
         with self.assertRaisesRegex(sqlite3.IntegrityError, "branched"):
             self.connection.execute(
                 """
@@ -162,7 +183,7 @@ class ContentSlideCopySchemaTests(unittest.TestCase):
                 """
             )
         with self.assertRaisesRegex(sqlite3.IntegrityError, "active leaf"):
-            self.insert_content('[["hook"]]', hypothesis_id="H-002")
+            self.insert_content('{"slides":[["hook"]]}', hypothesis_id="H-002")
         with self.assertRaisesRegex(sqlite3.IntegrityError, "must exist and be open"):
             self.connection.execute(
                 """

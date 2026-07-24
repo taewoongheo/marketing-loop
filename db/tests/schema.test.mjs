@@ -35,37 +35,45 @@ function insertContent(
   databasePath,
   copywritingVersion,
   messageVersion = "1",
-  formatId = "denzel",
-  slideCopyJson = '[["hook"]]',
+  formatId = "example-format",
+  medium = "slideshow",
+  copySnapshotJson = '{"slides":[["hook"]]}',
+  finalProjectPath,
+  contentId,
 ) {
   const suffix = `${copywritingVersion}-${messageVersion}`.replace(
     /[^a-z0-9]/gi,
     "-",
   );
+  const id = contentId ?? `c-${suffix}`;
+  const projectPath = finalProjectPath
+    ?? `renderer/${medium}/formats/${formatId}/contents/${id}.json`;
 
   return spawnSync("sqlite3", [databasePath], {
     input: `
       INSERT INTO contents (
         id,
         hypothesis_id,
+        medium,
         format_id,
         message_id,
         message_version,
         copywriting_version,
         caption,
-        slide_copy_json,
+        copy_snapshot_json,
         final_project_path,
         final_project_sha256
       ) VALUES (
-        'c-${suffix}',
+        '${id}',
         'h-1',
+        '${medium}',
         '${formatId}',
-        'msg-trust-the-next-set',
+        'msg-example',
         ${messageVersion},
         ${copywritingVersion},
         'caption',
-        '${slideCopyJson.replaceAll("'", "''")}',
-        'renderer/slideshow/formats/${formatId}/contents/c-${suffix}.json',
+        '${copySnapshotJson.replaceAll("'", "''")}',
+        '${projectPath}',
         '${"b".repeat(64)}'
       );
     `,
@@ -92,21 +100,27 @@ function insertResult(databasePath, collectionSource) {
   });
 }
 
-test("contents records format and strategy versions with the self-contained project identity", async () => {
+test("contents records medium-scoped format, strategy versions, copy, and project identity", async () => {
   await withDatabase(async (databasePath) => {
     const columns = JSON.parse(query(databasePath, "PRAGMA table_info(contents);"));
     const copywritingVersion = columns.find(
       (column) => column.name === "copywriting_version",
     );
     const formatId = columns.find((column) => column.name === "format_id");
-    const slideCopyJson = columns.find((column) => column.name === "slide_copy_json");
+    const medium = columns.find((column) => column.name === "medium");
+    const copySnapshotJson = columns.find(
+      (column) => column.name === "copy_snapshot_json",
+    );
 
     assert.ok(copywritingVersion);
     assert.equal(copywritingVersion.notnull, 1);
     assert.ok(formatId);
     assert.equal(formatId.notnull, 1);
-    assert.ok(slideCopyJson);
-    assert.equal(slideCopyJson.notnull, 1);
+    assert.ok(medium);
+    assert.equal(medium.notnull, 1);
+    assert.ok(copySnapshotJson);
+    assert.equal(copySnapshotJson.notnull, 1);
+    assert.equal(columns.some((column) => column.name === "slide_copy_json"), false);
 
     for (const removedColumn of ["imagery_version", "template_path", "template_sha256"]) {
       assert.equal(columns.some((column) => column.name === removedColumn), false);
@@ -120,9 +134,88 @@ test("contents rejects unsafe format IDs", async () => {
       INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
     `]);
 
-    for (const formatId of ["", "Denzel", "../denzel", "denzel/reference", "denzel space"]) {
+    for (const formatId of ["", "Example", "../example", "example/reference", "example space"]) {
       const inserted = insertContent(databasePath, "1", "1", formatId);
       assert.notEqual(inserted.status, 0, `accepted ${formatId}`);
+      assert.match(inserted.stderr, /CHECK constraint failed/);
+    }
+  });
+});
+
+test("contents rejects IDs that are unsafe as direct project filenames", async () => {
+  await withDatabase(async (databasePath) => {
+    execFileSync("sqlite3", [databasePath, `
+      INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
+    `]);
+
+    for (const [version, contentId] of [
+      ["1", ""],
+      ["2", "../outside"],
+      ["3", "nested/id"],
+      ["4", "id\\file"],
+      ["5", "id.json"],
+      ["6", "space id"],
+    ]) {
+      const inserted = insertContent(
+        databasePath,
+        version,
+        "1",
+        "example-format",
+        "slideshow",
+        '{"slides":[["hook"]]}',
+        undefined,
+        contentId,
+      );
+      assert.notEqual(inserted.status, 0, `accepted ${JSON.stringify(contentId)}`);
+      assert.match(inserted.stderr, /CHECK constraint failed/);
+    }
+  });
+});
+
+test("contents accepts only slideshow and video media", async () => {
+  await withDatabase(async (databasePath) => {
+    execFileSync("sqlite3", [databasePath, `
+      INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
+    `]);
+
+    for (const medium of ["", "photo", "Video", "../video"]) {
+      const inserted = insertContent(
+        databasePath,
+        "1",
+        "1",
+        "example-format",
+        medium,
+      );
+      assert.notEqual(inserted.status, 0, `accepted ${medium}`);
+      assert.match(inserted.stderr, /CHECK constraint failed/);
+    }
+  });
+});
+
+test("contents requires the project path to match medium and format", async () => {
+  await withDatabase(async (databasePath) => {
+    execFileSync("sqlite3", [databasePath, `
+      INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
+    `]);
+
+    for (const [version, finalProjectPath] of [
+      ["1", "renderer/video/formats/example-format/contents/c-1-1.json"],
+      ["2", "renderer/slideshow/formats/other-format/contents/c-2-1.json"],
+      ["3", "renderer/slideshow/contents/c-3-1.json"],
+      ["4", "renderer/slideshow/formats/example-format/contents/nested/c-4-1.json"],
+      ["5", "renderer/slideshow/formats/example-format/contents/../../c-5-1.json"],
+      ["6", "renderer/slideshow/formats/example-format/contents/c-6-1\\outside.json"],
+    ]) {
+      const inserted = insertContent(
+        databasePath,
+        version,
+        "1",
+        "example-format",
+        "slideshow",
+        '{"slides":[["hook"]]}',
+        finalProjectPath,
+      );
+      assert.notEqual(inserted.status, 0, `accepted ${finalProjectPath}`);
       assert.match(inserted.stderr, /CHECK constraint failed/);
     }
   });
@@ -140,17 +233,129 @@ test("contents accepts positive integer strategy versions", async () => {
   });
 });
 
-test("contents rejects slides without text strings", async () => {
+test("slideshow contents require ordered non-empty text arrays for every slide", async () => {
   await withDatabase(async (databasePath) => {
     execFileSync("sqlite3", [databasePath, `
       INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
     `]);
 
-    for (const slideCopyJson of ["[]", '["hook"]', "[[1]]", "[[]]"]) {
-      const inserted = insertContent(databasePath, "1", "1", "denzel", slideCopyJson);
-      assert.notEqual(inserted.status, 0, `accepted ${slideCopyJson}`);
-      assert.match(inserted.stderr, /slide_copy_json/);
+    for (const copySnapshotJson of [
+      "{}",
+      '{"slides":[]}',
+      '{"slides":["hook"]}',
+      '{"slides":[[1]]}',
+      '{"slides":[[]]}',
+      '{"slides":[[""]]}',
+      '{"slides":[["   "]]}',
+      '{"slides":[["hook"]],"spoken_text":[]}',
+      '{"slides":[["first"]],"slides":[["second"]]}',
+    ]) {
+      const inserted = insertContent(
+        databasePath,
+        "1",
+        "1",
+        "example-format",
+        "slideshow",
+        copySnapshotJson,
+      );
+      assert.notEqual(inserted.status, 0, `accepted ${copySnapshotJson}`);
+      assert.match(inserted.stderr, /copy_snapshot_json/);
     }
+  });
+});
+
+test("video contents preserve exact on-screen and spoken copy without requiring either channel", async () => {
+  await withDatabase(async (databasePath) => {
+    execFileSync("sqlite3", [databasePath, `
+      INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
+    `]);
+
+    for (const [version, copySnapshotJson] of [
+      ["1", '{"on_screen_text":[],"spoken_text":[]}'],
+      ["2", '{"on_screen_text":["overlay"],"spoken_text":[]}'],
+      ["3", '{"on_screen_text":[],"spoken_text":["voiceover"]}'],
+      ["4", '{"on_screen_text":["overlay"],"spoken_text":["voiceover"]}'],
+    ]) {
+      const inserted = insertContent(
+        databasePath,
+        version,
+        "1",
+        "example-format",
+        "video",
+        copySnapshotJson,
+      );
+      assert.equal(inserted.status, 0, inserted.stderr);
+    }
+
+    for (const copySnapshotJson of [
+      "{}",
+      '{"on_screen_text":[],"spoken_text":"voiceover"}',
+      '{"on_screen_text":[1],"spoken_text":[]}',
+      '{"on_screen_text":[""],"spoken_text":[]}',
+      '{"on_screen_text":["   "],"spoken_text":[]}',
+      '{"on_screen_text":[],"spoken_text":[1]}',
+      '{"on_screen_text":[],"spoken_text":[""]}',
+      '{"on_screen_text":[],"spoken_text":[],"slides":[]}',
+      '{"on_screen_text":[],"on_screen_text":["overlay"],"spoken_text":[]}',
+      '{"on_screen_text":[],"spoken_text":[],"spoken_text":["voiceover"]}',
+    ]) {
+      const inserted = insertContent(
+        databasePath,
+        "5",
+        "1",
+        "example-format",
+        "video",
+        copySnapshotJson,
+      );
+      assert.notEqual(inserted.status, 0, `accepted ${copySnapshotJson}`);
+      assert.match(inserted.stderr, /copy_snapshot_json/);
+    }
+  });
+});
+
+test("content medium updates require an atomically matching copy snapshot and project path", async () => {
+  await withDatabase(async (databasePath) => {
+    execFileSync("sqlite3", [databasePath, `
+      INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
+    `]);
+    assert.equal(insertContent(databasePath, "1").status, 0);
+
+    const invalidTransition = spawnSync("sqlite3", [databasePath], {
+      input: `
+        UPDATE contents
+        SET medium = 'video'
+        WHERE id = 'c-1-1';
+      `,
+      encoding: "utf8",
+    });
+    assert.notEqual(invalidTransition.status, 0);
+
+    execFileSync("sqlite3", [databasePath, `
+      UPDATE contents
+      SET medium = 'video',
+          copy_snapshot_json = '{"on_screen_text":[],"spoken_text":[]}',
+          final_project_path = 'renderer/video/formats/example-format/contents/c-1-1.json'
+      WHERE id = 'c-1-1';
+    `]);
+
+    const duplicateKeyUpdate = spawnSync("sqlite3", [databasePath], {
+      input: `
+        UPDATE contents
+        SET copy_snapshot_json = '{"on_screen_text":[],"spoken_text":[],"spoken_text":["voiceover"]}'
+        WHERE id = 'c-1-1';
+      `,
+      encoding: "utf8",
+    });
+    assert.notEqual(duplicateKeyUpdate.status, 0);
+    assert.match(duplicateKeyUpdate.stderr, /copy_snapshot_json/);
+
+    execFileSync("sqlite3", [databasePath, `
+      UPDATE contents
+      SET medium = 'slideshow',
+          copy_snapshot_json = '{"slides":[["hook"]]}',
+          final_project_path = 'renderer/slideshow/formats/example-format/contents/c-1-1.json'
+      WHERE id = 'c-1-1';
+    `]);
   });
 });
 
@@ -231,6 +436,6 @@ test("contents rejects invalid message versions", async () => {
 test("schema version identifies the current structure", async () => {
   await withDatabase(async (databasePath) => {
     const version = query(databasePath, "PRAGMA user_version;").trim();
-    assert.equal(version, '[{"user_version":11}]');
+    assert.equal(version, '[{"user_version":12}]');
   });
 });

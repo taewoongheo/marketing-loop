@@ -54,7 +54,7 @@ def load_tree(db_path=DEFAULT_DB_PATH):
 
     contents_by_hypothesis = {}
     for content in contents:
-        content["slide_copy"] = json.loads(content.pop("slide_copy_json"))
+        content["copy_snapshot"] = json.loads(content.pop("copy_snapshot_json"))
         content["checkpoints"] = {
             checkpoint: results_by_content.get(content["id"], {}).get(checkpoint)
             for checkpoint in ("24", "48", "72")

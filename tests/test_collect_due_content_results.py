@@ -38,21 +38,22 @@ class DueContentResultCollectorTests(unittest.TestCase):
         self.connection.execute(
             """
             INSERT INTO contents (
-                id, hypothesis_id, format_id, message_id, message_version,
-                copywriting_version, caption, slide_copy_json, final_project_path,
+                id, hypothesis_id, medium, format_id, message_id, message_version,
+                copywriting_version, caption, copy_snapshot_json, final_project_path,
                 final_project_sha256, tiktok_url, published_at
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
             (
                 content_id,
                 "H-001",
-                "denzel",
-                "msg-trust-the-next-set",
+                "slideshow",
+                "example-format",
+                "msg-example",
                 1,
                 1,
                 "caption",
-                '[["hook"],["body"]]',
-                f"contents/{content_id}.json",
+                '{"slides":[["hook"],["body"]]}',
+                f"renderer/slideshow/formats/example-format/contents/{content_id}.json",
                 content_id[-1].lower() * 64,
                 f"https://www.tiktok.com/@liftcode_test/photo/{content_id[-1]}",
                 published_at,

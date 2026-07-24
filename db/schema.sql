@@ -42,8 +42,13 @@ CREATE TABLE IF NOT EXISTS hypotheses (
 
 CREATE TABLE IF NOT EXISTS contents (
     id TEXT PRIMARY KEY
-        CHECK (length(trim(id)) > 0),
+        CHECK (
+            length(id) > 0
+            AND id NOT GLOB '*[^A-Za-z0-9_-]*'
+        ),
     hypothesis_id TEXT NOT NULL,
+    medium TEXT NOT NULL
+        CHECK (medium IN ('slideshow', 'video')),
     format_id TEXT NOT NULL
         CHECK (
             length(format_id) > 0
@@ -62,16 +67,21 @@ CREATE TABLE IF NOT EXISTS contents (
             AND copywriting_version > 0
         ),
     caption TEXT NOT NULL,
-    slide_copy_json TEXT NOT NULL DEFAULT '[]'
+    copy_snapshot_json TEXT NOT NULL
         CHECK (
             CASE
-                WHEN json_valid(slide_copy_json)
-                THEN json_type(slide_copy_json) = 'array'
+                WHEN json_valid(copy_snapshot_json)
+                THEN json_type(copy_snapshot_json) = 'object'
                 ELSE 0
             END
         ),
     final_project_path TEXT NOT NULL UNIQUE
-        CHECK (length(trim(final_project_path)) > 0),
+        CHECK (
+            final_project_path = (
+                'renderer/' || medium || '/formats/' || format_id
+                || '/contents/' || id || '.json'
+            )
+        ),
     final_project_sha256 TEXT NOT NULL
         CHECK (
             length(final_project_sha256) = 64
@@ -176,76 +186,180 @@ BEGIN
     SELECT RAISE(ABORT, 'content hypothesis cannot change after creation');
 END;
 
-CREATE TRIGGER IF NOT EXISTS require_contents_slide_copy
+CREATE TRIGGER IF NOT EXISTS require_contents_copy_snapshot_insert
 BEFORE INSERT ON contents
 WHEN
-    CASE
-        WHEN json_valid(NEW.slide_copy_json)
-        THEN json_array_length(NEW.slide_copy_json) = 0
-        ELSE 0
-    END
-BEGIN
-    SELECT RAISE(ABORT, 'slide_copy_json must contain at least one slide');
-END;
-
-CREATE TRIGGER IF NOT EXISTS preserve_contents_slide_copy
-BEFORE UPDATE OF slide_copy_json ON contents
-WHEN
-    CASE
-        WHEN json_valid(NEW.slide_copy_json)
-        THEN json_array_length(NEW.slide_copy_json) = 0
-        ELSE 0
-    END
-BEGIN
-    SELECT RAISE(ABORT, 'slide_copy_json must contain at least one slide');
-END;
-
-CREATE TRIGGER IF NOT EXISTS require_contents_slide_copy_shape_insert
-BEFORE INSERT ON contents
-WHEN
-    CASE
-        WHEN json_valid(NEW.slide_copy_json)
-             AND json_type(NEW.slide_copy_json) = 'array'
-        THEN EXISTS (
-            SELECT 1
-            FROM json_each(NEW.slide_copy_json) AS slide
-            WHERE
-                slide.type <> 'array'
-                OR json_array_length(slide.value) = 0
-                OR EXISTS (
-                    SELECT 1
-                    FROM json_each(slide.value) AS text_layer
-                    WHERE text_layer.type <> 'text'
-                )
+    json_valid(NEW.copy_snapshot_json)
+    AND (
+    (
+        (
+            NEW.medium = 'slideshow'
+            AND (SELECT count(*) FROM json_each(NEW.copy_snapshot_json)) <> 1
         )
-        ELSE 0
-    END
+        OR
+        (
+            NEW.medium = 'video'
+            AND (SELECT count(*) FROM json_each(NEW.copy_snapshot_json)) <> 2
+        )
+    )
+    OR
+    (
+        NEW.medium = 'slideshow'
+        AND (
+            COALESCE(json_type(NEW.copy_snapshot_json, '$.slides'), '') <> 'array'
+            OR json_array_length(NEW.copy_snapshot_json, '$.slides') = 0
+            OR EXISTS (
+                SELECT 1
+                FROM json_each(NEW.copy_snapshot_json) AS member
+                WHERE member.key <> 'slides'
+            )
+            OR EXISTS (
+                SELECT 1
+                FROM json_each(NEW.copy_snapshot_json, '$.slides') AS slide
+                WHERE
+                    slide.type <> 'array'
+                    OR CASE
+                        WHEN slide.type = 'array'
+                        THEN
+                            json_array_length(slide.value) = 0
+                            OR EXISTS (
+                                SELECT 1
+                                FROM json_each(slide.value) AS text_layer
+                                WHERE
+                                    text_layer.type <> 'text'
+                                    OR length(trim(text_layer.value)) = 0
+                            )
+                        ELSE 0
+                    END
+            )
+        )
+    )
+    OR
+    (
+        NEW.medium = 'video'
+        AND (
+            COALESCE(json_type(NEW.copy_snapshot_json, '$.on_screen_text'), '') <> 'array'
+            OR COALESCE(json_type(NEW.copy_snapshot_json, '$.spoken_text'), '') <> 'array'
+            OR EXISTS (
+                SELECT 1
+                FROM json_each(NEW.copy_snapshot_json) AS member
+                WHERE member.key NOT IN ('on_screen_text', 'spoken_text')
+            )
+            OR CASE
+                WHEN json_type(NEW.copy_snapshot_json, '$.on_screen_text') = 'array'
+                THEN EXISTS (
+                    SELECT 1
+                    FROM json_each(NEW.copy_snapshot_json, '$.on_screen_text') AS text_layer
+                    WHERE
+                        text_layer.type <> 'text'
+                        OR length(trim(text_layer.value)) = 0
+                )
+                ELSE 0
+            END
+            OR CASE
+                WHEN json_type(NEW.copy_snapshot_json, '$.spoken_text') = 'array'
+                THEN EXISTS (
+                    SELECT 1
+                    FROM json_each(NEW.copy_snapshot_json, '$.spoken_text') AS spoken_layer
+                    WHERE
+                        spoken_layer.type <> 'text'
+                        OR length(trim(spoken_layer.value)) = 0
+                )
+                ELSE 0
+            END
+        )
+    )
+    )
 BEGIN
-    SELECT RAISE(ABORT, 'slide_copy_json must contain arrays of text strings');
+    SELECT RAISE(ABORT, 'copy_snapshot_json must match the selected medium');
 END;
 
-CREATE TRIGGER IF NOT EXISTS require_contents_slide_copy_shape_update
-BEFORE UPDATE OF slide_copy_json ON contents
+CREATE TRIGGER IF NOT EXISTS require_contents_copy_snapshot_update
+BEFORE UPDATE OF medium, copy_snapshot_json ON contents
 WHEN
-    CASE
-        WHEN json_valid(NEW.slide_copy_json)
-             AND json_type(NEW.slide_copy_json) = 'array'
-        THEN EXISTS (
-            SELECT 1
-            FROM json_each(NEW.slide_copy_json) AS slide
-            WHERE
-                slide.type <> 'array'
-                OR json_array_length(slide.value) = 0
-                OR EXISTS (
-                    SELECT 1
-                    FROM json_each(slide.value) AS text_layer
-                    WHERE text_layer.type <> 'text'
-                )
+    json_valid(NEW.copy_snapshot_json)
+    AND (
+    (
+        (
+            NEW.medium = 'slideshow'
+            AND (SELECT count(*) FROM json_each(NEW.copy_snapshot_json)) <> 1
         )
-        ELSE 0
-    END
+        OR
+        (
+            NEW.medium = 'video'
+            AND (SELECT count(*) FROM json_each(NEW.copy_snapshot_json)) <> 2
+        )
+    )
+    OR
+    (
+        NEW.medium = 'slideshow'
+        AND (
+            COALESCE(json_type(NEW.copy_snapshot_json, '$.slides'), '') <> 'array'
+            OR json_array_length(NEW.copy_snapshot_json, '$.slides') = 0
+            OR EXISTS (
+                SELECT 1
+                FROM json_each(NEW.copy_snapshot_json) AS member
+                WHERE member.key <> 'slides'
+            )
+            OR EXISTS (
+                SELECT 1
+                FROM json_each(NEW.copy_snapshot_json, '$.slides') AS slide
+                WHERE
+                    slide.type <> 'array'
+                    OR CASE
+                        WHEN slide.type = 'array'
+                        THEN
+                            json_array_length(slide.value) = 0
+                            OR EXISTS (
+                                SELECT 1
+                                FROM json_each(slide.value) AS text_layer
+                                WHERE
+                                    text_layer.type <> 'text'
+                                    OR length(trim(text_layer.value)) = 0
+                            )
+                        ELSE 0
+                    END
+            )
+        )
+    )
+    OR
+    (
+        NEW.medium = 'video'
+        AND (
+            COALESCE(json_type(NEW.copy_snapshot_json, '$.on_screen_text'), '') <> 'array'
+            OR COALESCE(json_type(NEW.copy_snapshot_json, '$.spoken_text'), '') <> 'array'
+            OR EXISTS (
+                SELECT 1
+                FROM json_each(NEW.copy_snapshot_json) AS member
+                WHERE member.key NOT IN ('on_screen_text', 'spoken_text')
+            )
+            OR CASE
+                WHEN json_type(NEW.copy_snapshot_json, '$.on_screen_text') = 'array'
+                THEN EXISTS (
+                    SELECT 1
+                    FROM json_each(NEW.copy_snapshot_json, '$.on_screen_text') AS text_layer
+                    WHERE
+                        text_layer.type <> 'text'
+                        OR length(trim(text_layer.value)) = 0
+                )
+                ELSE 0
+            END
+            OR CASE
+                WHEN json_type(NEW.copy_snapshot_json, '$.spoken_text') = 'array'
+                THEN EXISTS (
+                    SELECT 1
+                    FROM json_each(NEW.copy_snapshot_json, '$.spoken_text') AS spoken_layer
+                    WHERE
+                        spoken_layer.type <> 'text'
+                        OR length(trim(spoken_layer.value)) = 0
+                )
+                ELSE 0
+            END
+        )
+    )
+    )
 BEGIN
-    SELECT RAISE(ABORT, 'slide_copy_json must contain arrays of text strings');
+    SELECT RAISE(ABORT, 'copy_snapshot_json must match the selected medium');
 END;
 
 CREATE TABLE IF NOT EXISTS content_results (
@@ -338,7 +452,7 @@ CREATE INDEX IF NOT EXISTS idx_contents_message
     ON contents(message_id, message_version);
 
 CREATE INDEX IF NOT EXISTS idx_contents_format_copywriting
-    ON contents(format_id, copywriting_version);
+    ON contents(medium, format_id, copywriting_version);
 
 DROP INDEX IF EXISTS idx_content_results_content;
 
@@ -352,6 +466,6 @@ CREATE INDEX IF NOT EXISTS idx_account_results_collected
 CREATE INDEX IF NOT EXISTS idx_hypothesis_evidence_result
     ON hypothesis_evidence(content_result_id);
 
-PRAGMA user_version = 11;
+PRAGMA user_version = 12;
 
 COMMIT;
