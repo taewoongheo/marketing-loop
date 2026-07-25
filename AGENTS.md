@@ -2,14 +2,14 @@
 
 ## Scope
 
-- This repository pursues three simultaneous goals: continuously improve message strategy, continuously improve copywriting, and grow the LIFT CODE TikTok account to 1,000 followers.
-- Across those goals, the marketing mission is to make the target audience aware of LIFT CODE and build justified trust that its planned weight-and-rep recommendations are worth following.
-- During the current prelaunch phase, TikTok content does not mention or promote the app or its planned capabilities. It earns relevant audience attention and trust through useful strength-training content while growing the LIFT CODE account; product exposure begins only after launch or an explicit user change to this rule.
-- Message and copywriting improvement are open-ended goals with no terminal threshold. They remain the only hypothesis axes.
-- The 1,000-follower target is a finite account-level outcome that message and copywriting improvements should support. Observe follower movement separately; never treat it by itself as proof that either axis caused the change.
-- Reaching 1,000 followers completes that finite goal but does not stop scheduled production; continue improving message and copywriting until the user changes or stops the scheduler job.
+- The ultimate business purpose of this repository is to help increase LIFT CODE app revenue. This marketing workspace directly owns qualified App Store inflow, not downstream download conversion, activation, retention, pricing, payment, or revenue by itself.
+- The operating objective is to repeatedly identify and improve the marketing-funnel bottleneck that most limits qualified App Store inflow. `docs/marketing-funnel.md` owns the funnel stages, measurement contract, responsibility boundary, and bottleneck-selection model.
+- Message strategy, copywriting, content production, channel growth, and their observed metrics are controllable levers, diagnostics, constraints, or intermediate outcomes. None is an independent final goal.
+- During the current prelaunch phase, TikTok content does not mention or promote the app or its planned capabilities. It earns relevant audience attention and justified trust through useful strength-training content while improving the nearest observable and actionable upstream constraint; product exposure begins only after launch or an explicit user change to this rule.
+- The user-provided 1,000-follower TikTok requirement is a current channel-access constraint on exposing the App Store link, not a separate goal. Follower movement may show progress toward removing that constraint but does not by itself prove audience quality, App Store inflow, or the effect of any hypothesis axis. Verify the platform requirement again when link activation becomes actionable.
 - This is a personal-use, non-deployed workspace. When the user authorizes a structural change, prefer direct restructuring over backward-compatible migrations, legacy schemas, or compatibility artifacts.
-- The two primary optimization axes are message and copywriting.
+- A hypothesis is a testable proposed improvement to something the assistant can directly materialize in marketing output, paired with the audience response expected to relieve the selected funnel bottleneck. Funnel stages and metrics are outcomes, not hypothesis axes.
+- The two current durable hypothesis axes are message and copywriting.
 - **Message strategy** decides what perception or belief should change and how the audience is persuaded.
 - **Copywriting** decides how the message is expressed: hook wording, specificity, information density, rhythm, product reveal, CTA, and caption.
 - Every content uses exactly one `medium`: `slideshow` or `video`. The assistant selects the medium and one format within it from the current hypothesis plan, project context, available evidence and assets, prior content records, and execution fit.
@@ -35,7 +35,7 @@ The assistant independently selects:
 - the recommended hypothesis actions and daily content allocation across active leaves;
 - the copy approach.
 
-Base hypothesis recommendations on project context, the hypothesis lineage, and relevant DB performance. Medium and format selection may use content fit, available evidence and assets, recent execution diversity, and observed distribution performance as operational inputs. Medium, format, imagery, layout, crop, motion, timing, and audio remain execution variables rather than hypothesis axes and must not be used to weaken, defer, branch, close, or adopt a message/copywriting hypothesis. Use designated references and retained same-medium same-format Project JSON only as execution evidence. Do not ask the user to choose the evaluation criteria or develop the hypothesis direction, but obtain confirmation before applying the day's hypothesis actions.
+Base hypothesis recommendations on the current funnel diagnosis, project context, hypothesis lineage, and relevant DB observations. Every hypothesis must change a controllable output on exactly one current axis, name the audience response it expects to improve, and explain why that response should relieve the selected funnel bottleneck. A funnel stage, follower count, or metric is a target outcome or observation, never the changed element itself. Medium and format selection may use content fit, available evidence and assets, recent execution diversity, and observed distribution performance as operational inputs. Medium, format, imagery, layout, crop, motion, timing, and audio remain execution variables rather than hypothesis axes and must not be used to weaken, defer, branch, close, or adopt a message/copywriting hypothesis. Use designated references and retained same-medium same-format Project JSON only as execution evidence. Do not ask the user to choose the evaluation criteria, bottleneck, or hypothesis direction, but obtain confirmation before applying the day's hypothesis actions.
 
 The user controls:
 
@@ -49,7 +49,7 @@ Ask for information only when a missing fact would materially affect product tru
 
 ### Scheduled autonomous production
 
-Recurring content-generation cron runs operate under standing user authorization and are the exception to the interactive hypothesis-confirmation, copy-approval, and publication-ready designation gates below. They advance all three project goals while preserving truthful claims and the existing repository structure. The scheduler job is the sole owner of exact run times and delivery routing; do not duplicate its schedule here.
+Recurring content-generation cron runs operate under standing user authorization and are the exception to the interactive hypothesis-confirmation, copy-approval, and publication-ready designation gates below. They improve the current marketing-funnel bottleneck through controllable content hypotheses while preserving truthful claims and the existing repository structure. The scheduler job is the sole owner of exact run times and delivery routing; do not duplicate its schedule here.
 
 Production may start only during the exact cron minute configured on its scheduler job. A delayed or wake-time catch-up trigger outside a configured production minute must be suppressed before the agent starts: create no content, mutate no project or database owner, render nothing, and deliver nothing. A missed production slot is abandoned and production resumes at the next configured slot. This restriction applies only to content production; the shared delayed-metric collector retains its own due-check and catch-up behavior.
 
@@ -57,7 +57,7 @@ For each scheduled run, the assistant may autonomously read newly collected evid
 
 After a scheduled cycle has produced and verified its publication-ready content and updated all proper owners, commit and push only its tracked repository-owner changes. Project JSON under `contents/` and the runtime SQLite database are local Git-ignored artifacts: never force-add them. If the cycle changed no tracked owner file, do not create an empty commit. Capture the pre-run working tree first, stage only exact tracked files created or changed by the cycle, and never include unrelated or pre-existing user changes. If the cycle must modify a tracked file that was already dirty, stop and report the conflicting path through Telegram instead of absorbing it. Use a new commit for later rejection-driven revisions; do not amend or rewrite pushed history. Report commit or push failures through Telegram and preserve the local verified artifact.
 
-The shared delayed-metric collector is the sole scheduled owner of due 24h, 48h, and 72h public checkpoint retrieval. Production runs read normalized stored results and do not fetch due content metrics again. Account follower observations use a separate low-frequency cadence: reuse the latest `account_results` row when it is less than 24 hours old, and refresh it only after that interval has elapsed.
+The shared delayed-metric collector is the sole scheduled owner of due 24h, 48h, and 72h public checkpoint retrieval. Production runs read normalized stored results and do not fetch due content metrics again. Account follower observations diagnose the current link-access constraint on a separate low-frequency cadence: reuse the latest `account_results` row when it is less than 24 hours old, and refresh it only after that interval has elapsed. Do not add a collector for every funnel stage in advance; admit only the narrowest reliable source whose absence blocks diagnosis of the nearest actionable bottleneck.
 
 After a scheduled cycle has successfully delivered and recorded its new content, prune local same-medium same-format Project JSON that was not selected as one of that cycle's Project execution examples, except DB-linked projects whose `tiktok_url` is still NULL and the newly delivered project. Prune video assets only when no retained video project references them. This is standing authorization to delete only those exact local Project JSON and unreferenced asset files. Never delete content rows, results, reference evidence, or the current editable/rejection target. Project pruning is storage hygiene, not hypothesis evidence mutation.
 
@@ -69,16 +69,17 @@ After a successful medium-appropriate delivery, suppress the scheduler's separat
 
 ## Required context before creating content
 
-1. Read product truth, `context/expertise.md`, relevant admitted topic files under `context/expertise/`, user-language evidence, and the current account-wide imagery guidance in `context/`. When content uses a specific Exercise or training structure, also read the relevant linked detail under `context/product-details/`.
-2. Review available versioned message definitions in `messages/`.
-3. Read `docs/hypothesis-loop.md` and query SQLite for active leaves, relevant ancestors, generated contents, their `medium` and `format_id`, and normalized results.
-4. Inventory the available format namespaces under both `renderer/slideshow/formats/` and `renderer/video/formats/`. A medium with no valid format is unavailable for that run.
-5. Select exactly one medium and format for each allocated content from the approved hypothesis plan, message and copy needs, available references and production assets, execution feasibility, recent medium/format diversity, and relevant DB observations. Performance may inform operational distribution but never turns medium or format into a hypothesis axis.
-6. Review the selected `renderer/<medium>/formats/<format-id>/copywriting/v<version>.md` and all designated evidence in its `references/` directory.
-7. Inventory available same-medium same-format Project JSON under `contents/` as Project execution candidates. Publication status, hypothesis lineage, message/copywriting versions, and performance do not make a candidate execution-authoritative. A missing historical DB-linked project is expected after pruning because SQLite permanently retains the exact medium-specific copy snapshot.
-8. Ask only for missing information that would materially affect product truth, audience fit, medium feasibility, or valid copy.
-9. Prepare the day's hypothesis-action and allocation proposal, then obtain user confirmation before creating or closing nodes, promoting a supported rule, or assigning content.
-10. Apply the confirmed hypothesis actions and create the selected medium's native project from the approved evidence.
+1. Read `docs/marketing-funnel.md`, identify the current launch/channel constraints, and diagnose the nearest observable and actionable bottleneck from available funnel evidence. A missing metric is a measurement gap, not proof that its stage is the bottleneck.
+2. Read product truth, `context/expertise.md`, relevant admitted topic files under `context/expertise/`, user-language evidence, and the current account-wide imagery guidance in `context/`. When content uses a specific Exercise or training structure, also read the relevant linked detail under `context/product-details/`.
+3. Review available versioned message definitions in `messages/`.
+4. Read `docs/hypothesis-loop.md` and query SQLite for active leaves, relevant ancestors, generated contents, their `medium` and `format_id`, and normalized results.
+5. Inventory the available format namespaces under both `renderer/slideshow/formats/` and `renderer/video/formats/`. A medium with no valid format is unavailable for that run.
+6. Select exactly one medium and format for each allocated content from the approved hypothesis plan, message and copy needs, available references and production assets, execution feasibility, recent medium/format diversity, and relevant DB observations. Performance may inform operational distribution but never turns medium or format into a hypothesis axis.
+7. Review the selected `renderer/<medium>/formats/<format-id>/copywriting/v<version>.md` and all designated evidence in its `references/` directory.
+8. Inventory available same-medium same-format Project JSON under `contents/` as Project execution candidates. Publication status, hypothesis lineage, message/copywriting versions, and performance do not make a candidate execution-authoritative. A missing historical DB-linked project is expected after pruning because SQLite permanently retains the exact medium-specific copy snapshot.
+9. Ask only for missing information that would materially affect product truth, audience fit, medium feasibility, or valid copy.
+10. Prepare the day's funnel diagnosis, hypothesis-action, and allocation proposal, then obtain user confirmation before creating or closing nodes, promoting a supported rule, or assigning content.
+11. Apply the confirmed hypothesis actions and create the selected medium's native project from the approved evidence.
 
 Before opening prior Project JSON, select at most three same-medium same-format projects solely as execution examples. Select from metadata, file validity, composition relevance to the current approved copy, recency, and cross-project execution diversity. Do not rank or select them by hypothesis lineage, message/copywriting identity, publication status, or performance. Three is a maximum, not a target; do not add a weaker candidate merely to fill the count.
 
@@ -87,10 +88,10 @@ Never load embedded image bytes or video/audio payloads from prior projects into
 ## Content workflow
 
 1. Any user message expressing an intent to create content starts the workflow; no fixed command phrase or user-supplied problem, situation, hook, or direction is required.
-2. The assistant reads product truth, project-wide domain expertise, user-language evidence, current account-wide imagery guidance, `docs/hypothesis-loop.md`, message definitions, available medium/format namespaces, and relevant DB lineage and results.
-3. Read newly collected 24h, 48h, and 72h results. When evaluating a leaf, read detailed ancestry back to the nearest 72h-complete ancestor and reintroduce older late corrections when present.
-4. Independently evaluate whether to continue an active leaf, create one or more root or child hypotheses, close a leaf, or adopt a supported hypothesis, and recommend the requested `n`-content allocation.
-5. Present the concise daily hypothesis-action proposal and wait for user confirmation or revision. Do not mutate hypothesis lineage, close a branch, update a durable owner from performance evidence, or assign new content before confirmation.
+2. The assistant reads `docs/marketing-funnel.md`, product truth, project-wide domain expertise, user-language evidence, current account-wide imagery guidance, `docs/hypothesis-loop.md`, message definitions, available medium/format namespaces, and relevant DB lineage and results.
+3. Read newly collected funnel observations and 24h, 48h, and 72h content results. When evaluating a leaf, read detailed ancestry back to the nearest 72h-complete ancestor and reintroduce older late corrections when present.
+4. Diagnose the current bottleneck, then independently evaluate whether to continue an active leaf, create one or more root or child hypotheses that change a controllable output to address it, close a leaf, or adopt a supported hypothesis, and recommend the requested `n`-content allocation.
+5. Present the concise daily funnel-diagnosis and hypothesis-action proposal and wait for user confirmation or revision. Do not mutate hypothesis lineage, close a branch, update a durable owner from performance evidence, or assign new content before confirmation.
 6. Apply the confirmed hypothesis actions and allocation. A hypothesis may generate several contents; one parent may generate any number of child hypotheses.
 7. Independently select the problem, situation, message, content direction, product exposure, medium, format, copy approach, and full medium-appropriate composition inside the confirmed hypothesis plan.
 8. Ask the user only if a missing fact blocks truthful, audience-appropriate, or valid copy.
@@ -107,6 +108,7 @@ If the previous final content has no TikTok URL, ask naturally at the start of t
 
 ## Ownership
 
+- Marketing-funnel stages, measurement contract, direct-responsibility boundary, and bottleneck selection: `docs/marketing-funnel.md`
 - Product definition, user value, core mechanisms, reference-app differences, and boundaries: `context/product.md`
 - Detailed product-supported Exercise and training structures used to validate content compatibility: `context/product-details/`
 - Strength-training knowledge rules and index: `context/expertise.md`; admitted facts, mechanisms, practical applications, provenance, evidence status, and content-use limits: topic files under `context/expertise/`
@@ -155,7 +157,7 @@ Do not duplicate one fact, rule, layout value, or result across owners.
 ## Evidence and claims
 
 - Do not invent product features, user evidence, performance results, scientific support, or private TikTok metrics.
-- Keep observed metrics separate from hypotheses and interpretations.
+- Keep observed metrics separate from hypotheses, interpretations, and bottleneck judgments. Label a proxy as a proxy; never silently substitute views, engagement, or followers for qualified exposure, profile intent, outbound intent, or App Store inflow.
 - Treat desk-research language as low-confidence language evidence, not testimony.
 - Treat references as evidence of structure, rhythm, and technique. Never copy their wording, subject matter, or distinctive expressions.
 - Prefer limited claims grounded in `context/product.md` and, when relevant, its linked `context/product-details/` owner.
@@ -167,7 +169,7 @@ Do not duplicate one fact, rule, layout value, or result across owners.
 - When feedback changes durable guidance, update exactly one proper owner immediately. Replace or narrow conflicting guidance instead of appending a contradictory rule.
 - Product corrections belong in `context/product.md`, or in its linked `context/product-details/` owner when they change a detailed support taxonomy or catalog; strength-training knowledge rules and indexing in `context/expertise.md`; admitted domain facts, evidence, practical applications, and source corrections in the relevant topic file under `context/expertise/`; general expression or provenance corrections in `context/user-language.md`; app/account-wide image tone, content, and generation corrections in `context/imagery.md`; target-situation, belief, resistance, and persuasion changes in the selected message version; every wording, voice, empathy, hook, progression, rhythm, reveal, CTA, title, and caption rule in the selected format's copywriting version; project operating and reference-interpretation rules in `AGENTS.md`.
 - A message or copywriting version may be refined in place until a content record references it. After first use, its generation-affecting meaning is immutable: a durable change creates the next version, while a content-specific edit remains only in the final content artifact. Do not create a new version for formatting, evidence-only corroboration, or wording cleanup that cannot change future generation decisions. `context/imagery.md` is unversioned and user-directed improvements update it immediately.
-- A message or copywriting version change does not by itself create a hypothesis node. Record the exact selected message and copywriting versions on each content row; several contents generated by one hypothesis may therefore reference different copywriting versions while testing that hypothesis. The hypothesis loop has only `message` and `copywriting` axes: create a child only when eligible performance evidence supports a distinct claim on one of those axes and the user confirms it.
+- A message or copywriting version change does not by itself create a hypothesis node. Record the exact selected message and copywriting versions on each content row; several contents generated by one hypothesis may therefore reference different copywriting versions while testing that hypothesis. The hypothesis loop currently has only `message` and `copywriting` axes: create a child only when eligible performance evidence supports a distinct controllable-output claim on one of those axes and the user confirms it. A funnel stage or metric may define the expected response but is never the changed element.
 - A content-specific correction remains embodied in the approved final content and its DB medium-specific copy snapshot and does not need a separate durable feedback log.
 - The assistant autonomously judges whether performance evidence operationally supports a hypothesis. Two or more directly generated contents showing a consistent relevant signal are a useful default promotion signal, not a mechanical threshold; account for checkpoint maturity, comparison quality on the tested message/copywriting axis, metric relevance, topic and publication conditions, sample diversity, limitations, and contradictory evidence. Visual execution is not part of that judgment because it is not a hypothesis axis.
 - Present operational adoption as part of the daily hypothesis-action proposal. Once the user confirms it, update the one proper final owner directly. Keep the underlying observations, interpretations, and lineage in SQLite; do not duplicate them in a learning inbox.
