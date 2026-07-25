@@ -72,6 +72,7 @@ def load_tree(db_path=DEFAULT_DB_PATH):
             "parent_id": hypothesis["parent_hypothesis_id"],
             "axis": hypothesis["change_axis"],
             "statement": hypothesis["statement"],
+            "decision_reason": hypothesis["decision_reason"],
             "last_evaluated_at": hypothesis["last_evaluated_at"],
             "created_at": hypothesis["created_at"],
             "closed_at": hypothesis["closed_at"],

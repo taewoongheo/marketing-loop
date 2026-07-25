@@ -9,6 +9,11 @@ CREATE TABLE IF NOT EXISTS hypotheses (
     change_axis TEXT,
     statement TEXT NOT NULL
         CHECK (length(trim(statement)) > 0),
+    decision_reason TEXT NOT NULL
+        CHECK (
+            length(trim(decision_reason)) > 0
+            AND length(decision_reason) <= 200
+        ),
     last_evaluated_at TEXT,
     created_at TEXT NOT NULL
         DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ', 'now')),
@@ -127,6 +132,13 @@ WHEN
     )
 BEGIN
     SELECT RAISE(ABORT, 'hypothesis parent must exist and be open');
+END;
+
+CREATE TRIGGER IF NOT EXISTS preserve_hypothesis_decision_reason
+BEFORE UPDATE OF decision_reason ON hypotheses
+WHEN NEW.decision_reason IS NOT OLD.decision_reason
+BEGIN
+    SELECT RAISE(ABORT, 'hypothesis decision reason cannot change after creation');
 END;
 
 CREATE TRIGGER IF NOT EXISTS require_leaf_hypothesis_closure
@@ -466,6 +478,6 @@ CREATE INDEX IF NOT EXISTS idx_account_results_collected
 CREATE INDEX IF NOT EXISTS idx_hypothesis_evidence_result
     ON hypothesis_evidence(content_result_id);
 
-PRAGMA user_version = 12;
+PRAGMA user_version = 13;
 
 COMMIT;

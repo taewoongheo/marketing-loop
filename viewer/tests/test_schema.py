@@ -65,8 +65,8 @@ class ContentCopySnapshotSchemaTests(unittest.TestCase):
         self.connection = sqlite3.connect(self.db_path)
         self.connection.executescript(SCHEMA_PATH.read_text())
         self.connection.execute(
-            "INSERT INTO hypotheses (id, statement) VALUES (?, ?)",
-            ("H-001", "Root statement"),
+            "INSERT INTO hypotheses (id, statement, decision_reason) VALUES (?, ?, ?)",
+            ("H-001", "Root statement", "Test fixture."),
         )
 
     def tearDown(self):
@@ -148,10 +148,10 @@ class ContentCopySnapshotSchemaTests(unittest.TestCase):
         self.connection.execute(
             """
             INSERT INTO hypotheses (
-                id, parent_hypothesis_id, change_axis, statement
-            ) VALUES (?, ?, ?, ?)
+                id, parent_hypothesis_id, change_axis, statement, decision_reason
+            ) VALUES (?, ?, ?, ?, ?)
             """,
-            ("H-002", "H-001", "copywriting", "Child statement"),
+            ("H-002", "H-001", "copywriting", "Child statement", "Test fixture."),
         )
 
         with self.assertRaisesRegex(sqlite3.IntegrityError, "active leaf"):
@@ -188,30 +188,30 @@ class ContentCopySnapshotSchemaTests(unittest.TestCase):
             self.connection.execute(
                 """
                 INSERT INTO hypotheses (
-                    id, parent_hypothesis_id, change_axis, statement
-                ) VALUES (?, ?, ?, ?)
+                    id, parent_hypothesis_id, change_axis, statement, decision_reason
+                ) VALUES (?, ?, ?, ?, ?)
                 """,
-                ("H-003", "H-002", "message", "Grandchild statement"),
+                ("H-003", "H-002", "message", "Grandchild statement", "Test fixture."),
             )
 
         with self.assertRaisesRegex(sqlite3.IntegrityError, "must exist and be open"):
             self.connection.execute(
                 """
                 INSERT INTO hypotheses (
-                    id, parent_hypothesis_id, change_axis, statement
-                ) VALUES (?, ?, ?, ?)
+                    id, parent_hypothesis_id, change_axis, statement, decision_reason
+                ) VALUES (?, ?, ?, ?, ?)
                 """,
-                ("H-004", "H-missing", "message", "Orphan statement"),
+                ("H-004", "H-missing", "message", "Orphan statement", "Test fixture."),
             )
 
     def test_preserves_hypothesis_lineage(self):
         self.connection.execute(
             """
             INSERT INTO hypotheses (
-                id, parent_hypothesis_id, change_axis, statement
-            ) VALUES (?, ?, ?, ?)
+                id, parent_hypothesis_id, change_axis, statement, decision_reason
+            ) VALUES (?, ?, ?, ?, ?)
             """,
-            ("H-002", "H-001", "message", "Child statement"),
+            ("H-002", "H-001", "message", "Child statement", "Test fixture."),
         )
 
         with self.assertRaisesRegex(sqlite3.IntegrityError, "lineage"):

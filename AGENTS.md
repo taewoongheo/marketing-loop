@@ -37,6 +37,8 @@ The assistant independently selects:
 
 Base hypothesis recommendations on the current funnel diagnosis, project context, hypothesis lineage, and relevant DB observations. Every hypothesis must change a controllable output on exactly one current axis, name the audience response it expects to improve, and explain why that response should relieve the selected funnel bottleneck. A funnel stage, follower count, or metric is a target outcome or observation, never the changed element itself. Medium and format selection may use content fit, available evidence and assets, recent execution diversity, and observed distribution performance as operational inputs. Medium, format, imagery, layout, crop, motion, timing, and audio remain execution variables rather than hypothesis axes and must not be used to weaken, defer, branch, close, or adopt a message/copywriting hypothesis. Use designated references and retained same-medium same-format Project JSON only as execution evidence. Do not ask the user to choose the evaluation criteria, bottleneck, or hypothesis direction, but obtain confirmation before applying the day's hypothesis actions.
 
+When creating a root or child hypothesis, record one concise `decision_reason` with the node explaining why the current diagnosis, evidence, and limitations justified selecting it. Keep this creation-time reason separate from the hypothesis statement and from later content-result observations.
+
 The user controls:
 
 - confirmation or revision of the day's hypothesis actions: continue a leaf, close a leaf, create root or child hypotheses, adopt a supported hypothesis into its final owner, and allocate content across active leaves;
@@ -117,7 +119,7 @@ If the previous final content has no TikTok URL, ask naturally at the start of t
 - All reusable medium-and-format-specific wording rules, empathy technique, voice, hook, progression, density, product reveal, CTA, title, caption, language interpretation of references, and adaptation reasoning: immutable used versions under `renderer/<medium>/formats/<format-id>/copywriting/v<version>.md`
 - Current app/account-wide image tone, content selection, image-copy relationship, within-image composition, cross-image variation, runtime request constraints, and generation/selection policy: unversioned `context/imagery.md`
 - Hypothesis branching, delayed-evidence traversal, and active-leaf operation: `docs/hypothesis-loop.md`
-- Hypothesis nodes, generated content medium/format identities, exact final medium-specific copy snapshots, publication details, results, and evidence links: `db/hypothesis-loop.sqlite`
+- Hypothesis nodes and their creation-time decision reasons, generated content medium/format identities, exact final medium-specific copy snapshots, publication details, results, and evidence links: `db/hypothesis-loop.sqlite`
 - SQLite structure: `db/schema.sql`
 - Due public checkpoint selection, TikWM normalization, retry, and insertion mechanics: `scripts/collect_due_content_results.py`
 - Agent identity: `~/.hermes/profiles/marketing-liftcode/SOUL.md`
@@ -157,7 +159,7 @@ Do not duplicate one fact, rule, layout value, or result across owners.
 ## Evidence and claims
 
 - Do not invent product features, user evidence, performance results, scientific support, or private TikTok metrics.
-- Keep observed metrics separate from hypotheses, interpretations, and bottleneck judgments. Label a proxy as a proxy; never silently substitute views, engagement, or followers for qualified exposure, profile intent, outbound intent, or App Store inflow.
+- Keep observed metrics separate from hypotheses, interpretations, and bottleneck judgments. Label a proxy as a proxy; never silently substitute engagement or followers for content views, profile views, bio-link clicks, or attributed App Store product-page views.
 - Treat desk-research language as low-confidence language evidence, not testimony.
 - Treat references as evidence of structure, rhythm, and technique. Never copy their wording, subject matter, or distinctive expressions.
 - Prefer limited claims grounded in `context/product.md` and, when relevant, its linked `context/product-details/` owner.

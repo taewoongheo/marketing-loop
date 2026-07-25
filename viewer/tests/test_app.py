@@ -22,8 +22,8 @@ class LoadTreeTests(unittest.TestCase):
     def test_derives_tree_state_contents_and_result_checkpoints(self):
         with sqlite3.connect(self.db_path) as connection:
             connection.execute(
-                "INSERT INTO hypotheses (id, statement) VALUES (?, ?)",
-                ("H-001", "Root statement"),
+                "INSERT INTO hypotheses (id, statement, decision_reason) VALUES (?, ?, ?)",
+                ("H-001", "Root statement", "Test fixture."),
             )
             connection.execute(
                 """
@@ -72,10 +72,10 @@ class LoadTreeTests(unittest.TestCase):
             connection.execute(
                 """
                 INSERT INTO hypotheses (
-                    id, parent_hypothesis_id, change_axis, statement
-                ) VALUES (?, ?, ?, ?)
+                    id, parent_hypothesis_id, change_axis, statement, decision_reason
+                ) VALUES (?, ?, ?, ?, ?)
                 """,
-                ("H-002", "H-001", "copywriting", "Child statement"),
+                ("H-002", "H-001", "copywriting", "Child statement", "Test fixture."),
             )
             result_id = connection.execute(
                 "SELECT id FROM content_results WHERE content_id = 'C-001'"
@@ -96,6 +96,7 @@ class LoadTreeTests(unittest.TestCase):
         root = tree["roots"][0]
         self.assertEqual(root["id"], "H-001")
         self.assertEqual(root["state"], "branched")
+        self.assertEqual(root["decision_reason"], "Test fixture.")
         self.assertEqual(root["contents"][0]["medium"], "slideshow")
         self.assertEqual(root["contents"][0]["format_id"], "example-format")
         self.assertEqual(
@@ -142,6 +143,8 @@ class ViewerDocumentTests(unittest.TestCase):
         self.assertIn("content.medium", document)
         self.assertIn("content.copy_snapshot", document)
         self.assertIn("content.caption", document)
+        self.assertIn("node.decision_reason", document)
+        self.assertIn("Decision reason", document)
         self.assertNotIn("imagery_version", document)
 
 

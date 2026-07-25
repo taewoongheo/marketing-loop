@@ -100,6 +100,44 @@ function insertResult(databasePath, collectionSource) {
   });
 }
 
+test("hypotheses require a concise immutable decision reason", async () => {
+  await withDatabase(async (databasePath) => {
+    const columns = JSON.parse(query(databasePath, "PRAGMA table_info(hypotheses);"));
+    const decisionReason = columns.find((column) => column.name === "decision_reason");
+
+    assert.ok(decisionReason);
+    assert.equal(decisionReason.notnull, 1);
+
+    for (const reason of ["NULL", "''", "'   '", `'${"x".repeat(201)}'`]) {
+      const inserted = spawnSync("sqlite3", [databasePath], {
+        input: `
+          INSERT INTO hypotheses (id, statement, decision_reason)
+          VALUES ('h-invalid', 'root', ${reason});
+        `,
+        encoding: "utf8",
+      });
+      assert.notEqual(inserted.status, 0, `accepted ${reason}`);
+      assert.match(inserted.stderr, /(NOT NULL|CHECK) constraint failed/);
+    }
+
+    execFileSync("sqlite3", [databasePath, `
+      INSERT INTO hypotheses (id, statement, decision_reason)
+      VALUES ('h-1', 'root', 'Selected to test the current bottleneck.');
+    `]);
+
+    const rewritten = spawnSync("sqlite3", [databasePath], {
+      input: `
+        UPDATE hypotheses
+        SET decision_reason = 'A later explanation.'
+        WHERE id = 'h-1';
+      `,
+      encoding: "utf8",
+    });
+    assert.notEqual(rewritten.status, 0);
+    assert.match(rewritten.stderr, /decision reason cannot change/);
+  });
+});
+
 test("contents records medium-scoped format, strategy versions, copy, and project identity", async () => {
   await withDatabase(async (databasePath) => {
     const columns = JSON.parse(query(databasePath, "PRAGMA table_info(contents);"));
@@ -131,7 +169,8 @@ test("contents records medium-scoped format, strategy versions, copy, and projec
 test("contents rejects unsafe format IDs", async () => {
   await withDatabase(async (databasePath) => {
     execFileSync("sqlite3", [databasePath, `
-      INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
+      INSERT INTO hypotheses (id, statement, decision_reason)
+      VALUES ('h-1', 'root', 'Test fixture.');
     `]);
 
     for (const formatId of ["", "Example", "../example", "example/reference", "example space"]) {
@@ -145,7 +184,8 @@ test("contents rejects unsafe format IDs", async () => {
 test("contents rejects IDs that are unsafe as direct project filenames", async () => {
   await withDatabase(async (databasePath) => {
     execFileSync("sqlite3", [databasePath, `
-      INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
+      INSERT INTO hypotheses (id, statement, decision_reason)
+      VALUES ('h-1', 'root', 'Test fixture.');
     `]);
 
     for (const [version, contentId] of [
@@ -175,7 +215,8 @@ test("contents rejects IDs that are unsafe as direct project filenames", async (
 test("contents accepts only slideshow and video media", async () => {
   await withDatabase(async (databasePath) => {
     execFileSync("sqlite3", [databasePath, `
-      INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
+      INSERT INTO hypotheses (id, statement, decision_reason)
+      VALUES ('h-1', 'root', 'Test fixture.');
     `]);
 
     for (const medium of ["", "photo", "Video", "../video"]) {
@@ -195,7 +236,8 @@ test("contents accepts only slideshow and video media", async () => {
 test("contents requires the project path to match medium and format", async () => {
   await withDatabase(async (databasePath) => {
     execFileSync("sqlite3", [databasePath, `
-      INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
+      INSERT INTO hypotheses (id, statement, decision_reason)
+      VALUES ('h-1', 'root', 'Test fixture.');
     `]);
 
     for (const [version, finalProjectPath] of [
@@ -224,7 +266,8 @@ test("contents requires the project path to match medium and format", async () =
 test("contents accepts positive integer strategy versions", async () => {
   await withDatabase(async (databasePath) => {
     execFileSync("sqlite3", [databasePath, `
-      INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
+      INSERT INTO hypotheses (id, statement, decision_reason)
+      VALUES ('h-1', 'root', 'Test fixture.');
     `]);
 
     const inserted = insertContent(databasePath, "1", "1");
@@ -236,7 +279,8 @@ test("contents accepts positive integer strategy versions", async () => {
 test("slideshow contents require ordered non-empty text arrays for every slide", async () => {
   await withDatabase(async (databasePath) => {
     execFileSync("sqlite3", [databasePath, `
-      INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
+      INSERT INTO hypotheses (id, statement, decision_reason)
+      VALUES ('h-1', 'root', 'Test fixture.');
     `]);
 
     for (const copySnapshotJson of [
@@ -267,7 +311,8 @@ test("slideshow contents require ordered non-empty text arrays for every slide",
 test("video contents preserve exact on-screen and spoken copy without requiring either channel", async () => {
   await withDatabase(async (databasePath) => {
     execFileSync("sqlite3", [databasePath, `
-      INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
+      INSERT INTO hypotheses (id, statement, decision_reason)
+      VALUES ('h-1', 'root', 'Test fixture.');
     `]);
 
     for (const [version, copySnapshotJson] of [
@@ -316,7 +361,8 @@ test("video contents preserve exact on-screen and spoken copy without requiring 
 test("content medium updates require an atomically matching copy snapshot and project path", async () => {
   await withDatabase(async (databasePath) => {
     execFileSync("sqlite3", [databasePath, `
-      INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
+      INSERT INTO hypotheses (id, statement, decision_reason)
+      VALUES ('h-1', 'root', 'Test fixture.');
     `]);
     assert.equal(insertContent(databasePath, "1").status, 0);
 
@@ -362,7 +408,8 @@ test("content medium updates require an atomically matching copy snapshot and pr
 test("closed hypotheses cannot be reopened", async () => {
   await withDatabase(async (databasePath) => {
     execFileSync("sqlite3", [databasePath, `
-      INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
+      INSERT INTO hypotheses (id, statement, decision_reason)
+      VALUES ('h-1', 'root', 'Test fixture.');
       UPDATE hypotheses
       SET closed_at = '2026-07-18T00:00:00Z', closure_reason = 'closed'
       WHERE id = 'h-1';
@@ -384,7 +431,8 @@ test("closed hypotheses cannot be reopened", async () => {
 test("content results require normalized collection provenance", async () => {
   await withDatabase(async (databasePath) => {
     execFileSync("sqlite3", [databasePath, `
-      INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
+      INSERT INTO hypotheses (id, statement, decision_reason)
+      VALUES ('h-1', 'root', 'Test fixture.');
     `]);
     const content = insertContent(databasePath, "1", "1");
     assert.equal(content.status, 0, content.stderr);
@@ -408,7 +456,8 @@ test("content results require normalized collection provenance", async () => {
 test("contents rejects invalid copywriting versions", async () => {
   await withDatabase(async (databasePath) => {
     execFileSync("sqlite3", [databasePath, `
-      INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
+      INSERT INTO hypotheses (id, statement, decision_reason)
+      VALUES ('h-1', 'root', 'Test fixture.');
     `]);
 
     for (const version of ["0", "-1", "1.5", "'1'", "'1.0'", "'abc'"]) {
@@ -422,7 +471,8 @@ test("contents rejects invalid copywriting versions", async () => {
 test("contents rejects invalid message versions", async () => {
   await withDatabase(async (databasePath) => {
     execFileSync("sqlite3", [databasePath, `
-      INSERT INTO hypotheses (id, statement) VALUES ('h-1', 'root');
+      INSERT INTO hypotheses (id, statement, decision_reason)
+      VALUES ('h-1', 'root', 'Test fixture.');
     `]);
 
     for (const version of ["0", "-1", "1.5", "'1'", "'1.0'", "'abc'"]) {
@@ -436,6 +486,6 @@ test("contents rejects invalid message versions", async () => {
 test("schema version identifies the current structure", async () => {
   await withDatabase(async (databasePath) => {
     const version = query(databasePath, "PRAGMA user_version;").trim();
-    assert.equal(version, '[{"user_version":12}]');
+    assert.equal(version, '[{"user_version":13}]');
   });
 });

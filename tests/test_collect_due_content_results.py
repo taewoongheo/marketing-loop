@@ -25,8 +25,8 @@ class DueContentResultCollectorTests(unittest.TestCase):
         self.connection = sqlite3.connect(self.db_path)
         self.connection.executescript(SCHEMA_PATH.read_text())
         self.connection.execute(
-            "INSERT INTO hypotheses (id, statement) VALUES (?, ?)",
-            ("H-001", "Root statement"),
+            "INSERT INTO hypotheses (id, statement, decision_reason) VALUES (?, ?, ?)",
+            ("H-001", "Root statement", "Test fixture."),
         )
         self.fetch_calls = []
 

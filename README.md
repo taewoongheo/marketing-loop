@@ -6,9 +6,7 @@ A local workspace for autonomously producing and improving LIFT CODE's U.S.-Engl
 
 The ultimate business purpose of this workspace is to help increase LIFT CODE app revenue. Its direct marketing responsibility is to increase qualified App Store inflow by repeatedly identifying and improving the marketing-funnel bottleneck that most limits that inflow.
 
-Message strategy, copywriting, content production, channel growth, and their metrics are levers, diagnostics, constraints, or intermediate outcomes—not independent final goals. A hypothesis is a testable proposed improvement to something the assistant can directly materialize in content output. The current durable axes are `message` and `copywriting`; each hypothesis uses one of them to improve an expected audience response at the selected funnel bottleneck.
-
-The user-provided TikTok requirement of 1,000 followers is currently a channel-access constraint on exposing the App Store link. It may be the active bottleneck while it blocks the outbound path, but it is not a separate milestone or success condition. Once removed, the assistant reassesses the next bottleneck. `AGENTS.md` is the authoritative operating contract, [`docs/marketing-funnel.md`](docs/marketing-funnel.md) owns the funnel and measurement model, and [`docs/hypothesis-loop.md`](docs/hypothesis-loop.md) owns hypothesis lineage and delayed evidence.
+[`docs/marketing-funnel.md`](docs/marketing-funnel.md) owns the exact funnel, qualification definition, measurement contract, and bottleneck model. `AGENTS.md` owns the operating contract, and [`docs/hypothesis-loop.md`](docs/hypothesis-loop.md) owns hypothesis lineage and delayed evidence.
 
 Medium-specific evidence, self-contained content projects, and local editors live under `renderer/`. The rest of this repository owns marketing knowledge, funnel and hypothesis evidence, and the learning loop.
 
@@ -78,7 +76,7 @@ External owners — not inside this repository
   - **`product.md`** owns product truth, market scope, positioning, and claim boundaries.
   - **`user-language.md`** stores project-wide collected expressions, situations, sources, and confidence without interpreting them.
 - **`messages/`** holds explicitly versioned target situations, problem patterns, belief shifts, persuasion logic, resistance and response, product roles, and evidence limits. A version's generation-affecting meaning becomes immutable after content first references it.
-- **`db/`** holds the exact schema and local runtime record of hypotheses, generated content and its final medium-specific copy, content results, account-level follower snapshots used as channel diagnostics, and evidence links.
+- **`db/`** holds the exact schema and local runtime record of hypotheses and their creation-time decision reasons, generated content and its final medium-specific copy, content results, account-level follower snapshots used as channel diagnostics, and evidence links.
 - **`viewer/hypothesis_tree/`** derives a read-only tree from the runtime database. It owns no hypothesis state and cannot replace SQLite as the evidence source.
 - **`.hermes/plans/`** holds implementation plans, not runtime marketing knowledge.
 - **`renderer/slideshow/` and `renderer/video/`** own medium-specific production. Each `formats/<format-id>/` bundle groups that format's copywriting, ordered references, and self-contained content projects. Project-wide subject expertise remains in `context/expertise.md`; formats own expression and execution evidence, not domain knowledge. `formatId` identifies the evidence/content namespace; it does not provide reusable coordinates or timelines. There is no template or format JSON. The assistant uses references as primary execution-grammar evidence and up to three retained same-medium same-format projects as secondary renderer-feasibility and composition evidence, then constructs each execution directly in its content project.
@@ -105,4 +103,4 @@ Run the read-only local monitor from the repository root:
 npm run viewer:hypothesis-tree
 ```
 
-Open `http://127.0.0.1:4174`. The viewer derives active, branched, and closed node states together with direct content, final medium-specific copy, publication state, result checkpoints, and child-creation evidence from `db/hypothesis-loop.sqlite`. It exposes no write endpoint.
+Open `http://127.0.0.1:4174`. The viewer derives active, branched, and closed node states together with each creation-time decision reason, direct content, final medium-specific copy, publication state, result checkpoints, and child-creation evidence from `db/hypothesis-loop.sqlite`. It exposes no write endpoint.
