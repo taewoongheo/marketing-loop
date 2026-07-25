@@ -50,5 +50,8 @@ renderer/video/renders/*
 .env.*
 !.env.example
 
+# Private TikTok Studio Analytics exports
+local-data/tiktok-studio/
+
 # macOS
 .DS_Store
