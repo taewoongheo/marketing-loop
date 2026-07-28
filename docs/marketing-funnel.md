@@ -101,7 +101,8 @@ Never infer an unavailable event by silently substituting another metric. Keep o
 | Funnel event | App Store product-page view | Inactive | No operational App Store destination during prelaunch |
 | Channel diagnostic | Followers | `account_results.followers` | Progress toward the reported link-access constraint only |
 | Content diagnostics | Likes, comments, shares, saves | `content_results` at 24h, 48h, and 72h | Separate response signals; interpretation must match the tested hypothesis |
-| Content diagnostics | Watch depth, completion, retention, viewer mix, per-post follows | None | Do not infer from public views or engagement |
+| Content diagnostics | Watch depth, completion, retention, per-post follows | None | Do not infer from public views or engagement |
+| Audience diagnostic | Viewer and follower composition | TikTok Studio account/video viewer and follower analytics; authenticated manual source, not normalized here | Official documentation names viewer key metrics, demographics, activity times, and follower demographic insights but not exact fields, windows, or availability; no LIFT CODE account observation has been recorded |
 
 The assistant must not build one collector per row in advance. First identify the active decision that cannot be made with current evidence, then inspect and add only the narrowest reliable source needed for that decision. New credentials, external cost, privacy impact, or structural changes remain subject to the project authorization rules.
 
