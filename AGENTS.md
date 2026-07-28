@@ -148,6 +148,7 @@ If the previous final content has no TikTok URL, ask naturally at the start of t
 - Hypothesis nodes and their creation-time decision reasons, generated content medium/format identities, exact final medium-specific copy snapshots, publication details, results, and evidence links: `db/hypothesis-loop.sqlite`
 - Hypothesis-loop SQLite structure: `db/schema.sql`
 - Due public checkpoint selection, TikWM normalization, retry, and insertion mechanics: `scripts/collect_due_content_results.py`
+- Low-frequency public follower observation, TikWM profile normalization, 24-hour freshness guard, and insertion mechanics: `scripts/collect_account_followers.py`
 - Agent identity: `~/.hermes/profiles/marketing-liftcode/SOUL.md`
 - Adopted compact profile-level lessons: `~/.hermes/profiles/marketing-liftcode/memories/MEMORY.md`
 - Reusable multi-step procedures: Hermes skills
