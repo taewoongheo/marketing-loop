@@ -73,7 +73,7 @@ test("storage API rejects a serialized project that exceeds the byte limit", asy
     const project = {
       type: "tiktok-slide-project",
       version: 2,
-      formatId: "denzel",
+      formatId: "nomtzzz",
       name: "Near limit",
       slides: [{
         canvas: { width: 320, height: 400 },
