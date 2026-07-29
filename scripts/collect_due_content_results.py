@@ -89,7 +89,13 @@ def validate_metrics(metrics):
     return normalized
 
 
-def collect_due_results(connection, now, fetch_metrics, observation_clock=None):
+def collect_due_results(
+    connection,
+    now,
+    fetch_metrics,
+    observation_clock=None,
+    collected_events=None,
+):
     if observation_clock is None:
         observation_clock = lambda: now
     existing_by_content = {}
@@ -194,6 +200,10 @@ def collect_due_results(connection, now, fetch_metrics, observation_clock=None):
                     ),
                 )
             inserted += cursor.rowcount
+            if cursor.rowcount and collected_events is not None:
+                collected_events.append(
+                    {"content_id": content_id, "target_hours": target}
+                )
         except Exception as error:
             failures.append(f"{content_id}: {error}")
 
@@ -254,6 +264,11 @@ def parse_args():
         "--now",
         help="UTC timestamp override for verification, for example 2026-07-20T12:00:00Z",
     )
+    parser.add_argument(
+        "--json",
+        action="store_true",
+        help="Print the collected checkpoint events as JSON.",
+    )
     return parser.parse_args()
 
 
@@ -263,6 +278,7 @@ def main():
     observation_clock = (
         (lambda: now) if args.now else (lambda: datetime.now(timezone.utc))
     )
+    collected_events = []
     try:
         with collector_lock(args.db):
             with sqlite3.connect(args.db) as connection:
@@ -273,12 +289,21 @@ def main():
                     now=now,
                     fetch_metrics=fetch_with_retry,
                     observation_clock=observation_clock,
+                    collected_events=collected_events,
                 )
     except CollectorAlreadyRunning:
         return 0
     except Exception as error:
         print(f"hourly content-result collector failed: {error}", file=sys.stderr)
         return 1
+    if args.json:
+        print(
+            json.dumps(
+                {"inserted": len(collected_events), "checkpoints": collected_events},
+                ensure_ascii=False,
+                separators=(",", ":"),
+            )
+        )
     return 0
 
 

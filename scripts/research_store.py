@@ -15,6 +15,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DB_PATH = REPO_ROOT / "db" / "research.sqlite"
 DEFAULT_SCHEMA_PATH = REPO_ROOT / "db" / "research-schema.sql"
+SCHEMA_VERSION = 6
 TRACKING_QUERY_KEYS = {
     "fbclid",
     "gclid",
@@ -124,11 +125,60 @@ class ResearchStore:
             if tables is None:
                 connection.executescript(self.schema_path.read_text(encoding="utf-8"))
             version = connection.execute("PRAGMA user_version").fetchone()[0]
-            if version != 5:
+            if version == 5:
+                self._migrate_v5_to_v6(connection)
+                version = connection.execute("PRAGMA user_version").fetchone()[0]
+            if version != SCHEMA_VERSION:
                 raise RuntimeError(f"unsupported research schema version: {version}")
             integrity = connection.execute("PRAGMA integrity_check").fetchone()[0]
             if integrity != "ok":
                 raise RuntimeError(f"research database integrity check failed: {integrity}")
+
+    @staticmethod
+    def _migrate_v5_to_v6(connection):
+        connection.executescript(
+            """
+            BEGIN IMMEDIATE;
+            CREATE TABLE research_quality_feedback (
+                id INTEGER PRIMARY KEY,
+                run_id TEXT NOT NULL REFERENCES research_runs(id) ON DELETE RESTRICT,
+                finding_id TEXT REFERENCES research_findings(id) ON DELETE RESTRICT,
+                verdict TEXT NOT NULL CHECK (verdict IN (
+                    'useful', 'weak_evidence', 'irrelevant', 'overstated', 'correction'
+                )),
+                rationale TEXT NOT NULL CHECK (length(trim(rationale)) BETWEEN 1 AND 5000),
+                actor_evidence TEXT NOT NULL CHECK (
+                    length(trim(actor_evidence)) BETWEEN 1 AND 1000
+                ),
+                created_at TEXT NOT NULL CHECK (datetime(created_at) IS NOT NULL)
+            );
+            CREATE TRIGGER research_quality_feedback_finding_run_match
+            BEFORE INSERT ON research_quality_feedback
+            WHEN NEW.finding_id IS NOT NULL
+             AND NOT EXISTS (
+                 SELECT 1
+                 FROM research_findings AS finding
+                 JOIN research_questions AS question ON question.id = finding.question_id
+                 WHERE finding.id = NEW.finding_id
+                   AND question.run_id = NEW.run_id
+             )
+            BEGIN
+                SELECT RAISE(ABORT, 'quality feedback finding does not belong to run');
+            END;
+            CREATE TRIGGER research_quality_feedback_immutable_update
+            BEFORE UPDATE ON research_quality_feedback
+            BEGIN
+                SELECT RAISE(ABORT, 'research quality feedback is immutable');
+            END;
+            CREATE TRIGGER research_quality_feedback_immutable_delete
+            BEFORE DELETE ON research_quality_feedback
+            BEGIN
+                SELECT RAISE(ABORT, 'research quality feedback is immutable');
+            END;
+            PRAGMA user_version = 6;
+            COMMIT;
+            """
+        )
 
     def start_run(self, trigger_kind, objective, now=None, lease_minutes=55):
         if now is None:
@@ -850,6 +900,69 @@ class ResearchStore:
             )
         return {"finding_id": finding_id, "revision": revision, "decision": decision}
 
+    def record_quality_feedback(
+        self,
+        run_id,
+        verdict,
+        rationale,
+        actor_evidence,
+        finding_id=None,
+        now=None,
+    ):
+        if now is None:
+            now = utc_now()
+        valid_verdicts = {
+            "useful",
+            "weak_evidence",
+            "irrelevant",
+            "overstated",
+            "correction",
+        }
+        if verdict not in valid_verdicts:
+            raise ValueError("invalid quality feedback verdict")
+        rationale = require_text({"rationale": rationale}, "rationale")
+        actor_evidence = require_text(
+            {"actor_evidence": actor_evidence}, "actor_evidence"
+        )
+        with self._connect() as connection:
+            if connection.execute(
+                "SELECT 1 FROM research_runs WHERE id = ?", (run_id,)
+            ).fetchone() is None:
+                raise ValueError(f"unknown research run: {run_id}")
+            if finding_id is not None:
+                belongs = connection.execute(
+                    """
+                    SELECT 1
+                    FROM research_findings AS finding
+                    JOIN research_questions AS question ON question.id = finding.question_id
+                    WHERE finding.id = ? AND question.run_id = ?
+                    """,
+                    (finding_id, run_id),
+                ).fetchone()
+                if belongs is None:
+                    raise ValueError("quality feedback finding does not belong to run")
+            cursor = connection.execute(
+                """
+                INSERT INTO research_quality_feedback (
+                    run_id, finding_id, verdict, rationale, actor_evidence, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?)
+                """,
+                (
+                    run_id,
+                    finding_id,
+                    verdict,
+                    rationale,
+                    actor_evidence,
+                    format_timestamp(now),
+                ),
+            )
+        return {
+            "feedback_id": cursor.lastrowid,
+            "run_id": run_id,
+            "finding_id": finding_id,
+            "verdict": verdict,
+        }
+
     def _tracked_owner_sha256(self, owner_ref):
         relative_path = Path(owner_ref)
         if relative_path.is_absolute() or ".." in relative_path.parts:
@@ -1264,6 +1377,17 @@ def build_parser():
     withdraw.add_argument("--actor-evidence")
     withdraw.add_argument("--owner-sha256-after")
 
+    quality_feedback = subparsers.add_parser("quality-feedback")
+    quality_feedback.add_argument("--run-id", required=True)
+    quality_feedback.add_argument("--finding-id")
+    quality_feedback.add_argument(
+        "--verdict",
+        choices=("useful", "weak_evidence", "irrelevant", "overstated", "correction"),
+        required=True,
+    )
+    quality_feedback.add_argument("--rationale", required=True)
+    quality_feedback.add_argument("--actor-evidence", required=True)
+
     return parser
 
 
@@ -1319,6 +1443,14 @@ def main():
             actor_kind=args.actor_kind,
             actor_evidence=args.actor_evidence,
             owner_sha256_after=args.owner_sha256_after,
+        )
+    elif args.command == "quality-feedback":
+        result = store.record_quality_feedback(
+            run_id=args.run_id,
+            finding_id=args.finding_id,
+            verdict=args.verdict,
+            rationale=args.rationale,
+            actor_evidence=args.actor_evidence,
         )
     else:
         raise RuntimeError(f"unsupported command: {args.command}")

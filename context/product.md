@@ -19,6 +19,7 @@ The primary audience is men in their 20s and 30s who train alone for muscle or s
 The target user can perform strength training but wants the app to handle the recurring decisions around:
 
 - which Program to follow;
+- whether a chosen Program fits the lifter's situation and continues to produce useful progress;
 - what Weight and Reps to attempt next;
 - when to Increase, Maintain, or Decrease load;
 - how to apply progression across exercises and sessions week after week.
@@ -27,7 +28,7 @@ The user remains responsible for performing the workout and recording what actua
 
 ## User value
 
-Without LIFT CODE, the lifter manages a Program or Workout, checks prior performance, decides the next Weight and Reps, adjusts for equipment increments, records the Set, and repeats that bookkeeping across future sessions.
+Without LIFT CODE, the lifter must compare Programs and training advice, choose one for his situation, spend time and effort judging whether it works, then manage the recurring progression decisions inside it. That includes checking prior performance, deciding the next Weight and Reps, adjusting for equipment increments, recording the Set, and repeating the bookkeeping across future sessions.
 
 LIFT CODE is planned to open with the next workout and its recommendations prepared. The lifter performs the Set, records the actual result, and lets the system carry that result into the next decision. The intended benefit is capable Program and progression judgment with less workout-management friction—not less control over what the lifter actually performs.
 
@@ -37,6 +38,7 @@ LIFT CODE is planned to solve the delegated job through one connected flow:
 
 - establish a stable multi-week Program that fits the lifter's goal and training situation, or let the lifter bring an existing Program;
 - use recorded performance to recommend the next Weight and Reps within that Program;
+- connect accumulated performance to the Program's current state so the lifter can judge whether to maintain, modify, or replace it;
 - keep the recommendation understandable and editable while making the workout itself fast to execute and record.
 
 Detailed Exercise and Set support used to validate content compatibility belongs in [`product-details/training-support.md`](product-details/training-support.md).

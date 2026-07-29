@@ -192,6 +192,48 @@ CREATE TABLE research_reviews (
     PRIMARY KEY (finding_id, revision)
 );
 
+CREATE TABLE research_quality_feedback (
+    id INTEGER PRIMARY KEY,
+    run_id TEXT NOT NULL REFERENCES research_runs(id) ON DELETE RESTRICT,
+    finding_id TEXT REFERENCES research_findings(id) ON DELETE RESTRICT,
+    verdict TEXT NOT NULL
+        CHECK (verdict IN (
+            'useful', 'weak_evidence', 'irrelevant', 'overstated', 'correction'
+        )),
+    rationale TEXT NOT NULL
+        CHECK (length(trim(rationale)) BETWEEN 1 AND 5000),
+    actor_evidence TEXT NOT NULL
+        CHECK (length(trim(actor_evidence)) BETWEEN 1 AND 1000),
+    created_at TEXT NOT NULL
+        CHECK (datetime(created_at) IS NOT NULL)
+);
+
+CREATE TRIGGER research_quality_feedback_finding_run_match
+BEFORE INSERT ON research_quality_feedback
+WHEN NEW.finding_id IS NOT NULL
+ AND NOT EXISTS (
+     SELECT 1
+     FROM research_findings AS finding
+     JOIN research_questions AS question ON question.id = finding.question_id
+     WHERE finding.id = NEW.finding_id
+       AND question.run_id = NEW.run_id
+ )
+BEGIN
+    SELECT RAISE(ABORT, 'quality feedback finding does not belong to run');
+END;
+
+CREATE TRIGGER research_quality_feedback_immutable_update
+BEFORE UPDATE ON research_quality_feedback
+BEGIN
+    SELECT RAISE(ABORT, 'research quality feedback is immutable');
+END;
+
+CREATE TRIGGER research_quality_feedback_immutable_delete
+BEFORE DELETE ON research_quality_feedback
+BEGIN
+    SELECT RAISE(ABORT, 'research quality feedback is immutable');
+END;
+
 CREATE TRIGGER research_finding_sources_closed_after_review_insert
 BEFORE INSERT ON research_finding_sources
 WHEN EXISTS (
@@ -832,6 +874,6 @@ BEGIN
     SELECT RAISE(ABORT, 'research adoptions are immutable');
 END;
 
-PRAGMA user_version = 5;
+PRAGMA user_version = 6;
 
 COMMIT;

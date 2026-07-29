@@ -898,6 +898,63 @@ class ResearchStoreTests(unittest.TestCase):
         self.assertIsNone(settings_table)
         self.assertFalse(hasattr(self.store, "set_admission_mode"))
 
+    def test_records_user_quality_feedback_without_rewriting_agent_review(self):
+        run = self.store.start_run("manual", "Collect quality feedback.", now=NOW)
+        finding = self.store.record_question(run["run_id"], self.payload(), now=NOW)
+
+        feedback = self.store.record_quality_feedback(
+            run_id=run["run_id"],
+            finding_id=finding["finding_id"],
+            verdict="weak_evidence",
+            rationale="The source is relevant, but one article is not enough.",
+            actor_evidence="telegram:chat-hash:message-900",
+            now=NOW + timedelta(minutes=1),
+        )
+
+        self.assertEqual(feedback["verdict"], "weak_evidence")
+        with sqlite3.connect(self.db_path) as connection:
+            stored = connection.execute(
+                """
+                SELECT run_id, finding_id, verdict, rationale, actor_evidence
+                FROM research_quality_feedback
+                """
+            ).fetchone()
+            reviews = connection.execute(
+                "SELECT COUNT(*) FROM research_reviews WHERE finding_id = ?",
+                (finding["finding_id"],),
+            ).fetchone()[0]
+        self.assertEqual(
+            stored,
+            (
+                run["run_id"],
+                finding["finding_id"],
+                "weak_evidence",
+                "The source is relevant, but one article is not enough.",
+                "telegram:chat-hash:message-900",
+            ),
+        )
+        self.assertEqual(reviews, 0)
+
+    def test_quality_feedback_finding_must_belong_to_the_named_run(self):
+        first_run = self.store.start_run("manual", "First run.", now=NOW)
+        finding = self.store.record_question(first_run["run_id"], self.payload(), now=NOW)
+        self.store.finish_run(
+            first_run["run_id"], "completed", now=NOW + timedelta(minutes=1)
+        )
+        second_run = self.store.start_run(
+            "manual", "Second run.", now=NOW + timedelta(minutes=2)
+        )
+
+        with self.assertRaisesRegex(ValueError, "does not belong"):
+            self.store.record_quality_feedback(
+                run_id=second_run["run_id"],
+                finding_id=finding["finding_id"],
+                verdict="irrelevant",
+                rationale="This was not useful for the current decision.",
+                actor_evidence="telegram:chat-hash:message-901",
+                now=NOW + timedelta(minutes=3),
+            )
+
     def test_canonicalize_url_removes_fragments_and_tracking_parameters(self):
         normalized = canonicalize_url(
             "HTTPS://Example.COM:443/path/?z=2&utm_campaign=x&a=1#fragment"

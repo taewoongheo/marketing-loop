@@ -84,11 +84,13 @@ class DueContentResultCollectorTests(unittest.TestCase):
 
     def test_collects_due_checkpoint_once(self):
         self.add_content("C-001", "2026-07-19T11:00:00Z")
+        collected_events = []
 
         inserted = collect_due_results(
             self.connection,
             now=NOW,
             fetch_metrics=self.fetch_metrics,
+            collected_events=collected_events,
         )
         inserted_again = collect_due_results(
             self.connection,
@@ -97,6 +99,10 @@ class DueContentResultCollectorTests(unittest.TestCase):
         )
 
         self.assertEqual(inserted, 1)
+        self.assertEqual(
+            collected_events,
+            [{"content_id": "C-001", "target_hours": 24}],
+        )
         self.assertEqual(inserted_again, 0)
         self.assertEqual(len(self.fetch_calls), 1)
         row = self.connection.execute(
