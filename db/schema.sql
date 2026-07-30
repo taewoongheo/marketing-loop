@@ -408,6 +408,216 @@ CREATE TABLE IF NOT EXISTS account_results (
         CHECK (json_valid(raw_json))
 );
 
+CREATE TABLE IF NOT EXISTS measurement_requests (
+    id TEXT PRIMARY KEY CHECK (length(id) BETWEEN 1 AND 64),
+    metric_key TEXT NOT NULL CHECK (metric_key IN (
+        'profile_views', 'average_watch_time_seconds',
+        'watched_full_video_rate', 'post_follows'
+    )),
+    scope_kind TEXT NOT NULL CHECK (scope_kind IN ('account', 'content')),
+    content_id TEXT REFERENCES contents(id) ON DELETE RESTRICT,
+    window_start TEXT NOT NULL CHECK (datetime(window_start) IS NOT NULL),
+    window_end TEXT NOT NULL CHECK (datetime(window_end) IS NOT NULL),
+    decision_reason TEXT NOT NULL
+        CHECK (length(trim(decision_reason)) BETWEEN 1 AND 1000),
+    status TEXT NOT NULL DEFAULT 'pending'
+        CHECK (status IN ('pending', 'fulfilled', 'cancelled')),
+    requested_at TEXT NOT NULL CHECK (datetime(requested_at) IS NOT NULL),
+    fulfilled_at TEXT CHECK (fulfilled_at IS NULL OR datetime(fulfilled_at) IS NOT NULL),
+    cancelled_at TEXT CHECK (cancelled_at IS NULL OR datetime(cancelled_at) IS NOT NULL),
+    cancellation_reason TEXT CHECK (
+        cancellation_reason IS NULL
+        OR length(trim(cancellation_reason)) BETWEEN 1 AND 1000
+    ),
+    CHECK (datetime(window_end) > datetime(window_start)),
+    CHECK (
+        (scope_kind = 'account' AND content_id IS NULL)
+        OR (scope_kind = 'content' AND content_id IS NOT NULL)
+    ),
+    CHECK (
+        (status = 'pending' AND fulfilled_at IS NULL AND cancelled_at IS NULL
+            AND cancellation_reason IS NULL)
+        OR (status = 'fulfilled' AND fulfilled_at IS NOT NULL AND cancelled_at IS NULL
+            AND cancellation_reason IS NULL)
+        OR (status = 'cancelled' AND fulfilled_at IS NULL AND cancelled_at IS NOT NULL
+            AND cancellation_reason IS NOT NULL)
+    )
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS measurement_requests_one_pending
+ON measurement_requests (
+    metric_key, scope_kind, coalesce(content_id, ''), window_start, window_end
+)
+WHERE status = 'pending';
+
+CREATE TRIGGER IF NOT EXISTS require_pending_measurement_request_insert
+BEFORE INSERT ON measurement_requests
+WHEN NEW.status <> 'pending'
+BEGIN
+    SELECT RAISE(ABORT, 'measurement request must start pending');
+END;
+
+CREATE TRIGGER IF NOT EXISTS validate_measurement_request_timing
+BEFORE INSERT ON measurement_requests
+WHEN datetime(NEW.window_end) > datetime(NEW.requested_at)
+BEGIN
+    SELECT RAISE(ABORT, 'measurement window cannot end after the request');
+END;
+
+CREATE TRIGGER IF NOT EXISTS reject_untyped_breakdown_measurement_request
+BEFORE INSERT ON measurement_requests
+WHEN NEW.metric_key IN (
+    'retention_curve', 'viewer_composition', 'follower_composition'
+)
+BEGIN
+    SELECT RAISE(ABORT, 'breakdown metric has no typed storage contract');
+END;
+
+CREATE TRIGGER IF NOT EXISTS prevent_equivalent_pending_measurement_request
+BEFORE INSERT ON measurement_requests
+WHEN NEW.status = 'pending'
+ AND EXISTS (
+     SELECT 1
+     FROM measurement_requests AS pending
+     WHERE pending.status = 'pending'
+       AND pending.metric_key = NEW.metric_key
+       AND pending.scope_kind = NEW.scope_kind
+       AND coalesce(pending.content_id, '') = coalesce(NEW.content_id, '')
+       AND julianday(pending.window_start) = julianday(NEW.window_start)
+       AND julianday(pending.window_end) = julianday(NEW.window_end)
+ )
+BEGIN
+    SELECT RAISE(ABORT, 'equivalent pending measurement request already exists');
+END;
+
+CREATE TRIGGER IF NOT EXISTS preserve_measurement_request_identity
+BEFORE UPDATE OF
+    id, metric_key, scope_kind, content_id, window_start, window_end,
+    decision_reason, requested_at
+ON measurement_requests
+BEGIN
+    SELECT RAISE(ABORT, 'measurement request identity cannot change');
+END;
+
+CREATE TABLE IF NOT EXISTS manual_analytics_observations (
+    id TEXT PRIMARY KEY CHECK (length(id) BETWEEN 1 AND 64),
+    request_id TEXT NOT NULL UNIQUE
+        REFERENCES measurement_requests(id) ON DELETE RESTRICT,
+    value_json TEXT NOT NULL CHECK (json_valid(value_json)),
+    observed_at TEXT NOT NULL CHECK (datetime(observed_at) IS NOT NULL),
+    recorded_at TEXT NOT NULL CHECK (datetime(recorded_at) IS NOT NULL),
+    source TEXT NOT NULL DEFAULT 'TikTok Studio'
+        CHECK (source = 'TikTok Studio'),
+    evidence_ref TEXT NOT NULL
+        CHECK (length(trim(evidence_ref)) BETWEEN 1 AND 1000),
+    limitations TEXT NOT NULL
+        CHECK (length(trim(limitations)) BETWEEN 1 AND 2000)
+);
+
+DROP TRIGGER IF EXISTS validate_manual_analytics_observation;
+
+CREATE TRIGGER validate_manual_analytics_observation
+BEFORE INSERT ON manual_analytics_observations
+BEGIN
+    SELECT CASE
+        WHEN NOT EXISTS (
+            SELECT 1 FROM measurement_requests
+            WHERE id = NEW.request_id AND status = 'pending'
+        )
+        THEN RAISE(ABORT, 'measurement request must be pending')
+        WHEN datetime(NEW.observed_at) > datetime(NEW.recorded_at)
+        THEN RAISE(ABORT, 'observation cannot be recorded before it was observed')
+        WHEN EXISTS (
+            SELECT 1 FROM measurement_requests
+            WHERE id = NEW.request_id
+              AND (
+                  datetime(NEW.observed_at) < datetime(requested_at)
+                  OR datetime(NEW.observed_at) < datetime(window_end)
+              )
+        )
+        THEN RAISE(ABORT, 'observation cannot precede its request or reporting window')
+        WHEN EXISTS (
+            SELECT 1 FROM measurement_requests
+            WHERE id = NEW.request_id
+              AND metric_key IN ('profile_views', 'post_follows')
+              AND (json_type(NEW.value_json) <> 'integer'
+                   OR json_extract(NEW.value_json, '$') < 0)
+        )
+        THEN RAISE(ABORT, 'count observation must be a non-negative integer')
+        WHEN EXISTS (
+            SELECT 1 FROM measurement_requests
+            WHERE id = NEW.request_id
+              AND metric_key = 'average_watch_time_seconds'
+              AND (json_type(NEW.value_json) NOT IN ('integer', 'real')
+                   OR json_extract(NEW.value_json, '$') < 0)
+        )
+        THEN RAISE(ABORT, 'watch-time observation must be non-negative')
+        WHEN EXISTS (
+            SELECT 1 FROM measurement_requests
+            WHERE id = NEW.request_id
+              AND metric_key = 'watched_full_video_rate'
+              AND (json_type(NEW.value_json) NOT IN ('integer', 'real')
+                   OR json_extract(NEW.value_json, '$') < 0
+                   OR json_extract(NEW.value_json, '$') > 1)
+        )
+        THEN RAISE(ABORT, 'rate observation must be between 0 and 1')
+        WHEN EXISTS (
+            SELECT 1 FROM measurement_requests
+            WHERE id = NEW.request_id
+              AND metric_key IN (
+                  'retention_curve', 'viewer_composition', 'follower_composition'
+              )
+        )
+        THEN RAISE(ABORT, 'breakdown metric has no typed storage contract')
+    END;
+END;
+
+CREATE TRIGGER IF NOT EXISTS fulfill_measurement_request_after_observation
+AFTER INSERT ON manual_analytics_observations
+BEGIN
+    UPDATE measurement_requests
+    SET status = 'fulfilled', fulfilled_at = NEW.recorded_at
+    WHERE id = NEW.request_id;
+END;
+
+CREATE TRIGGER IF NOT EXISTS require_observation_for_measurement_fulfillment
+BEFORE UPDATE OF status, fulfilled_at ON measurement_requests
+WHEN OLD.status = 'pending'
+ AND NEW.status = 'fulfilled'
+ AND NOT EXISTS (
+     SELECT 1
+     FROM manual_analytics_observations
+     WHERE request_id = OLD.id
+ )
+BEGIN
+    SELECT RAISE(ABORT, 'measurement request fulfillment requires an observation');
+END;
+
+CREATE TRIGGER IF NOT EXISTS preserve_manual_analytics_observation
+BEFORE UPDATE ON manual_analytics_observations
+BEGIN
+    SELECT RAISE(ABORT, 'manual analytics observations are immutable');
+END;
+
+CREATE TRIGGER IF NOT EXISTS preserve_manual_analytics_observation_delete
+BEFORE DELETE ON manual_analytics_observations
+BEGIN
+    SELECT RAISE(ABORT, 'manual analytics observations are immutable');
+END;
+
+CREATE TRIGGER IF NOT EXISTS preserve_fulfilled_measurement_request
+BEFORE UPDATE ON measurement_requests
+WHEN OLD.status <> 'pending'
+BEGIN
+    SELECT RAISE(ABORT, 'terminal measurement request cannot change');
+END;
+
+CREATE TRIGGER IF NOT EXISTS preserve_measurement_request_delete
+BEFORE DELETE ON measurement_requests
+BEGIN
+    SELECT RAISE(ABORT, 'measurement requests cannot be deleted');
+END;
+
 CREATE TABLE IF NOT EXISTS hypothesis_evidence (
     hypothesis_id TEXT NOT NULL,
     content_result_id INTEGER NOT NULL,
@@ -478,6 +688,6 @@ CREATE INDEX IF NOT EXISTS idx_account_results_collected
 CREATE INDEX IF NOT EXISTS idx_hypothesis_evidence_result
     ON hypothesis_evidence(content_result_id);
 
-PRAGMA user_version = 13;
+PRAGMA user_version = 17;
 
 COMMIT;

@@ -4,7 +4,7 @@ from scripts.run_event_research import build_research_prompt
 
 
 class EventResearchPromptTests(unittest.TestCase):
-    def test_preflight_prompt_requires_active_research_and_a_user_digest(self):
+    def test_preflight_prompt_requires_active_research_and_a_brief_user_update(self):
         prompt = build_research_prompt(
             trigger_kind="content_preflight",
             objective="Improve the next content decision.",
@@ -14,15 +14,22 @@ class EventResearchPromptTests(unittest.TestCase):
 
         self.assertIn("content_preflight", prompt)
         self.assertIn("no more than three", prompt)
-        self.assertIn("quality feedback", prompt)
-        self.assertIn("system integrity", prompt)
-        self.assertIn("always return a compact korean research digest", prompt.lower())
+        self.assertIn("quality feedback", prompt.lower())
+        self.assertIn("not causal proof", prompt)
+        self.assertIn("manual_analytics_store.py", prompt)
+        self.assertIn("exact metric, scope, window", prompt)
+        self.assertIn("성과 업데이트", prompt)
+        self.assertIn("Do not expose IDs", prompt)
+        self.assertIn("at most three short bullets", prompt)
+        self.assertIn("Do not ask the user to use internal feedback labels", prompt)
 
     def test_result_review_prompt_does_not_treat_one_checkpoint_as_causal_proof(self):
         prompt = build_research_prompt(
             trigger_kind="result_review",
             objective="Interpret newly collected checkpoints.",
-            event_context={"checkpoints": [{"content_id": "C-1", "target_hours": 24}]},
+            event_context={
+                "checkpoints": [{"result_id": 1, "content_id": "C-1", "target_hours": 24}]
+            },
             attempt_token="metrics:run-2",
         )
 

@@ -9,6 +9,8 @@ CREATE TABLE research_runs (
         CHECK (trigger_kind IN ('scheduled', 'content_preflight', 'result_review', 'manual')),
     objective TEXT NOT NULL
         CHECK (length(trim(objective)) BETWEEN 1 AND 1000),
+    event_context_json TEXT NOT NULL DEFAULT '{}'
+        CHECK (json_valid(event_context_json) AND json_type(event_context_json) = 'object'),
     status TEXT NOT NULL
         CHECK (status IN ('running', 'completed', 'failed', 'skipped')),
     started_at TEXT NOT NULL
@@ -874,6 +876,6 @@ BEGIN
     SELECT RAISE(ABORT, 'research adoptions are immutable');
 END;
 
-PRAGMA user_version = 6;
+PRAGMA user_version = 7;
 
 COMMIT;

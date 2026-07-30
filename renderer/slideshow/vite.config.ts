@@ -82,11 +82,29 @@ const readContents = async () => {
   return libraries.flat();
 };
 
+const isTrustedLocalRequest = (request: Connect.IncomingMessage) => {
+  const host = request.headers.host ?? "";
+  if (!/^(?:127\.0\.0\.1|localhost)(?::\d+)?$/i.test(host)) return false;
+  const origin = request.headers.origin;
+  if (!origin) return true;
+  try {
+    const parsed = new URL(origin);
+    return parsed.protocol === "http:" && parsed.host.toLowerCase() === host.toLowerCase();
+  } catch {
+    return false;
+  }
+};
+
 const contentApiMiddleware: Connect.NextHandleFunction = async (request, response, next) => {
   const pathname = new URL(request.url ?? "/", "http://localhost").pathname;
   const isContentItemRequest = pathname.startsWith("/api/contents/");
   if (pathname !== "/api/contents" && !isContentItemRequest) {
     next();
+    return;
+  }
+  if (!isTrustedLocalRequest(request)) {
+    sendJson(response, 403, { error: "Storage API requests must be same-origin on localhost." });
+    request.resume();
     return;
   }
 
@@ -121,6 +139,12 @@ const contentApiMiddleware: Connect.NextHandleFunction = async (request, respons
 
     if (request.method !== "POST") {
       sendJson(response, 405, { error: "Method not allowed." });
+      return;
+    }
+
+    if (!(request.headers["content-type"] ?? "").toLowerCase().startsWith("application/json")) {
+      sendJson(response, 415, { error: "Content-Type must be application/json." });
+      request.resume();
       return;
     }
 

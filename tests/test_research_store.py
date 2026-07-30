@@ -89,6 +89,43 @@ class ResearchStoreTests(unittest.TestCase):
         self.assertEqual(stale[0], "failed")
         self.assertIn("lease expired", stale[1])
 
+    def test_result_review_requires_and_persists_exact_checkpoint_context(self):
+        with self.assertRaisesRegex(ValueError, "at least one checkpoint"):
+            self.store.start_run("result_review", "Review metrics.", now=NOW)
+        for invalid_checkpoint in (
+            {"result_id": 1, "content_id": 123, "target_hours": 24},
+            {"result_id": 1, "content_id": "content-1", "target_hours": 24.0},
+            {"result_id": 0, "content_id": "content-1", "target_hours": 24},
+        ):
+            with self.assertRaisesRegex(ValueError, "checkpoint is invalid"):
+                self.store.start_run(
+                    "result_review",
+                    "Review metrics.",
+                    now=NOW,
+                    event_context={"checkpoints": [invalid_checkpoint]},
+                )
+
+        event_context = {
+            "checkpoints": [{
+                "result_id": 7,
+                "content_id": "content-1",
+                "target_hours": 24,
+            }]
+        }
+        run = self.store.start_run(
+            "result_review",
+            "Review metrics.",
+            now=NOW,
+            event_context=event_context,
+        )
+
+        with sqlite3.connect(self.db_path) as connection:
+            stored = connection.execute(
+                "SELECT event_context_json FROM research_runs WHERE id = ?",
+                (run["run_id"],),
+            ).fetchone()[0]
+        self.assertEqual(json.loads(stored), event_context)
+
     def test_expired_lease_rejects_question_and_finish_writes(self):
         run = self.store.start_run(
             "scheduled", "Short lease.", now=NOW, lease_minutes=1

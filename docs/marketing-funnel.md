@@ -94,17 +94,19 @@ Never infer an unavailable event by silently substituting another metric. Keep o
 ### Current capability matrix
 
 | Type | Event or diagnostic | Current normalized observation | Operational limit |
-| --- | --- | --- | --- | --- |
+| --- | --- | --- | --- |
 | Funnel event | TikTok content view | `content_results.views` at 24h, 48h, and 72h | Public cumulative counter; does not establish audience qualification or message consumption |
-| Funnel event | TikTok profile view | None | Measurement gap; do not infer it from engagement or follower movement |
+| Funnel event | TikTok profile view | `manual_analytics_observations` when supplied from TikTok Studio | Request the exact scope and window through Telegram when this observation blocks a decision; otherwise keep the measurement gap |
 | Funnel event | Bio-link click | Inactive | No operational App Store path during prelaunch |
 | Funnel event | App Store product-page view | Inactive | No operational App Store destination during prelaunch |
 | Channel diagnostic | Followers | `account_results.followers` | Progress toward the reported link-access constraint only |
 | Content diagnostics | Likes, comments, shares, saves | `content_results` at 24h, 48h, and 72h | Separate response signals; interpretation must match the tested hypothesis |
-| Content diagnostics | Watch depth, completion, retention, per-post follows | None | Do not infer from public views or engagement |
-| Audience diagnostic | Viewer and follower composition | TikTok Studio account/video viewer and follower analytics; authenticated manual source, not normalized here | Official documentation names viewer key metrics, demographics, activity times, and follower demographic insights but not exact fields, windows, or availability; no LIFT CODE account observation has been recorded |
+| Content diagnostics | Watch depth, completion, retention, per-post follows | `manual_analytics_observations` when supplied from TikTok Studio | Request only the metric, scope, and window needed for the current decision; do not infer from public views or engagement |
+| Audience diagnostic | Viewer and follower composition | `manual_analytics_observations` when supplied from TikTok Studio | Preserve the reported breakdown, source evidence, window, and limitations |
 
-The assistant must not build one collector per row in advance. First identify the active decision that cannot be made with current evidence, then inspect and add only the narrowest reliable source needed for that decision. New credentials, external cost, privacy impact, or structural changes remain subject to the project authorization rules.
+For a needed private observation, create or reuse a pending `measurement_requests` row through `scripts/manual_analytics_store.py`, then ask through Telegram for the exact metric, account/content scope, reporting window, TikTok Studio location, and decision it unlocks. Record the supplied value and Telegram evidence through the same writer, which fulfills the request atomically. Do not repeat a matching pending request.
+
+Add only the narrowest reliable source needed for the current decision. New credentials, external cost, privacy impact, or structural changes remain subject to the project authorization rules.
 
 ## Relationship to hypothesis evidence
 

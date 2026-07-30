@@ -101,7 +101,12 @@ class DueContentResultCollectorTests(unittest.TestCase):
         self.assertEqual(inserted, 1)
         self.assertEqual(
             collected_events,
-            [{"content_id": "C-001", "target_hours": 24}],
+            [{
+                "result_id": 1,
+                "content_id": "C-001",
+                "target_hours": 24,
+                "collected_at": "2026-07-20T12:00:00Z",
+            }],
         )
         self.assertEqual(inserted_again, 0)
         self.assertEqual(len(self.fetch_calls), 1)

@@ -38,13 +38,23 @@ First run scripts/system_integrity.py and inspect its result. Treat deterministi
 
 Reconcile prior dispatching research_notifications before starting. Parse each attempt token's scheduler job ID, inspect that job's previous last_status, last_delivery_error, and last_run_at in the marketing-liftcode Hermes jobs file, and resolve only attempts whose scheduler-owned result is unambiguous. Never resolve {attempt_token} during this run.
 
-Start exactly one research run with trigger {trigger_kind}. Read the current funnel diagnosis, launch constraints, product truth, active hypothesis lineage, relevant content/checkpoints, accepted Research DB knowledge, recent duplicate/no-finding history, and prior research quality feedback. Frame the broad governing question as what would most improve the current qualified-audience or content decision, then select no more than three independent bounded questions. Search actively across any relevant domain rather than a fixed category list, but do not research for volume. If accepted evidence is already sufficient, select zero questions and finish the run cleanly.
+Start exactly one research run with trigger {trigger_kind}, passing Event context unchanged to `start-run --event-context-json` so every triggering checkpoint remains durably linked to its review. Read the current funnel diagnosis, launch constraints, product truth, active hypothesis lineage, relevant content/checkpoints, accepted Research DB knowledge, recent duplicate/no-finding history, and prior research quality feedback. Frame the broad governing question as what would most improve the current qualified-audience or content decision, then select no more than three independent bounded questions. Search actively across any relevant domain rather than a fixed category list, but do not research for volume. If accepted evidence is already sufficient, select zero questions and finish the run cleanly.
 
 For every selected question, persist selection before investigation and finish it as one bounded finding, duplicate, no_finding, outside_scope, or failed outcome. Preserve exact sources, contradictions, and limitations. A new 24h/48h/72h checkpoint is diagnostic evidence, not causal proof; distinguish distribution noise, measurement gaps, message, copywriting, and topic/execution conditions before proposing an explanation. Do not turn medium, format, imagery, or raw metrics into hypothesis axes.
 
+If a private TikTok Studio observation materially blocks the decision, create or reuse a pending request through scripts/manual_analytics_store.py. The Telegram request must name the exact metric, scope, window, TikTok Studio location, and decision it unlocks. Never infer private data from public counters or duplicate a matching pending request.
+
 Review every finding autonomously. Adopt a supported result into exactly one valid owner, applying the autonomous-system-improvement invariants and dirty-tree isolation. Research may inform a message or copywriting hypothesis candidate but must not mutate hypothesis lineage outside its separate contract. Finish the run with no selected question unresolved. Then call prepare-notifications with attempt token {attempt_token}; do not resolve the current attempt.
 
-Always return a compact Korean research digest, even when no external search was needed. Include the run ID, trigger and governing objective; each question's finding ID or terminal outcome; bounded result, principal sources and limitations; adoption/action and exact owner; any system integrity issue and correction; and specifically how this changes—or does not change—the next content decision. Invite quality feedback using the run/finding IDs and the labels useful, weak_evidence, irrelevant, overstated, or correction. Do not ask for ordinary finding approval. Return only the digest or one essential blocker line. Never create or publish content in this research cycle."""
+Return only a short Korean user update, even when no external search was needed. Do not expose IDs, trigger names, database outcomes, owner names, integrity terminology, file paths, or internal feedback labels. Do not ask the user to use internal feedback labels; accept natural-language feedback instead.
+
+For a result review, use this shape:
+성과 업데이트
+- 핵심 수치: show only the newly observed public metrics and checkpoint age.
+- 의미: one plain-language judgment, including uncertainty when it matters.
+- 다음: the one content decision that changes, or "아직 바꿀 근거 없음".
+
+For another trigger, use the heading "확인 결과" and the same principle. Use at most three short bullets, one sentence each. Omit routine execution, research-process, source-list, and system-check detail. Mention a source or limitation only when the user needs it to judge the conclusion. If user action is essential, append one concise "확인 필요" line naming the exact action and why it is needed. Return one plain-language blocker line on failure. Never create or publish content in this research cycle."""
 
 
 def run_research(

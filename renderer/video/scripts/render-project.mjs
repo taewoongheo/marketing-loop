@@ -3,6 +3,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { bundle } from "@remotion/bundler";
 import { renderMedia, selectComposition } from "@remotion/renderer";
+import { normalizeProject } from "../src/projectValidation.ts";
 
 const rendererRoot = fileURLToPath(new URL("..", import.meta.url));
 
@@ -22,11 +23,7 @@ if (!projectArg || !outputArg) {
 const projectPath = path.resolve(process.cwd(), projectArg);
 const outputPath = path.resolve(process.cwd(), outputArg);
 await access(projectPath);
-const project = JSON.parse(await readFile(projectPath, "utf8"));
-
-if (project.type !== "lift-code-video-project") {
-  throw new Error("Project must be a lift-code-video-project object.");
-}
+const project = normalizeProject(JSON.parse(await readFile(projectPath, "utf8")));
 
 await mkdir(path.dirname(outputPath), { recursive: true });
 const serveUrl = await bundle({

@@ -1,6 +1,31 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+const emptyProject = (formatId = "exercise-alternatives") => ({
+  type: "lift-code-video-project",
+  version: 1,
+  formatId,
+  name: "Test project",
+  fps: 30,
+  preset: { id: "tiktok_9_16", name: "TikTok 9:16", width: 1080, height: 1920 },
+  backgroundColor: "#000000",
+  clips: [],
+  textLayers: [],
+  audioLayers: [],
+});
+
+test("video projects require and preserve a lowercase format identity", async () => {
+  const { normalizeProject } = await import("../src/projectValidation.ts");
+
+  assert.equal(normalizeProject(emptyProject()).formatId, "exercise-alternatives");
+  for (const formatId of ["", "Exercise Alternatives", "../exercise-alternatives"]) {
+    assert.throws(
+      () => normalizeProject(emptyProject(formatId)),
+      /lowercase format identity/,
+    );
+  }
+});
+
 test("video project source keeps sequential clip timing", async () => {
   const source = await import("../src/projectModel.ts");
   const clip = {

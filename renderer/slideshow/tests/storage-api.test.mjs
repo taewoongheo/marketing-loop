@@ -48,6 +48,21 @@ test("storage API rejects remote project images", async () => {
   });
 });
 
+test("storage API rejects cross-origin browser mutations", async () => {
+  await withServer(async (origin) => {
+    const response = await fetch(`${origin}/api/contents`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "text/plain",
+        Origin: "https://attacker.example",
+      },
+      body: "{}",
+    });
+
+    assert.equal(response.status, 403);
+  });
+});
+
 test("storage API rejects oversized content lengths before reading the body", async () => {
   await withServer(async (origin) => {
     const url = new URL("/api/contents", origin);
@@ -57,7 +72,10 @@ test("storage API rejects oversized content lengths before reading the body", as
         port: url.port,
         path: url.pathname,
         method: "POST",
-        headers: { "Content-Length": String(MAX_PROJECT_BYTES + 1) },
+        headers: {
+          "Content-Length": String(MAX_PROJECT_BYTES + 1),
+          "Content-Type": "application/json",
+        },
       }, resolve);
       request.on("error", reject);
       request.end();

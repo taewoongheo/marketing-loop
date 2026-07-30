@@ -2,8 +2,12 @@
   "name": "lift-code-marketing-loop",
   "private": true,
   "scripts": {
-    "renderer:slideshow": "npm --prefix renderer/slideshow run dev -- --host ::",
-    "renderer:video": "npm --prefix renderer/video run dev -- --host ::",
+    "test": "npm run test:python && npm run test:node && npm --prefix renderer/slideshow test && npm --prefix renderer/video test",
+    "test:python": "python3 -m unittest discover -s tests -p 'test_*.py'",
+    "test:node": "node --test tests/*.test.mjs db/tests/*.test.mjs",
+    "build": "npm --prefix renderer/slideshow run build && npm --prefix renderer/video run build",
+    "renderer:slideshow": "npm --prefix renderer/slideshow run dev -- --host 127.0.0.1",
+    "renderer:video": "npm --prefix renderer/video run dev -- --host 127.0.0.1",
     "viewer:hypothesis-tree": "python3 -m viewer.hypothesis_tree.app"
   }
 }

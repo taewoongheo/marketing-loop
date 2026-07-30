@@ -202,7 +202,12 @@ def collect_due_results(
             inserted += cursor.rowcount
             if cursor.rowcount and collected_events is not None:
                 collected_events.append(
-                    {"content_id": content_id, "target_hours": target}
+                    {
+                        "result_id": cursor.lastrowid,
+                        "content_id": content_id,
+                        "target_hours": target,
+                        "collected_at": format_timestamp(observed_at),
+                    }
                 )
         except Exception as error:
             failures.append(f"{content_id}: {error}")

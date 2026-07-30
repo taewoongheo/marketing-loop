@@ -15,7 +15,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DB_PATH = REPO_ROOT / "db" / "research.sqlite"
 DEFAULT_SCHEMA_PATH = REPO_ROOT / "db" / "research-schema.sql"
-SCHEMA_VERSION = 6
+SCHEMA_VERSION = 7
 TRACKING_QUERY_KEYS = {
     "fbclid",
     "gclid",
@@ -128,6 +128,9 @@ class ResearchStore:
             if version == 5:
                 self._migrate_v5_to_v6(connection)
                 version = connection.execute("PRAGMA user_version").fetchone()[0]
+            if version == 6:
+                self._migrate_v6_to_v7(connection)
+                version = connection.execute("PRAGMA user_version").fetchone()[0]
             if version != SCHEMA_VERSION:
                 raise RuntimeError(f"unsupported research schema version: {version}")
             integrity = connection.execute("PRAGMA integrity_check").fetchone()[0]
@@ -180,9 +183,49 @@ class ResearchStore:
             """
         )
 
-    def start_run(self, trigger_kind, objective, now=None, lease_minutes=55):
+    @staticmethod
+    def _migrate_v6_to_v7(connection):
+        connection.executescript(
+            """
+            BEGIN IMMEDIATE;
+            ALTER TABLE research_runs ADD COLUMN event_context_json TEXT NOT NULL DEFAULT '{}'
+                CHECK (json_valid(event_context_json) AND json_type(event_context_json) = 'object');
+            PRAGMA user_version = 7;
+            COMMIT;
+            """
+        )
+
+    def start_run(
+        self, trigger_kind, objective, now=None, lease_minutes=55, event_context=None
+    ):
         if now is None:
             now = utc_now()
+        if event_context is None:
+            event_context = {}
+        if not isinstance(event_context, dict):
+            raise ValueError("event_context must be a JSON object")
+        if trigger_kind == "result_review":
+            checkpoints = event_context.get("checkpoints")
+            if not isinstance(checkpoints, list) or not checkpoints:
+                raise ValueError("result_review requires at least one checkpoint")
+            for checkpoint in checkpoints:
+                if (
+                    not isinstance(checkpoint, dict)
+                    or type(checkpoint.get("result_id")) is not int
+                    or checkpoint.get("result_id", 0) <= 0
+                    or not isinstance(checkpoint.get("content_id"), str)
+                    or re.fullmatch(
+                        r"[A-Za-z0-9][A-Za-z0-9_-]*",
+                        checkpoint.get("content_id", ""),
+                    )
+                    is None
+                    or type(checkpoint.get("target_hours")) is not int
+                    or checkpoint.get("target_hours") not in {24, 48, 72}
+                ):
+                    raise ValueError("result_review checkpoint is invalid")
+        event_context_json = json.dumps(
+            event_context, ensure_ascii=False, sort_keys=True, separators=(",", ":")
+        )
         if lease_minutes <= 0 or lease_minutes > 59:
             raise ValueError("lease_minutes must be between 1 and 59")
         started_at = format_timestamp(now)
@@ -219,11 +262,14 @@ class ResearchStore:
                 connection.execute(
                     """
                     INSERT INTO research_runs (
-                        id, trigger_kind, objective, status, started_at,
+                        id, trigger_kind, objective, event_context_json, status, started_at,
                         lease_expires_at, finished_at, skip_reason
-                    ) VALUES (?, ?, ?, 'skipped', ?, NULL, ?, ?)
+                    ) VALUES (?, ?, ?, ?, 'skipped', ?, NULL, ?, ?)
                     """,
-                    (run_id, trigger_kind, objective, started_at, started_at, reason),
+                    (
+                        run_id, trigger_kind, objective, event_context_json,
+                        started_at, started_at, reason,
+                    ),
                 )
                 return {
                     "status": "skipped",
@@ -235,10 +281,14 @@ class ResearchStore:
             connection.execute(
                 """
                 INSERT INTO research_runs (
-                    id, trigger_kind, objective, status, started_at, lease_expires_at
-                ) VALUES (?, ?, ?, 'running', ?, ?)
+                    id, trigger_kind, objective, event_context_json, status,
+                    started_at, lease_expires_at
+                ) VALUES (?, ?, ?, ?, 'running', ?, ?)
                 """,
-                (run_id, trigger_kind, objective, started_at, lease_expires_at),
+                (
+                    run_id, trigger_kind, objective, event_context_json,
+                    started_at, lease_expires_at,
+                ),
             )
             return {
                 "status": "started",
@@ -1325,6 +1375,7 @@ def build_parser():
     start = subparsers.add_parser("start-run")
     start.add_argument("--trigger", required=True)
     start.add_argument("--objective", required=True)
+    start.add_argument("--event-context-json", default="{}")
     start.add_argument("--lease-minutes", type=int, default=55)
 
     record = subparsers.add_parser("record-question")
@@ -1398,7 +1449,10 @@ def main():
         result = {"status": "initialized", "db": str(args.db)}
     elif args.command == "start-run":
         result = store.start_run(
-            args.trigger, args.objective, lease_minutes=args.lease_minutes
+            args.trigger,
+            args.objective,
+            lease_minutes=args.lease_minutes,
+            event_context=json.loads(args.event_context_json),
         )
     elif args.command == "record-question":
         result = store.record_question(args.run_id, read_json_file(args.payload_file))

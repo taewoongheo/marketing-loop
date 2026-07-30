@@ -486,6 +486,6 @@ test("contents rejects invalid message versions", async () => {
 test("schema version identifies the current structure", async () => {
   await withDatabase(async (databasePath) => {
     const version = query(databasePath, "PRAGMA user_version;").trim();
-    assert.equal(version, '[{"user_version":13}]');
+    assert.equal(version, '[{"user_version":17}]');
   });
 });

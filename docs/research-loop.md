@@ -2,9 +2,7 @@
 
 ## Purpose
 
-The research loop discovers the most valuable unknown that could improve LIFT CODE's business purpose or the reliability of this marketing system. Its subject space is open. Formats, strength-training expertise, audience language, marketing methods, measurement, distribution, tools, and platform changes are examples, not an allowlist or a rotation.
-
-Research is not an output goal. A useful question must name why it matters now and the decision that could change if the evidence is credible.
+The research loop investigates the highest-value unknown that could improve LIFT CODE's business purpose or the reliability of this marketing system. Each question states why it matters now and which decision credible evidence could change.
 
 During prelaunch, research normally creates leverage by helping the target audience choose a suitable Program, judge whether it is working, or reduce recurring progression decisions, and by improving how that value is packaged and distributed. The exact product problem remains owned by `context/product.md`; these are priority applications, not a closed research taxonomy.
 
@@ -18,7 +16,7 @@ Every research object has exactly one durable owner.
 | Runs, questions, sources, findings, review history, user quality feedback, adoption links, delivery outbox, and accepted structured knowledge | `db/research.sqlite` using `db/research-schema.sql` | Hypotheses, content results, exact media bytes |
 | Product truth and current bounded brand context | Existing files under `context/` | External research history |
 | Message and copywriting strategy | Versioned files under `messages/` and format `copywriting/` | Raw sources or general knowledge |
-| Internal hypotheses, content identities, publication links, and results | `db/hypothesis-loop.sqlite` | External-source knowledge |
+| Hypotheses, content identities, publication links, results, TikTok Studio requests, and supplied private observations | `db/hypothesis-loop.sqlite` | External-source knowledge |
 | Raw format media and native content execution | The selected `renderer/<medium>/` namespace | Source metadata and review state |
 | Exact schedule, delivery, workdir, and attached skills | Hermes cron job | Research policy or findings |
 
@@ -32,7 +30,7 @@ For each run:
 
 1. Read the current funnel diagnosis, launch constraints, active hypotheses, recent content/results, accepted Research DB knowledge, unresolved findings, and recent duplicate/no-finding decisions.
 2. Generate candidate questions without selecting from fixed research categories.
-3. Prefer questions that can improve a near-term content decision, audience understanding, useful synthesis, expression, or distribution; are materially uncertain and novel relative to stored evidence; and are answerable from credible sources at justified cost.
+3. Prefer questions that can improve a near-term content decision, audience understanding, standalone audience value, expression, or distribution; are materially uncertain and novel relative to stored evidence; and are answerable from credible sources at justified cost.
 4. Select no more than three independent questions. The limit controls execution, not subject matter.
 5. Research each question with the narrowest suitable live capability and preserve exact source URLs and material limitations.
 6. Record one bounded finding per question, or explicitly record `no_finding`, `outside_scope`, `duplicate`, or `failed`.
@@ -40,17 +38,15 @@ For each run:
 
 Do not accumulate broad strength-training knowledge merely because credible information is available. A domain question must have a plausible route to the target problem, a near-term content need, or a current marketing decision. When accepted evidence is already sufficient, select zero questions rather than manufacturing work for a trigger.
 
-Research may examine adjacent evidence only when it informs a marketing-owned decision. If the bounded result cannot route to a valid marketing owner, including one that can be created autonomously without violating `AGENTS.md`, close the question as `outside_scope` without creating a finding. Reserve `new_owner_proposal` for an in-scope marketing result whose required owner change is blocked by credentials, permissions, paid spend, destructive migration, an out-of-scope decision, or unresolved consistency risk; it cannot silently change product, pricing, retention, or another non-marketing owner.
+Research may examine adjacent evidence only when it informs a marketing-owned decision. If the bounded result cannot route to a valid marketing owner, including one that can be created autonomously without violating `AGENTS.md`, close the question as `outside_scope` without creating a finding. Reserve `new_owner_proposal` for an in-scope marketing result whose required owner change is blocked by credentials, permissions, paid spend, a destructive data change, an out-of-scope decision, or unresolved consistency risk; it cannot silently change product, pricing, retention, or another non-marketing owner.
 
 ## Event triggers and concurrency
-
-Research is coupled to a decision event rather than an independent cadence:
 
 - **Content preflight (`content_preflight`):** every interactive or scheduled content cycle checks accepted evidence before making the content decision. It may select zero questions; external search starts only when a credible answer could materially change the content or hypothesis action.
 - **Result review (`result_review`):** the shared collector starts research only after it inserts a new 24h, 48h, or 72h checkpoint. A no-op collector tick starts no agent. The run diagnoses what the observation can and cannot distinguish before researching the highest-value uncertainty.
 - **Manual (`manual`):** an explicit interactive request may investigate a current marketing decision through the same lifecycle.
 
-There is no standalone hourly discovery run, fixed topic rotation, or continuously running AI worker. `research_runs` owns a singleton lease across all triggers. A new trigger records `skipped` when an unexpired run is active. An expired lease is failed before another run starts. Hermes Scheduler must not implement a second lock owner.
+`research_runs` owns a singleton lease across all triggers. A new trigger records `skipped` when an unexpired run is active, and an expired lease is failed before another run starts.
 
 Each run starts through `scripts/research_store.py start-run` with the exact event trigger and a decision-specific objective. Every successful run finishes as `completed` or `failed`; a run cannot complete while a selected question is unresolved, and interruption is recovered by lease expiry.
 
@@ -71,10 +67,10 @@ Result-review evidence is diagnostic, not automatic causal attribution. Evaluate
 Research admission is always autonomous under standing user authorization. There is no per-finding user-approval mode or mutable authorization flag.
 
 1. The agent reviews every bounded finding first and records one immutable decision with its rationale. A review is not adoption.
-2. A supported finding may be adopted only into its exact recorded valid owner. When no owner exists, the agent may first create or restructure the owner map under `AGENTS.md`, migrate every producer and consumer, and update the finding route before adoption.
+2. A supported finding may be adopted only into its exact recorded valid owner. When no owner exists, the agent may first create or restructure the owner map under `AGENTS.md`, update every producer and consumer, and revise the finding route before adoption.
 3. Adoption is a separate immutable receipt. It must match the finding's route, exactly one final owner, and the materialized owner state.
-4. After each event run, Telegram receives a compact digest containing every question's finding ID or terminal outcome, bounded result, limitations, sources, action, owner, system-integrity result, and resulting content-decision change. This is a reviewable report, not an approval request.
-5. New owners and structural changes are autonomous when they satisfy the four invariants. Credentials or permissions, paid access, destructive migrations, out-of-scope decisions, and unresolved consistency risks remain Telegram action requests and are never represented as adoptions.
+4. After each event run, Telegram receives only the key user-facing result. Internal IDs, lifecycle outcomes, owners, and provenance remain in SQLite.
+5. New owners and structural changes are autonomous when they satisfy the four invariants. Credentials or permissions, paid access, destructive data changes, out-of-scope decisions, and unresolved consistency risks remain Telegram action requests and are never represented as adoptions.
 6. Content creation, publication, and hypothesis decisions retain their separate contracts; research admission does not bypass them.
 7. Validate the final owner and adoption receipt. An autonomous event run may commit and push only its exact clean tracked changes under the dirty-tree isolation rules in `AGENTS.md`.
 
@@ -125,10 +121,11 @@ A missing accepted entry means the project has not admitted that knowledge; it d
 
 ## Event response and system integrity
 
-- Reconcile prior delivery attempts before starting and return one compact Korean digest for every completed event run, even when accepted evidence was sufficient and zero questions were selected.
-- Identify the run, trigger, questions and finding IDs/outcomes, sources and limitations, disposition, exact owner/action, semantic integrity result, and resulting content-decision change. Omit routine execution detail.
-- Invite quality evaluation with the five `research_quality_feedback` labels; do not ask the user to approve ordinary findings or existing-owner adoptions.
-- If user action is required because of credentials, cost, source access, destructive migration, an out-of-scope decision, or a blocked owner proposal, return one concise action request.
+- Reconcile prior delivery attempts before starting and return one brief Korean update for every completed event run.
+- A result update has at most three short bullets: newly observed key metrics, their plain-language meaning, and the one next decision—or that there is not yet enough evidence to change it.
+- Keep IDs, trigger names, database outcomes, owner names, file paths, integrity terminology, routine execution detail, and feedback labels out of Telegram. Accept natural-language quality feedback and map it to the stored labels internally.
+- If a private TikTok Studio observation materially blocks the decision, use `scripts/manual_analytics_store.py` to create or reuse a request and append one concise line with the exact metric, scope, window, Studio location, and decision purpose.
+- If user action is required because of credentials, cost, source access, a destructive data change, an out-of-scope decision, or a blocked owner proposal, return one concise action request.
 - A result-review run does not create content. A content-preflight run may continue into the separately authorized content lifecycle but cannot publish to TikTok.
 
-`scripts/system_integrity.py` is the deterministic scheduler-internal checker. It validates both SQLite databases, expected schema versions, terminal research states, lease expiry, required owners, absence of standalone research jobs, collector/production job topology, prior job failures, and Telegram delivery. The due-results and production wrappers run it before mutation and use their existing Telegram delivery route for failures. Event research additionally inspects semantic ownership, logical consistency, lifecycle reliability, and missing capabilities. Do not add a launchd daemon, heartbeat, or external Runtime Watchdog; this design intentionally cannot detect the Hermes scheduler process itself being stopped.
+`scripts/system_integrity.py` supplies structural failures and operational-health warnings before mutation. Event research diagnoses warnings from live context and separately inspects semantic ownership, consistency, lifecycle reliability, and missing capabilities. Structural failures block the cycle; warnings identify possible stagnation, missing transitions, accumulation failures, or unexplained concentration without imposing mechanical diversity or volume quotas.

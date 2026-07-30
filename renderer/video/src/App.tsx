@@ -205,6 +205,7 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
 export default function App() {
   const [project, setProject] = useState<VideoProject>(() => createProject());
   const [projects, setProjects] = useState<VideoProject[]>([]);
+  const [formatIds, setFormatIds] = useState<string[]>([]);
   const [selection, setSelection] = useState<Selection>(null);
   const [status, setStatus] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -243,6 +244,16 @@ export default function App() {
     void fetch("/api/projects")
       .then(async (response) => response.ok ? response.json() as Promise<{ projects: VideoProject[] }> : null)
       .then((data) => { if (active && data) setProjects(data.projects); })
+      .catch(() => undefined);
+    void fetch("/api/formats")
+      .then(async (response) => response.ok ? response.json() as Promise<{ formatIds: string[] }> : null)
+      .then((data) => {
+        if (!active || !data) return;
+        setFormatIds(data.formatIds);
+        setProject((current) => current.formatId || !data.formatIds[0]
+          ? current
+          : { ...current, formatId: data.formatIds[0] });
+      })
       .catch(() => undefined);
     return () => { active = false; };
   }, []);
@@ -715,7 +726,7 @@ export default function App() {
       if (!response.ok || !data.project) throw new Error(data.error || "Project could not be saved.");
       setProject(data.project);
       if (data.projects) setProjects(data.projects);
-      setStatus(`Saved to contents/${data.project.id}.json.`);
+      setStatus(`Saved to formats/${data.project.formatId}/contents/${data.project.id}.json.`);
       return data.project;
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Project could not be saved.");
@@ -725,14 +736,14 @@ export default function App() {
     }
   };
 
-  const deleteProject = async (id?: string) => {
-    if (!id) return;
+  const deleteProject = async (projectToDelete: VideoProject) => {
+    if (!projectToDelete.id) return;
     try {
-      const response = await fetch(`/api/projects/${encodeURIComponent(id)}`, { method: "DELETE" });
+      const response = await fetch(`/api/projects/${encodeURIComponent(projectToDelete.formatId)}/${encodeURIComponent(projectToDelete.id)}`, { method: "DELETE" });
       const data = await response.json() as { projects?: VideoProject[]; error?: string };
       if (!response.ok || !data.projects) throw new Error(data.error || "Project could not be deleted.");
       setProjects(data.projects);
-      setStatus(`Deleted "${id}".`);
+      setStatus(`Deleted "${projectToDelete.id}".`);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Project could not be deleted.");
     }
@@ -748,7 +759,7 @@ export default function App() {
       const response = await fetch("/api/render", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: saved.id }),
+        body: JSON.stringify({ id: saved.id, formatId: saved.formatId }),
       });
       const data = await response.json() as { downloadUrl?: string; error?: string };
       if (!response.ok || !data.downloadUrl) throw new Error(data.error || "Render failed.");
@@ -756,7 +767,7 @@ export default function App() {
       anchor.href = data.downloadUrl;
       anchor.download = `${saved.id}.mp4`;
       anchor.click();
-      setStatus(`Rendered renders/${saved.id}.mp4.`);
+      setStatus(`Rendered renders/${saved.formatId}/${saved.id}.mp4.`);
     } catch (error) {
       setStatus(error instanceof Error ? error.message : "Render failed.");
     } finally {
@@ -868,15 +879,19 @@ export default function App() {
       <section className="workspace">
         <aside className="sidebar">
           <div className="panel-title"><FileJson size={17} />Projects</div>
+          <label className="field"><span>Format</span><select value={project.formatId} onChange={(event) => setProject((current) => ({ ...current, formatId: event.target.value }))}>
+            <option value="" disabled>Select a format</option>
+            {formatIds.map((formatId) => <option key={formatId} value={formatId}>{formatId}</option>)}
+          </select></label>
           <label className="field project-name"><span>Project name</span><input value={project.name} placeholder="Video project" onChange={(event) => setProject((current) => ({ ...current, name: event.target.value }))} /></label>
           <div className="project-list">
             {projects.length ? projects.map((item) => (
-              <div className="project-row" key={item.id}>
+              <div className="project-row" key={`${item.formatId}/${item.id}`}>
                 <button className="project-card" onClick={() => loadProject(item)}>
                   <strong>{item.name || item.id}</strong>
-                  <small>{item.preset.name} · {item.clips.length} clips · {formatTime(projectDuration(item), item.fps)}</small>
+                  <small>{item.formatId} · {item.preset.name} · {item.clips.length} clips · {formatTime(projectDuration(item), item.fps)}</small>
                 </button>
-                <button className="item-delete-button" title={`Delete ${item.name}`} onClick={() => void deleteProject(item.id)}><Trash2 size={15} /></button>
+                <button className="item-delete-button" title={`Delete ${item.name}`} onClick={() => void deleteProject(item)}><Trash2 size={15} /></button>
               </div>
             )) : <div className="empty-state">No saved projects.</div>}
           </div>

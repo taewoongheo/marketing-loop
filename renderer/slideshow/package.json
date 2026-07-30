@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "render": "node scripts/render-project.mjs"
+    "render": "node scripts/render-project.mjs",
+    "test": "node --test tests/*.test.ts tests/*.test.mjs"
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",

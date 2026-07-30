@@ -1,13 +1,13 @@
 # LIFT CODE marketing loop
 
-A local system for gathering a qualified U.S.-English TikTok audience and turning that attention into qualified App Store inflow for LIFT CODE. During prelaunch it does this without mentioning the unreleased app: it identifies what the target audience needs, collects and synthesizes the necessary knowledge, and delivers the result in an immediately understandable or usable form.
+A local system for gathering a relevant U.S.-English TikTok audience and turning that reach into qualified App Store inflow for LIFT CODE. During prelaunch it does this without mentioning the unreleased app: it identifies audience needs and creates standalone value that is immediately understandable or experienceable. Value may be practical, explanatory, emotional, or entertaining; the system is not limited to tips.
 
 The product problem defines the content territory: choosing a suitable strength-training Program, judging whether it is working, and reducing recurring progression decisions. Research volume, generic fitness information, and follower growth are inputs or diagnostics—not the final purpose.
 
 ## What it does
 
 - discovers audience needs, language, evidence, formats, and distribution methods;
-- turns relevant evidence into bounded, useful conclusions instead of accumulating information for its own sake;
+- turns relevant evidence and creative direction into content with standalone audience value;
 - produces one native slideshow or video from the current funnel and hypothesis state;
 - sends publication-ready media to Telegram while leaving TikTok publication to the user;
 - collects delayed public results and uses them to continue, branch, close, or adopt message and copywriting hypotheses.
@@ -17,13 +17,15 @@ The product problem defines the content territory: choosing a suitable strength-
 ```text
 Product problem + audience need
 → targeted research and evidence synthesis
-→ immediately useful content
-→ qualified audience attention and trust
+→ content with standalone audience value
 → manual TikTok publication
-→ delayed observations
+→ content views and profile views
+→ delayed response and audience-fit diagnostics
 → better research, message, and copywriting decisions
 → qualified App Store inflow after launch
 ```
+
+Attention, trust, and audience qualification are interpretations, not additional funnel events. Watch quality, engagement, follows, and audience composition can support those interpretations but do not replace the measured user path.
 
 ### Funnel diagnosis
 
@@ -58,41 +60,35 @@ For each content, the system:
 6. records the publication-ready copy, project identity, medium, format, and hypothesis lineage;
 7. delivers the final media to Telegram for manual TikTok publication.
 
-The user supplies the published TikTok URL. Publication time and later results are then attached to the existing content record. Interactive production keeps the hypothesis and copy approval gates; the scheduled daily run uses the autonomous-production exception in `AGENTS.md` and still never publishes to TikTok.
+The user supplies the published TikTok URL. Publication time and later results are then attached to the existing content record. Content production keeps the hypothesis and copy approval gates and never publishes to TikTok.
 
 ### Performance collection
 
-Public post performance is collected from TikWM at 24, 48, and 72 hours after publication:
-
-- views;
-- likes;
-- comments;
-- shares;
-- saves.
+TikWM supplies public views, likes, comments, shares, and saves at 24, 48, and 72 hours after publication.
 
 The collector runs hourly but writes only a due checkpoint; it does not create hourly metric snapshots. A newly inserted checkpoint triggers one bounded result-review research cycle, while a no-op collector tick starts no reasoning agent. Public follower observations use a separate collector with a 24-hour freshness guard.
 
-TikTok Studio remains the first-party manual source for profile views, watch quality, per-post follows, and viewer/follower composition. These private metrics are not inferred from public engagement or scraper data.
+TikTok Studio is the first-party source for profile views, watch quality, per-post follows, and viewer/follower composition. When one of these observations materially blocks a current decision, the assistant creates or reuses a pending measurement request and asks through Telegram for the exact metric, scope, reporting window, and TikTok Studio location. Supplied values are stored with source evidence and limitations; private metrics are never inferred from public counters.
 
 ### Event-driven research
 
-Research is not an independent hourly activity. It runs from a real decision event: every content cycle performs `content_preflight`, each newly inserted 24h/48h/72h checkpoint triggers `result_review`, and an explicit interactive request may use `manual`. Every run asks what would most improve the current qualified-audience or content decision, reads accepted evidence and prior quality feedback first, then actively investigates at most three independent bounded questions—or zero when current evidence is sufficient.
+Every content cycle performs `content_preflight`, each newly inserted 24h/48h/72h checkpoint triggers `result_review`, and an explicit request may use `manual`. A run asks what would most improve the current audience or content decision, reads accepted evidence and prior quality feedback, and investigates at most three independent bounded questions—or zero when current evidence is sufficient.
 
 Each selected question is recorded before investigation and must end as a bounded finding, duplicate, no-finding result, outside-scope result, or failure. A result review treats one checkpoint as diagnostic evidence, not causal proof, and separates sample maturity, distribution noise, measurement gaps, message, copywriting, topic, and execution conditions. Supported findings update exactly one valid owner. Research evidence, reviews, adoptions, user quality feedback, and durable owner-change notifications are stored in `db/research.sqlite` through `scripts/research_store.py`.
 
-After each event run, Telegram receives a compact Korean digest with the run/question/finding IDs, sources and limitations, disposition and owner/action, system-integrity result, and the resulting content-decision change. Feedback can be recorded as `useful`, `weak_evidence`, `irrelevant`, `overstated`, or `correction`, so later runs can improve selection and evidence thresholds without rewriting history.
+After each event run, Telegram shows only the key metrics, their plain-language meaning, and what changes next. Internal IDs, routing, provenance, and feedback classification remain in SQLite.
 
 ### Autonomous system improvement
 
-The agent has standing authority to improve this system's structure, content, schemas, workflows, methods, jobs, dependencies, and owner map. Every change must preserve four invariants: MECE coverage, exactly one documented owner for every responsibility, no unresolved logical conflict, and database storage for unbounded accumulated observations, evidence, results, findings, provenance, events, and history. Files remain bounded owners for current policy, product context, schemas, code, configuration, immutable generation contracts, and media assets.
+The agent may improve this system's structure, schemas, workflows, methods, jobs, dependencies, and owner map while preserving MECE coverage, one owner per responsibility, logical consistency, and database storage for accumulating observations and history.
 
-Structural change alone does not require approval. The agent escalates only external credentials or permissions, paid spend, destructive or irreversible migration, decisions outside this marketing workspace, or a consistency risk it cannot safely resolve.
+It escalates external credentials or permissions, paid spend, destructive or irreversible data changes, decisions outside this workspace, and consistency risks it cannot safely resolve.
 
 ### Automated integrity checks
 
-Before the hourly results collector or exact-minute production job mutates state, `scripts/system_integrity.py` checks both SQLite databases, foreign keys and schema versions, terminal research states, expired leases, required owners, event-driven scheduler topology, previous job failures, and Telegram delivery. Event research separately checks semantic problems such as duplicate or missing ownership, logical conflicts, stale workflow instructions, unreliable transitions, and missing capabilities, then applies the smallest authorized verified correction.
+Before collection or production mutates state, `scripts/system_integrity.py` checks SQLite integrity, lifecycle states, leases, required owners, scheduler topology, job outcomes, and Telegram delivery. It also reports operational-health warnings: hypothesis stagnation, checkpoints without result review, stale TikTok Studio requests, repeated low-yield research outcomes, and unexplained concentration in finding owners or source classes. These are diagnostic warnings rather than mechanical quotas; the agent checks live context before correcting or escalating them.
 
-This automation intentionally runs inside existing Hermes Scheduler jobs. No launchd service, daemon, heartbeat, or external Runtime Watchdog is installed, so it does not claim to detect Hermes Scheduler itself being stopped.
+Event research checks semantic ownership, consistency, transition, and capability defects. The checks run inside existing Hermes Scheduler jobs and therefore cover executions that start, not the availability of the scheduler process itself.
 
 ### External data sources
 
@@ -101,23 +97,20 @@ This automation intentionally runs inside existing Hermes Scheduler jobs. No lau
 | TikWM public API | Published-post checkpoints and public follower observations | Primary public funnel/diagnostic source |
 | Apify TikTok actors | Public content, author, comment, search, and reference research | Primary TikTok research provider |
 | Bright Data TikTok datasets | Public TikTok research fallback | Configured; used only when Apify is insufficient |
-| TikTok Studio | Private operating-account analytics | Manual, after account analytics exist |
+| TikTok Studio | Private operating-account analytics | Requested through Telegram when a current decision needs an exact private observation |
 | App Store Connect Analytics Reports | Product-page views and downstream App Store outcomes | Deferred until the App Store destination is live |
 
-TikTok Display API is not used. Public research providers never receive the operating account's password, cookies, OAuth token, or authenticated session.
+Public research providers receive no operating-account password, cookie, token, or authenticated session.
 
 ## Automation
 
 The Hermes scheduler record is the authority for exact timing. The current runtime snapshot is:
 
-| Job | Schedule | Purpose |
+| Job | Schedule | Behavior |
 | --- | --- | --- |
 | Hourly due content results | Every hour at minute `05` | Run integrity checks; insert due 24h/48h/72h TikWM checkpoints; start result-review research only after a new insertion |
-| Daily publication-ready content | Every day at `07:00` KST | Run integrity and preflight research, diagnose the funnel, create and verify one content, deliver the exact media and research digest to Telegram; never publish |
 
-Follower collection has no separate cron: production reuses an observation younger than 24 hours and refreshes it only when stale. TikTok Studio checks are deferred until content is being published and account analytics exist.
-
-The daily job uses a script-only scheduler gate before launching its reasoning agent. If the machine wakes after the configured minute, the gate exits silently and abandons the missed slot instead of creating catch-up content.
+Content production is interactive. Private TikTok Studio observations follow the pending-request lifecycle above.
 
 ## Files and responsibilities
 
@@ -132,16 +125,16 @@ The daily job uses a script-only scheduler gate before launching its reasoning a
 | `docs/research-loop.md` | Event-driven research selection, review, routing, quality feedback, adoption, delivery, and integrity rules |
 | `messages/` | Versioned message strategies |
 | `renderer/<medium>/formats/<format-id>/` | Format copywriting, ordered references, editable native projects, and renderer-specific execution |
-| `db/hypothesis-loop.sqlite` | Hypotheses, content identities and copy snapshots, publication links, results, and follower observations |
+| `db/hypothesis-loop.sqlite` | Hypotheses, content identities and copy snapshots, publication links, public results, TikTok Studio requests, and supplied private observations |
 | `db/research.sqlite` | Research runs, questions, sources, findings, reviews, quality feedback, accepted knowledge, and notification outbox |
 | `scripts/research_store.py` | Sole writer for the Research DB lifecycle |
 | `scripts/collect_due_content_results.py` | Due 24h/48h/72h public post collection |
 | `scripts/collect_account_followers.py` | Freshness-guarded public follower collection |
+| `scripts/manual_analytics_store.py` | Pending TikTok Studio requests and immutable supplied observations |
 | `scripts/run_event_research.py` | Bounded result-review/manual research-agent launcher and digest contract |
 | `scripts/system_integrity.py` | Deterministic scheduler-internal integrity checks |
-| `scripts/run_scheduled_content_production.py` | Exact-minute gate, pre-mutation integrity check, and autonomous daily production/preflight launch |
 | Hermes `marketing-liftcode` cron records | Exact schedules, delivery route, workdir, and script or prompt linkage |
 | Hermes `marketing-liftcode` profile config | Runtime model, provider, and tool configuration |
-| Hermes profile script wrappers | Scheduler-safe entrypoints into repository collectors and production |
+| Hermes profile script wrappers | Scheduler-safe entrypoints into repository collectors |
 
 Runtime SQLite databases, credentials, editable projects, production assets, renders, and TikTok Studio exports are local and Git-ignored.

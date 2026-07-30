@@ -194,7 +194,7 @@ Do not delete the record.
 
 ## Daily hypothesis confirmation gate
 
-Interactive content runs use the confirmation gate below. A project may grant standing authorization to a recurring scheduled production job because cron sessions have no user present. Under LIFT CODE's scheduled autonomous production mode, the job itself applies its evidence-based hypothesis actions, owner updates, and one-content allocation without waiting for confirmation, while preserving the same lineage, evidence, single-axis, and ownership rules. This exception applies only to a configured scheduled job; interactive runs retain the gate unless the user explicitly says otherwise.
+Every content run uses the confirmation gate below. LIFT CODE has no recurring content-production job.
 
 Before generating the day's content, the assistant presents a concise proposal covering every active leaf affected by newly reviewed evidence:
 

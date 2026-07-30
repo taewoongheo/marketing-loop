@@ -62,6 +62,7 @@ export type AudioLayer = {
 export type VideoProject = {
   type: "lift-code-video-project";
   version: 1;
+  formatId: string;
   id?: string;
   name: string;
   fps: number;
@@ -106,6 +107,7 @@ export const projectDuration = (project: Pick<VideoProject, "clips" | "textLayer
 export const createProject = (): VideoProject => ({
   type: "lift-code-video-project",
   version: 1,
+  formatId: "",
   name: "",
   fps: 30,
   preset: CANVAS_PRESETS[1],

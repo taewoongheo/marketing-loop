@@ -1,4 +1,4 @@
-import { CANVAS_PRESETS, clamp, type AudioLayer, type TextLayer, type VideoClip, type VideoProject } from "./projectModel";
+import { CANVAS_PRESETS, clamp, type AudioLayer, type TextLayer, type VideoClip, type VideoProject } from "./projectModel.ts";
 
 export const MAX_PROJECT_BYTES = 2 * 1024 * 1024;
 export const MAX_ASSET_BYTES = 1024 * 1024 * 1024;
@@ -6,6 +6,7 @@ export const MAX_CLIPS = 100;
 export const MAX_TEXT_LAYERS = 100;
 export const MAX_AUDIO_LAYERS = 100;
 const ASSET_PATH = /^\/assets\/[\p{Letter}\p{Number}._-]+$/u;
+const FORMAT_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === "object" && value !== null;
 const number = (value: unknown, fallback: number) => typeof value === "number" && Number.isFinite(value) ? value : fallback;
@@ -13,6 +14,7 @@ const text = (value: unknown, fallback = "") => typeof value === "string" ? valu
 
 export function assertVideoProject(value: unknown): asserts value is VideoProject {
   if (!isRecord(value) || value.type !== "lift-code-video-project") throw new Error("Project must be a lift-code-video-project object.");
+  if (typeof value.formatId !== "string" || !FORMAT_ID_PATTERN.test(value.formatId)) throw new Error("Project must include a lowercase format identity.");
   const preset = value.preset;
   if (!isRecord(preset) || !CANVAS_PRESETS.some((candidate) => candidate.id === preset.id)) throw new Error("Project layout is invalid.");
   if (!Array.isArray(value.clips) || value.clips.length > MAX_CLIPS) throw new Error(`Project must contain at most ${MAX_CLIPS} clips.`);
@@ -98,6 +100,7 @@ export const normalizeProject = (value: unknown): VideoProject => {
   return {
     type: "lift-code-video-project",
     version: 1,
+    formatId: value.formatId,
     id: text(value.id) || undefined,
     name: text(value.name),
     fps,

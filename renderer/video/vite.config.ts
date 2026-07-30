@@ -9,11 +9,12 @@ import react from "@vitejs/plugin-react";
 import { assertVideoProject, MAX_ASSET_BYTES, MAX_PROJECT_BYTES, normalizeProject } from "./src/projectValidation.ts";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
-const contentsDirectory = path.join(root, "contents");
+const formatsDirectory = path.join(root, "formats");
 const assetsDirectory = path.join(root, "public", "assets");
 const rendersDirectory = path.join(root, "renders");
 const renderScript = path.join(root, "scripts", "render-project.mjs");
 const videoExtensions = new Set([".mp4", ".mov", ".webm", ".m4v"]);
+const FORMAT_ID_PATTERN = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 const fileId = (value: string, fallback: string) => value
   .normalize("NFKC")
@@ -39,7 +40,19 @@ const readBody = async (request: Parameters<Connect.NextHandleFunction>[0], limi
   return body;
 };
 
-const readProjects = async () => {
+const getFormatDirectory = (formatId: string) => path.join(formatsDirectory, formatId);
+const getContentsDirectory = (formatId: string) => path.join(getFormatDirectory(formatId), "contents");
+
+const readFormatIds = async () => {
+  await mkdir(formatsDirectory, { recursive: true });
+  return (await readdir(formatsDirectory, { withFileTypes: true }))
+    .filter((entry) => entry.isDirectory() && FORMAT_ID_PATTERN.test(entry.name))
+    .map((entry) => entry.name)
+    .sort();
+};
+
+const readFormatProjects = async (formatId: string) => {
+  const contentsDirectory = getContentsDirectory(formatId);
   await mkdir(contentsDirectory, { recursive: true });
   const files = (await readdir(contentsDirectory)).filter((name) => name.endsWith(".json")).sort();
   const projects = await Promise.all(files.map(async (name) => {
@@ -47,12 +60,18 @@ const readProjects = async () => {
       const projectPath = path.join(contentsDirectory, name);
       if ((await stat(projectPath)).size > MAX_PROJECT_BYTES) return null;
       const value = normalizeProject(JSON.parse(await readFile(projectPath, "utf8")));
+      if (value.formatId !== formatId) return null;
       return { ...value, id: path.basename(name, ".json") };
     } catch {
       return null;
     }
   }));
   return projects.filter((project) => project !== null);
+};
+
+const readProjects = async () => {
+  const libraries = await Promise.all((await readFormatIds()).map(readFormatProjects));
+  return libraries.flat();
 };
 
 const runRender = (projectPath: string, outputPath: string) => new Promise<void>((resolve, reject) => {
@@ -84,8 +103,40 @@ const normalizeVideo = (inputPath: string, outputPath: string) => new Promise<vo
 const storageMiddleware: Connect.NextHandleFunction = async (request, response, next) => {
   const url = new URL(request.url ?? "/", "http://localhost");
   const pathname = url.pathname;
+  if (pathname.startsWith("/api/")) {
+    const host = request.headers.host ?? "";
+    const origin = request.headers.origin;
+    let trustedOrigin = !origin;
+    if (origin) {
+      try {
+        const parsed = new URL(origin);
+        trustedOrigin = parsed.protocol === "http:" && parsed.host.toLowerCase() === host.toLowerCase();
+      } catch {
+        trustedOrigin = false;
+      }
+    }
+    if (!/^(?:127\.0\.0\.1|localhost)(?::\d+)?$/i.test(host) || !trustedOrigin) {
+      sendJson(response, 403, { error: "Storage API requests must be same-origin on localhost." });
+      request.resume();
+      return;
+    }
+    if (
+      request.method === "POST"
+      && pathname !== "/api/assets"
+      && !(request.headers["content-type"] ?? "").toLowerCase().startsWith("application/json")
+    ) {
+      sendJson(response, 415, { error: "Content-Type must be application/json." });
+      request.resume();
+      return;
+    }
+  }
 
   try {
+    if (pathname === "/api/formats" && request.method === "GET") {
+      sendJson(response, 200, { formatIds: await readFormatIds() });
+      return;
+    }
+
     if (pathname === "/api/projects" && request.method === "GET") {
       sendJson(response, 200, { projects: await readProjects() });
       return;
@@ -99,8 +150,15 @@ const storageMiddleware: Connect.NextHandleFunction = async (request, response, 
         sendJson(response, 400, { error: "A project name is required." });
         return;
       }
+      try {
+        await access(getFormatDirectory(project.formatId));
+      } catch {
+        sendJson(response, 400, { error: `Unknown format: ${project.formatId}.` });
+        return;
+      }
       const id = fileId(project.name, "video-project");
       const stored = { ...project, id, updatedAt: new Date().toISOString() };
+      const contentsDirectory = getContentsDirectory(project.formatId);
       await mkdir(contentsDirectory, { recursive: true });
       await writeFile(path.join(contentsDirectory, `${id}.json`), `${JSON.stringify(stored, null, 2)}\n`, "utf8");
       sendJson(response, 200, { project: stored, projects: await readProjects() });
@@ -108,13 +166,14 @@ const storageMiddleware: Connect.NextHandleFunction = async (request, response, 
     }
 
     if (pathname.startsWith("/api/projects/") && request.method === "DELETE") {
-      const id = decodeURIComponent(pathname.slice("/api/projects/".length));
-      if (!id || fileId(id, "") !== id) {
-        sendJson(response, 400, { error: "Project id is invalid." });
+      const segments = pathname.slice("/api/projects/".length).split("/").map(decodeURIComponent);
+      const [formatId, id] = segments;
+      if (segments.length !== 2 || !FORMAT_ID_PATTERN.test(formatId) || !id || fileId(id, "") !== id) {
+        sendJson(response, 400, { error: "Format or project id is invalid." });
         return;
       }
       try {
-        await unlink(path.join(contentsDirectory, `${id}.json`));
+        await unlink(path.join(getContentsDirectory(formatId), `${id}.json`));
       } catch (error) {
         if ((error as { code?: string }).code !== "ENOENT") throw error;
       }
@@ -151,9 +210,7 @@ const storageMiddleware: Connect.NextHandleFunction = async (request, response, 
       });
       try {
         await pipeline(request, createWriteStream(uploadDestination, { flags: "wx" }));
-        if (shouldNormalizeVideo) {
-          await normalizeVideo(uploadDestination, destination);
-        }
+        if (shouldNormalizeVideo) await normalizeVideo(uploadDestination, destination);
       } catch (error) {
         await Promise.all([
           unlink(uploadDestination).catch(() => undefined),
@@ -170,27 +227,30 @@ const storageMiddleware: Connect.NextHandleFunction = async (request, response, 
     if (pathname === "/api/render" && request.method === "POST") {
       const body = JSON.parse(await readBody(request, 16 * 1024));
       const id = typeof body.id === "string" ? body.id : "";
-      if (!id || fileId(id, "") !== id) {
+      const formatId = typeof body.formatId === "string" ? body.formatId : "";
+      if (!FORMAT_ID_PATTERN.test(formatId) || !id || fileId(id, "") !== id) {
         sendJson(response, 400, { error: "Save the project before rendering." });
         return;
       }
-      const projectPath = path.join(contentsDirectory, `${id}.json`);
+      const projectPath = path.join(getContentsDirectory(formatId), `${id}.json`);
       await access(projectPath);
-      await mkdir(rendersDirectory, { recursive: true });
+      const formatRendersDirectory = path.join(rendersDirectory, formatId);
+      await mkdir(formatRendersDirectory, { recursive: true });
       const outputName = `${id}.mp4`;
-      await runRender(projectPath, path.join(rendersDirectory, outputName));
-      sendJson(response, 200, { downloadUrl: `/api/renders/${encodeURIComponent(outputName)}` });
+      await runRender(projectPath, path.join(formatRendersDirectory, outputName));
+      sendJson(response, 200, { downloadUrl: `/api/renders/${encodeURIComponent(formatId)}/${encodeURIComponent(outputName)}` });
       return;
     }
 
     if (pathname.startsWith("/api/renders/") && request.method === "GET") {
-      const name = decodeURIComponent(pathname.slice("/api/renders/".length));
-      const id = name.endsWith(".mp4") ? name.slice(0, -4) : "";
-      if (!id || fileId(id, "") !== id || name !== `${id}.mp4`) {
+      const segments = pathname.slice("/api/renders/".length).split("/").map(decodeURIComponent);
+      const [formatId, name] = segments;
+      const id = name?.endsWith(".mp4") ? name.slice(0, -4) : "";
+      if (segments.length !== 2 || !FORMAT_ID_PATTERN.test(formatId) || !id || fileId(id, "") !== id || name !== `${id}.mp4`) {
         sendJson(response, 400, { error: "Render name is invalid." });
         return;
       }
-      const outputPath = path.join(rendersDirectory, name);
+      const outputPath = path.join(rendersDirectory, formatId, name);
       await access(outputPath);
       response.statusCode = 200;
       response.setHeader("Content-Type", "video/mp4");
