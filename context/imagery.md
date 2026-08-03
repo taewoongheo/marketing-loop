@@ -9,11 +9,12 @@ This file owns the current account-wide rules for translating approved content m
 - `context/expertise.md` owns reusable strength-training domain knowledge and provenance, not visual instructions.
 - The content project owns image-layer presence, fixed assets, placement, dimensions, crop behavior, and all content-specific layout decisions.
 - Raw reference assets remain evidence in their designated owner. This file owns only the current account-wide visual interpretation derived from product and brand direction.
+- The selected format's `imagery.md` owns reusable visual interpretation specific to that format's designated references; this file does not restate or override it.
 - The editable project owns the exact approved copy, final image bytes, and content-specific image geometry used for one content.
 
-At generation time, read the approved project copy, selected image geometry, and this file, then construct the provider request as a transient execution value. Do not persist that request as a separate artifact. Do not store post-specific copy, duplicate layout values, final images, or object-specific default scenes here.
+At generation time, read the approved project copy, selected image geometry, this file, and the selected format's `imagery.md` when present, then construct the provider request as a transient execution value. Do not persist that request as a separate artifact. Do not store post-specific copy, duplicate layout values, final images, or object-specific default scenes here.
 
-User-directed improvements update this file immediately. Imagery is not a hypothesis axis and has no imagery version.
+User-directed account-wide improvements update this file immediately. Format-specific visual corrections update only that format's `imagery.md`. Imagery is not a hypothesis axis.
 
 ## Semantic translation
 
@@ -31,7 +32,7 @@ For each generated image layer selected for the content project, derive one visu
 
 The account-wide visual identity is `restrained wildness`: masculine physical force contained by deliberate training structure.
 
-- Favor dark, high-contrast, near-black environments with controlled highlights, steel, rubber, chalk, worn leather, sweat, and believable Gym texture.
+- When compatible with the selected format's designated evidence, favor dark, high-contrast, near-black environments with controlled highlights, steel, rubber, chalk, worn leather, sweat, and believable Gym texture. When the evidence depends on ordinary mixed capture conditions, preserve its heterogeneity while retaining the same physical stakes and restraint.
 - Use one restrained signal color when useful; do not flood the image with multiple neon accents.
 - Make strength feel heavy and immediate through loaded equipment, close physical detail, compressed space, and purposeful posture.
 - Make control feel visible through clean framing, stable geometry, ordered equipment, repeated Set structure, measured preparation, and the absence of chaotic spectacle.
@@ -39,7 +40,7 @@ The account-wide visual identity is `restrained wildness`: masculine physical fo
 - When people are present, prioritize adult male lifters consistent with the primary audience unless approved meaning requires otherwise. Show unposed concentration, strain, preparation, or recovery rather than performative flexing for the camera.
 - Do not require a face. Hands, forearms, back, torso, stance, equipment contact, and partial body crops can carry masculine physicality without turning every slide into a portrait.
 - Vary the primary carrier across a slideshow: person, loaded implement, plates and increments, training log, machine stack, empty rack after effort, or another copy-relevant scene.
-- Vary camera distance and angle across adjacent slides while maintaining the same controlled, dark visual world.
+- Vary camera distance and angle across adjacent slides. Maintain account identity through physical stakes and restraint rather than forcing identical lighting, palette, surface treatment, or camera polish across unrelated source moments.
 - Do not repeat one lifter, one rack, one object cluster, or one exact composition merely to manufacture consistency.
 
 Before provider requests, assign each generated slot a distinct primary carrier, Gym setting, camera distance or angle, and dominant light treatment.
@@ -52,10 +53,17 @@ Before provider requests, assign each generated slot a distinct primary carrier,
 - Keep the primary physical action immediately legible at slideshow size.
 - Use one plausible Gym environment and only the elements needed to communicate the moment.
 - Do not place essential anatomy, hands, plates, pin settings, or bar contact at crop edges.
+- Establish the camera holder and capture reason before composing a candid scene. Every visible hand and concurrent action must remain physically compatible with that capture setup; a self-shot must not imply that the camera holder is simultaneously using both hands for a lift, handling a heavy plate, or performing another incompatible task.
+- A companion-shot training image must read as an openly shared moment: place the camera within the same station at normal friend or training-partner distance with a clear line of sight. Do not hide the camera behind rack uprights, machines, doors, or narrow gaps in a way that makes the image feel covert or voyeuristic.
+- Use behavior that would be ordinary in the depicted Gym context. Do not stage an uncommon action merely to literalize the copy when a familiar contemporary behavior, equipment state, environment, or indirect physical cue can carry the same meaning.
 
 ## Runtime request constraints
 
 Construct one provider request from approved meaning, art direction, composition, and the following exclusions. Use a plain semantic scene description instead of copying approved slide wording when possible.
+
+When designated references establish a photographic format and the configured tool accepts reference images, condition generation on up to three representative reference images. Use them only for medium, capture character, subject scale, framing, exposure, environmental imperfection, and image-copy spacing. Explicitly require a new adult identity, new pose, and new scene; do not reproduce embedded text, platform chrome, branding, or a source photograph's distinctive composition.
+
+For candid social photography, avoid generic realism intensifiers such as `photorealistic`, `hyperreal`, `cinematic`, `ultra-detailed`, and `dramatic lighting`. Describe an ordinary capture process instead: handheld phone-camera auto-exposure, mixed practical Gym lighting, limited dynamic range, slight focus or motion imperfection where plausible, natural sensor noise, unretouched skin, ordinary clothing folds, incidental background clutter, and an imperfect but legible crop. Do not add all imperfections mechanically to every image; preserve only those that fit the reference evidence and scene.
 
 Encode these constraints:
 
@@ -71,23 +79,34 @@ Encode these constraints:
 - no impossible plates, malformed barbell, broken cable path, unusable machine geometry, unsafe rack setup, or obvious anatomy defect;
 - no synthetic plastic skin, excessive sharpening, implausible symmetry, impossible lighting, or over-rendered muscle detail.
 
-These exclusions guide provider requests. They do not authorize subjective selection or another paid generation after a technically usable image has been returned.
+These exclusions guide provider requests and candidate selection. They do not authorize generation beyond the bounded candidate and attempt totals below.
 
 ## Generation and selection policy
 
 - Execution surface: the currently configured Hermes image-generation tool.
 - Backend, provider, model, and credential resolution belong to the active Hermes tool/profile configuration and are not duplicated here.
 - If the active tool does not expose a request parameter, do not pretend this file can select it.
-- Successful results per eligible slot: exactly `1`.
-- Subjective selection: none.
-- Subjective regeneration: none.
+- For photographic formats calibrated from designated references, successful candidates per eligible slot: exactly `3`, whether or not the active tool can accept reference-image inputs.
+- For other generated imagery, successful candidates per eligible slot: exactly `1` unless a user explicitly changes the project scope.
+- Select exactly one final candidate per slot through the bounded photographic-authenticity gate below. Do not generate additional candidates merely because none is aesthetically ideal after the required candidate set succeeds.
+- Maximum technical attempts for a three-candidate slot: `6`; stop once three technically usable candidates exist.
+- Maximum technical attempts for a one-candidate slot: `4`; stop once one technically usable candidate exists.
 - Final embedded format: PNG.
 - Source aspect ratio or size: choose one supported option after content-specific image geometry is selected.
-- Embed the first technically usable provider PNG bytes as returned. Do not resize, downscale, recompress, or convert generated imagery merely to reduce Project JSON or storage size.
-- Maximum technical retries after the initial request: `3`.
-- Maximum total attempts per eligible slot: `4`.
+- Embed the selected provider PNG bytes as returned. Do not resize, downscale, recompress, or convert generated imagery merely to reduce Project JSON or storage size.
 
-A technical failure means no usable image payload was returned because of transport or API failure, empty response, undecodable payload, or invalid output format or dimensions. Retry only such failures. The first technically usable image ends the attempt sequence even when its aesthetics or adherence to non-safety details are imperfect.
+### Photographic-authenticity gate
+
+Evaluate the required candidate set in this order and retain the first candidate that passes every hard gate. When several pass, retain the one closest to the designated reference family's capture character and subject scale.
+
+1. **Hard validity:** decodable provider PNG, correct usable dimensions, no readable generated text, logo, watermark, copied interface, or copied source identity.
+2. **Human and equipment plausibility:** no malformed hands, fused contact points, impossible anatomy, implausible muscle insertions, broken barbell/rack/machine geometry, unsafe physical relationship, or action that cannot be performed with the hands available under the stated camera setup.
+3. **Capture plausibility:** a credible camera holder and reason for the picture; context-normal subject behavior; an open participant viewpoint rather than covert observation when another person holds the camera; no synthetic plastic skin, uniformly painted sweat, excessive micro-contrast, impossible depth of field, contradictory light directions, implausibly clean edge separation, or showroom-perfect environment that conflicts with the reference.
+4. **Reference fit:** correct selected subject and media class, behavior and capture character consistent with the designated evidence, suitable copy space, and no repeated face, object cluster, environment, or exact composition carried across adjacent slides without evidence.
+
+Record no separate ranking artifact. Candidate files and transient contact sheets are execution intermediates; after the final project renders and verifies, remove unselected candidates unless another retained project references them.
+
+A technical failure means no usable image payload was returned because of transport or API failure, empty response, undecodable payload, or invalid output format or dimensions. Retry only such failures. A technically usable result counts toward the required successful-candidate total even when it later fails the photographic-authenticity gate; continue only until that bounded total is reached, then select without further generation.
 
 ## Rationale
 

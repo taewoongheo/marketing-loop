@@ -15,12 +15,15 @@ __pycache__/
 .tmp/
 tmp/
 
+# Local ad-hoc render inspection outputs; canonical outputs stay under each renderer
+/renders/
+
 # Renderer dependencies and builds
 node_modules/
 dist/
 .vite/
 
-# User-provided slideshow reference images
+# Local slideshow reference evidence
 renderer/slideshow/formats/*/references/**/*.png
 renderer/slideshow/formats/*/references/**/*.jpg
 renderer/slideshow/formats/*/references/**/*.jpeg
@@ -29,7 +32,13 @@ renderer/slideshow/formats/*/references/**/*.webp
 # Local self-contained slideshow projects
 renderer/slideshow/formats/*/contents/*.json
 
-# User-provided video reference evidence
+# Local slideshow production assets and renders
+renderer/slideshow/public/assets/*
+!renderer/slideshow/public/assets/.gitkeep
+renderer/slideshow/renders/*
+!renderer/slideshow/renders/.gitkeep
+
+# Local video reference evidence
 renderer/video/formats/*/references/**/*.png
 renderer/video/formats/*/references/**/*.jpg
 renderer/video/formats/*/references/**/*.jpeg
@@ -44,6 +53,7 @@ renderer/video/formats/*/contents/*.json
 renderer/video/public/assets/*
 !renderer/video/public/assets/.gitkeep
 renderer/video/renders/*
+!renderer/video/renders/.gitkeep
 
 # Local credentials
 .env
