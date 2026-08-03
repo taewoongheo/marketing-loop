@@ -277,6 +277,20 @@ def parse_args():
     return parser.parse_args()
 
 
+def print_json_result(collected_events, errors=None):
+    print(
+        json.dumps(
+            {
+                "inserted": len(collected_events),
+                "checkpoints": collected_events,
+                "errors": errors or [],
+            },
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+    )
+
+
 def main():
     args = parse_args()
     now = parse_timestamp(args.now) if args.now else datetime.now(timezone.utc)
@@ -299,16 +313,12 @@ def main():
     except CollectorAlreadyRunning:
         return 0
     except Exception as error:
+        if args.json:
+            print_json_result(collected_events, [str(error)])
         print(f"hourly content-result collector failed: {error}", file=sys.stderr)
         return 1
     if args.json:
-        print(
-            json.dumps(
-                {"inserted": len(collected_events), "checkpoints": collected_events},
-                ensure_ascii=False,
-                separators=(",", ":"),
-            )
-        )
+        print_json_result(collected_events)
     return 0
 
 

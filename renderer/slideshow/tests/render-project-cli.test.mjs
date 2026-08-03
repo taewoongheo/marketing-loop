@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -52,10 +52,73 @@ test("render CLI rejects project JSON without a format identity", async () => {
   }
 });
 
+test("render CLI rejects output outside the renderer renders directory", async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "lift-code-render-boundary-test-"));
+  const projectPath = path.join(directory, "project.json");
+
+  try {
+    await writeFile(projectPath, JSON.stringify({
+      type: "tiktok-slide-project",
+      version: 2,
+      formatId: "denzel",
+      name: "Render boundary test",
+      slides: [{ name: "Slide 1", layers: [] }],
+    }));
+    const result = spawnSync(process.execPath, [
+      cliPath,
+      "--project",
+      projectPath,
+      "--out",
+      path.join(directory, "rendered"),
+    ], {
+      cwd: rendererRoot,
+      encoding: "utf8",
+    });
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /renders directory/i);
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("render CLI rejects a final output symlink outside the renderer renders directory", async () => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "lift-code-render-symlink-test-"));
+  const projectPath = path.join(directory, "project.json");
+  const outputDirectory = path.join(rendererRoot, "renders", path.basename(directory));
+
+  try {
+    await writeFile(projectPath, JSON.stringify({
+      type: "tiktok-slide-project",
+      version: 2,
+      formatId: "denzel",
+      name: "Render symlink test",
+      slides: [{ name: "Slide 1", layers: [] }],
+    }));
+    await symlink(directory, outputDirectory, "dir");
+    const result = spawnSync(process.execPath, [
+      cliPath,
+      "--project",
+      projectPath,
+      "--out",
+      outputDirectory,
+    ], {
+      cwd: rendererRoot,
+      encoding: "utf8",
+    });
+
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /renders directory/i);
+  } finally {
+    await rm(outputDirectory, { force: true });
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
 test("render CLI creates exact-size slide PNGs and a contact sheet from project JSON", async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "lift-code-render-cli-test-"));
   const projectPath = path.join(directory, "project.json");
-  const outputDirectory = path.join(directory, "rendered");
+  const outputDirectory = path.join(rendererRoot, "renders", path.basename(directory));
 
   try {
     await writeFile(projectPath, JSON.stringify({
@@ -92,5 +155,6 @@ test("render CLI creates exact-size slide PNGs and a contact sheet from project 
     assert.equal(contactSheet.subarray(0, 8).toString("hex"), "89504e470d0a1a0a");
   } finally {
     await rm(directory, { recursive: true, force: true });
+    await rm(outputDirectory, { recursive: true, force: true });
   }
 });

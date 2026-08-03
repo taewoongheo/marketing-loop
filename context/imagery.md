@@ -10,7 +10,7 @@ This file owns the current account-wide rules for translating approved content m
 - The content project owns image-layer presence, fixed assets, placement, dimensions, crop behavior, and all content-specific layout decisions.
 - Raw reference assets remain evidence in their designated owner. This file owns only the current account-wide visual interpretation derived from product and brand direction.
 - The selected format's `imagery.md` owns reusable visual interpretation specific to that format's designated references; this file does not restate or override it.
-- The editable project owns the exact approved copy, final image bytes, and content-specific image geometry used for one content.
+- The editable project materializes the DB-owned approved copy and owns the final image bytes and content-specific image geometry used for one content.
 
 At generation time, read the approved project copy, selected image geometry, this file, and the selected format's `imagery.md` when present, then construct the provider request as a transient execution value. Do not persist that request as a separate artifact. Do not store post-specific copy, duplicate layout values, final images, or object-specific default scenes here.
 

@@ -63,6 +63,68 @@ test("video storage API rejects cross-origin browser mutations", async () => {
   });
 });
 
+test("video storage API reports invalid project input as a client error", async () => {
+  await withServer(async (origin) => {
+    const response = await fetch(`${origin}/api/projects`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+
+    assert.equal(response.status, 400);
+  });
+});
+
+test("video storage API reports malformed JSON as a client error", async () => {
+  await withServer(async (origin) => {
+    const response = await fetch(`${origin}/api/projects`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{",
+    });
+
+    assert.equal(response.status, 400);
+  });
+});
+
+test("video storage API rejects a normalized project larger than its readable limit", async () => {
+  await withServer(async (origin) => {
+    const formats = await (await fetch(`${origin}/api/formats`)).json();
+    const formatId = formats.formatIds[0];
+    assert.ok(formatId);
+    const name = "oversized-normalized-project";
+    const project = {
+      type: "lift-code-video-project",
+      version: 1,
+      formatId,
+      name,
+      fps: 30,
+      preset: { id: "tiktok_9_16" },
+      clips: [],
+      textLayers: Array.from({ length: 100 }, (_, index) => ({
+        id: `text-${index}`,
+        text: "x".repeat(20_800),
+      })),
+    };
+    const body = JSON.stringify(project);
+    assert.ok(Buffer.byteLength(body) < 2 * 1024 * 1024);
+
+    try {
+      const response = await fetch(`${origin}/api/projects`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      });
+
+      assert.equal(response.status, 413);
+    } finally {
+      await fetch(`${origin}/api/projects/${encodeURIComponent(formatId)}/${name}`, {
+        method: "DELETE",
+      });
+    }
+  });
+});
+
 test("render CLI consumes the shared project validator", async () => {
   const source = await readFile(new URL("../scripts/render-project.mjs", import.meta.url), "utf8");
 

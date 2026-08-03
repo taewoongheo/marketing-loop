@@ -24,7 +24,7 @@ Markdown entrypoints such as `context/expertise.md`, `context/user-language.md`,
 
 ## Open discovery, closed admission
 
-Discovery may investigate any question with a plausible causal path to LIFT CODE revenue or reliable marketing operation. Automatic mutation remains limited to this marketing workspace and its decision rights, but the owner map itself may be improved autonomously under the four invariants in `AGENTS.md`.
+Discovery may investigate any question with a plausible causal path to LIFT CODE revenue or reliable marketing operation. Automatic mutation remains limited to this marketing workspace and its decision rights. Improvements within an existing owner contract are autonomous; a change to the owner map or operating model follows the prior Telegram approval gate in `AGENTS.md`.
 
 For each run:
 
@@ -34,11 +34,11 @@ For each run:
 4. Select no more than three independent questions. The limit controls execution, not subject matter.
 5. Research each question with the narrowest suitable live capability and preserve exact source URLs and material limitations.
 6. Record one bounded finding per question, or explicitly record `no_finding`, `outside_scope`, `duplicate`, or `failed`.
-7. Never force a novel result into the nearest owner. When an in-scope result has no valid marketing owner, assess and implement the smallest complete owner-map change under `AGENTS.md`; use `new_owner_proposal` only when that change is blocked from autonomous implementation.
+7. Never force a novel result into the nearest owner. When an in-scope result has no valid marketing owner, record the smallest complete `new_owner_proposal` and request the prior Telegram approval required by `AGENTS.md` before changing the owner map.
 
 Do not accumulate broad strength-training knowledge merely because credible information is available. A domain question must have a plausible route to the target problem, a near-term content need, or a current marketing decision. When accepted evidence is already sufficient, select zero questions rather than manufacturing work for a trigger.
 
-Research may examine adjacent evidence only when it informs a marketing-owned decision. If the bounded result cannot route to a valid marketing owner, including one that can be created autonomously without violating `AGENTS.md`, close the question as `outside_scope` without creating a finding. Reserve `new_owner_proposal` for an in-scope marketing result whose required owner change is blocked by credentials, permissions, paid spend, a destructive data change, an out-of-scope decision, or unresolved consistency risk; it cannot silently change product, pricing, retention, or another non-marketing owner.
+Research may examine adjacent evidence only when it informs a marketing-owned decision. If the bounded result cannot route to a current valid marketing owner, close the question as `outside_scope` unless an owner-map change is the smallest complete remedy. In that case, use `new_owner_proposal` for the approval request and do not materialize or adopt it before explicit Telegram approval. A proposal cannot silently change product, pricing, retention, or another non-marketing owner.
 
 ## Event triggers and concurrency
 
@@ -67,10 +67,10 @@ Result-review evidence is diagnostic, not automatic causal attribution. Evaluate
 Research admission is always autonomous under standing user authorization. There is no per-finding user-approval mode or mutable authorization flag.
 
 1. The agent reviews every bounded finding first and records one immutable decision with its rationale. A review is not adoption.
-2. A supported finding may be adopted only into its exact recorded valid owner. When no owner exists, the agent may first create or restructure the owner map under `AGENTS.md`, update every producer and consumer, and revise the finding route before adoption.
+2. A supported finding may be adopted only into its exact recorded valid owner. When no owner exists, record a `new_owner_proposal`; after explicit Telegram approval, create or restructure the owner map, update every producer and consumer, revise the finding route, and only then adopt it.
 3. Adoption is a separate immutable receipt. It must match the finding's route, exactly one final owner, and the materialized owner state.
 4. After each event run, Telegram receives only the key user-facing result. Internal IDs, lifecycle outcomes, owners, and provenance remain in SQLite.
-5. New owners and structural changes are autonomous when they satisfy the four invariants. Credentials or permissions, paid access, destructive data changes, out-of-scope decisions, and unresolved consistency risks remain Telegram action requests and are never represented as adoptions.
+5. New owners and structural or operating-model changes require prior explicit Telegram approval even when they satisfy the four invariants. Credentials or permissions, paid access, destructive data changes, out-of-scope decisions, and unresolved consistency risks remain separate Telegram action requests and are never represented as adoptions.
 6. Content creation, publication, and hypothesis decisions retain their separate contracts; research admission does not bypass them.
 7. Validate the final owner and adoption receipt. An autonomous event run may commit and push only its exact clean tracked changes under the dirty-tree isolation rules in `AGENTS.md`.
 
@@ -80,7 +80,7 @@ If the user later says a notified finding is wrong or should not be used, inspec
 
 `research_quality_feedback` is the immutable owner of the user's evaluation of a whole run or one finding. Record `useful`, `weak_evidence`, `irrelevant`, `overstated`, or `correction` with the actual rationale and a non-secret Telegram evidence reference. Later runs read recurring feedback patterns to improve question selection, source sufficiency, scope, and admission. Feedback never rewrites the historical finding or agent review; `correction` also requires the exact withdrawal/correction workflow when materialized knowledge must change.
 
-A `new_owner_proposal` is evidence for an owner change that the agent cannot safely implement under current authority or evidence. It records the smallest owner contract and the exact blocker; the proposal itself is not adoptable. A structural change that satisfies `AGENTS.md` is implemented and validated directly instead of being routed through a proposal merely because it is structural.
+A `new_owner_proposal` is evidence for a missing or changed owner contract. It records the smallest owner contract, why the current structure is insufficient, what it replaces, and the pending Telegram approval; the proposal itself is not adoptable. After approval, materialize and validate the structural change first, then revise the finding route to the resulting valid owner.
 
 ## Admission routing
 
@@ -95,7 +95,7 @@ Route by what the accepted result changes, not by the query's topic.
 | Current product fact or bounded context correction | Existing canonical context file, linked by `research_adoptions` |
 | Message/copywriting strategy worth testing | Confirmed hypothesis/version owner, linked by `research_adoptions` |
 | Operating procedure | `AGENTS.md`, this document, or a reusable skill, linked by `research_adoptions` |
-| Missing responsibility | Autonomously create or restructure one owner under `AGENTS.md`; use `new_owner_proposal` only when blocked |
+| Missing responsibility | Record the smallest `new_owner_proposal`; create or restructure one owner only after explicit Telegram approval |
 | Outside marketing responsibility | `outside_scope` question outcome; no finding or owner |
 | Unsupported or immaterial result | Rejected review; no final owner |
 

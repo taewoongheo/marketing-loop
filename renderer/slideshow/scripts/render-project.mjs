@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
 import { spawn } from "node:child_process";
-import { access, mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, readFile, realpath, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -27,6 +27,31 @@ Options:
 `;
 
 const rendererRoot = fileURLToPath(new URL("..", import.meta.url));
+
+const assertRenderOutput = async (outputDirectory) => {
+  const rendersDirectory = path.join(rendererRoot, "renders");
+  await mkdir(rendersDirectory, { recursive: true });
+  const relative = path.relative(rendersDirectory, outputDirectory);
+  if (!relative || relative === ".." || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+    throw new Error("--out must resolve inside the renderer renders directory.");
+  }
+
+  let ancestor = outputDirectory;
+  while (true) {
+    try {
+      ancestor = await realpath(ancestor);
+      break;
+    } catch (error) {
+      if (error?.code !== "ENOENT") throw error;
+      ancestor = path.dirname(ancestor);
+    }
+  }
+  const canonicalRoot = await realpath(rendersDirectory);
+  const canonicalRelative = path.relative(canonicalRoot, ancestor);
+  if (canonicalRelative === ".." || canonicalRelative.startsWith(`..${path.sep}`) || path.isAbsolute(canonicalRelative)) {
+    throw new Error("--out must resolve inside the renderer renders directory.");
+  }
+};
 
 const parseArgs = (args) => {
   const options = {};
@@ -337,6 +362,7 @@ const run = async () => {
   const projectPayload = await readFile(projectPath, "utf8");
   const project = JSON.parse(projectPayload);
   assertBoundedProject(project);
+  await assertRenderOutput(outputDirectory);
   const chrome = await findChrome();
   let profileDirectory;
   let server;

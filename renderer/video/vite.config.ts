@@ -144,8 +144,16 @@ const storageMiddleware: Connect.NextHandleFunction = async (request, response, 
 
     if (pathname === "/api/projects" && request.method === "POST") {
       const value = JSON.parse(await readBody(request, MAX_PROJECT_BYTES));
-      assertVideoProject(value);
-      const project = normalizeProject(value);
+      let project;
+      try {
+        assertVideoProject(value);
+        project = normalizeProject(value);
+      } catch (error) {
+        sendJson(response, 400, {
+          error: error instanceof Error ? error.message : "Project is invalid.",
+        });
+        return;
+      }
       if (!project.name.trim()) {
         sendJson(response, 400, { error: "A project name is required." });
         return;
@@ -158,9 +166,14 @@ const storageMiddleware: Connect.NextHandleFunction = async (request, response, 
       }
       const id = fileId(project.name, "video-project");
       const stored = { ...project, id, updatedAt: new Date().toISOString() };
+      const serialized = `${JSON.stringify(stored, null, 2)}\n`;
+      if (Buffer.byteLength(serialized) > MAX_PROJECT_BYTES) {
+        sendJson(response, 413, { error: "Normalized project is too large." });
+        return;
+      }
       const contentsDirectory = getContentsDirectory(project.formatId);
       await mkdir(contentsDirectory, { recursive: true });
-      await writeFile(path.join(contentsDirectory, `${id}.json`), `${JSON.stringify(stored, null, 2)}\n`, "utf8");
+      await writeFile(path.join(contentsDirectory, `${id}.json`), serialized, "utf8");
       sendJson(response, 200, { project: stored, projects: await readProjects() });
       return;
     }
@@ -268,7 +281,12 @@ const storageMiddleware: Connect.NextHandleFunction = async (request, response, 
         : error instanceof Error
           ? error.message
           : "Request failed.";
-    sendJson(response, message === "Payload is too large." ? 413 : 500, { error: message });
+    const status = message === "Payload is too large."
+      ? 413
+      : error instanceof SyntaxError
+        ? 400
+        : 500;
+    sendJson(response, status, { error: message });
   }
 };
 

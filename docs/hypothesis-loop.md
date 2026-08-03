@@ -4,7 +4,7 @@ This document owns the operating model through which hypotheses generate content
 
 ## Purpose
 
-Improve the current marketing-funnel bottleneck while producing `n` contents per day, in service of qualified App Store inflow and the ultimate business purpose of app revenue. Preserve which controllable output hypothesis generated each content, which audience response it expected at the selected bottleneck, and how observed results influenced later hypotheses.
+Improve the current marketing-funnel bottleneck while producing the current target of four contents per day, in service of qualified App Store inflow and the ultimate business purpose of app revenue. Preserve which controllable output hypothesis generated each content, which audience response it expected at the selected bottleneck, and how observed results influenced later hypotheses.
 
 Content production does not wait for performance collection. Results that arrive after 24, 48, or 72 hours remain connected to the existing hypothesis lineage.
 
@@ -129,10 +129,10 @@ A parent may generate any number of child hypotheses.
 
 ## Daily content generation
 
-Only the total daily content count `n` is fixed. The number of hypotheses is not tied to `n`; content slots may be distributed dynamically across multiple active leaves according to the current funnel diagnosis, direct evidence needs, and expected leverage on qualified App Store inflow.
+The current total daily content target is four, with one content assigned to each 01:00, 11:00, 14:00, and 22:00 KST publication slot. The number of hypotheses is not tied to that target; the four slots may be distributed dynamically across multiple active leaves according to the current funnel diagnosis, direct evidence needs, and expected leverage on qualified App Store inflow.
 
 ```text
-Today's content slots: n
+Today's content slots: 4
 
 Distribute them dynamically across H-012, H-017, H-021, and other active leaves.
 ```
@@ -140,7 +140,7 @@ Distribute them dynamically across H-012, H-017, H-021, and other active leaves.
 If one hypothesis is more promising or needs more direct evidence, several or all slots may be assigned to it.
 
 ```text
-H-012 → n contents
+H-012 → 4 contents
 ```
 
 ## Actions after reviewing content results
@@ -194,15 +194,15 @@ Do not delete the record.
 
 ## Daily hypothesis confirmation gate
 
-Every content run uses the confirmation gate below. LIFT CODE has no recurring content-production job.
+Every content run uses the confirmation gate below. The recurring production job initiates one continuable Telegram workflow two hours before each fixed publication slot and proposes exactly one content for that slot; it does not apply interpretation-driven actions or create content before confirmation.
 
-Before generating the day's content, the assistant presents a concise proposal covering every active leaf affected by newly reviewed evidence:
+Before generating the current run's content, the assistant presents a concise proposal covering every active leaf affected by newly reviewed evidence:
 
 - the current funnel bottleneck, supporting observations, proxies, missing measurements, and limitations;
 - continue the same hypothesis, close the leaf, or create one or more root or child hypotheses;
 - the evidence and limitations behind each recommendation;
 - the full statement, `change_axis`, and one-sentence `decision_reason` of every proposed new hypothesis, including its expected funnel response and the reason that response should relieve the bottleneck;
-- the proposed allocation of the requested `n` contents across active leaves;
+- the proposed allocation of the requested contents across active leaves; a scheduled slot allocates exactly one content;
 - any hypothesis judged operationally supported and the one durable owner that would be updated.
 
 The user confirms or revises this proposal. Only then may the assistant create or close hypothesis nodes, update a durable owner from performance evidence, allocate new content, and proceed to the refined copy proposal. “Remove” means close a branch while preserving its full history; never delete the node, content, or results.
@@ -376,6 +376,7 @@ id
 parent_hypothesis_id
 change_axis: NULL for a root; message | copywriting for a child
 statement
+decision_reason
 last_evaluated_at
 created_at
 closed_at
@@ -386,12 +387,13 @@ closure_reason
 - `parent_hypothesis_id`: direct parent; only a root uses `NULL`;
 - `change_axis`: `NULL` for a root, which has no parent comparison; otherwise the one axis changed from the parent;
 - `statement`: the complete hypothesis claim;
+- `decision_reason`: the concise immutable creation-time reason for selecting the node;
 - `last_evaluated_at`: when the node and required ancestor results were last evaluated;
 - `created_at`: when the hypothesis node was created;
 - `closed_at`: when a childless leaf was explicitly closed;
 - `closure_reason`: why a childless leaf was closed.
 
-Do not store `change_summary`, `creation_rationale`, `status`, or `content_ids`.
+Do not store `change_summary`, a second creation-rationale field, `status`, or `content_ids`.
 
 - Compare parent and child statements to identify the change.
 - Use `hypothesis_evidence` and the referenced result to recover creation evidence.

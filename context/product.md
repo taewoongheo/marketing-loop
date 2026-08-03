@@ -2,9 +2,9 @@
 
 ## Product definition
 
-`LIFT CODE` is a planned strength-training app that helps a lifter choose a credible Program and recommends the next Weight and Reps from actual performance while keeping workout execution fast and simple.
+`LIFT CODE` is a planned strength-training app that reduces uncertainty about training direction so independent lifters can keep working toward muscle-growth or strength goals with justified confidence. The user sets the goal and trains; LIFT CODE helps decide which Program to follow, what to do next, and whether to continue, adjust, or wait for more evidence.
 
-- Status: pre-development.
+- Status: pre-development and not released.
 - Market: United States.
 - Product and visible marketing language: English (U.S.).
 - Official product name: `LIFT CODE`, always uppercase with a space.
@@ -12,36 +12,82 @@
 - `liftcode` is used only where spaces are unavailable, such as domains, social handles, bundle identifiers, or technical IDs.
 - Brand direction: `restrained wildness` — physical ambition and masculine force held inside disciplined progression, visible constraints, and precise control.
 
+## Core problem
+
+Long-term training outcomes develop slowly while choices about Programs, Exercises, Weight, Reps, and progression must be made repeatedly. Until the outcome becomes clear, a lifter may not know whether the current direction is appropriate, whether stalled Weight means the Program has failed, or whether to continue, adjust, or change it.
+
+The product addresses uncertainty on the training side of hypertrophy and strength goals:
+
+- choosing a suitable Program for the user's goal and constraints;
+- following a stable direction long enough to produce meaningful evidence;
+- adjusting Weight, Reps, and RIR from actual performance;
+- interpreting whether to continue, adjust, or wait for more evidence.
+
+The product should provide justified confidence, not manufacture certainty.
+
 ## Target user and delegated job
 
-The primary audience is men in their 20s and 30s who train alone for muscle or strength. The product is not restricted by gender, but the initial brand and marketing entry point deliberately retain a masculine character.
+The target user trains independently with weights, wants muscle growth or greater strength, and does not want to manage Program and progression decisions alone. The user wants a direction worth trusting, the freedom to edit recommendations when actual performance differs, and a simple execution surface once the decision has been made. Age and gender are not product eligibility requirements. The initial U.S. marketing entry point may retain its masculine character without implying that the product is restricted to men.
 
-The target user can perform strength training but wants the app to handle the recurring decisions around:
+The user's functional job is:
 
-- which Program to follow;
-- whether a chosen Program fits the lifter's situation and continues to produce useful progress;
-- what Weight and Reps to attempt next;
-- when to Increase, Maintain, or Decrease load;
-- how to apply progression across exercises and sessions week after week.
+> Reduce my uncertainty about whether I am training in the right direction. Give me a suitable Program, tell me what to do next, and help me know whether to continue or adjust.
 
-The user remains responsible for performing the workout and recording what actually happened. Specific situations, problem framings, and belief shifts belong to versioned definitions in `messages/`.
+The emotional job is to trust that current effort is moving toward the goal instead of wasting months in the wrong direction. The desired state is: “This is the right thing to do now. I can stop second-guessing and just train.”
 
-## User value
+The user remains responsible for performing the Workout and recording what actually happened. Specific situations, problem framings, audience language, and belief shifts belong to their Research DB and versioned `messages/` owners rather than this product-truth file.
 
-Without LIFT CODE, the lifter must compare Programs and training advice, choose one for his situation, spend time and effort judging whether it works, then manage the recurring progression decisions inside it. That includes checking prior performance, deciding the next Weight and Reps, adjusting for equipment increments, recording the Set, and repeating the bookkeeping across future sessions.
+## Product promise and model
 
-LIFT CODE is planned to open with the next workout and its recommendations prepared. The lifter performs the Set, records the actual result, and lets the system carry that result into the next decision. The intended benefit is capable Program and progression judgment with less workout-management friction—not less control over what the lifter actually performs.
+LIFT CODE gives users a training direction they can follow with confidence by helping answer three questions:
+
+1. **Start:** Why is this Program appropriate for me?
+2. **Train:** What should I do now?
+3. **Evaluate:** Should I continue, adjust, or wait for more evidence?
+
+The connected product model is:
+
+```text
+Goal and context → Program → Actual performance → Next recommendation → Continue or adjust
+```
+
+- Goal and context define the user's objective and practical constraints.
+- A stable Program provides direction rather than a random sequence of Workouts.
+- Actual performance records what happened rather than only what was planned.
+- The next recommendation turns those records into an immediate action.
+- Continue or adjust connects daily progression to the longer-term Program and goal.
 
 ## Core product mechanisms
 
-LIFT CODE is planned to solve the delegated job through one connected flow:
+### Training setup and Program
 
-- establish a stable multi-week Program that fits the lifter's goal and training situation, or let the lifter bring an existing Program;
-- use recorded performance to recommend the next Weight and Reps within that Program;
-- connect accumulated performance to the Program's current state so the lifter can judge whether to maintain, modify, or replace it;
-- keep the recommendation understandable and editable while making the workout itself fast to execute and record.
+- Collect only the goal, training experience, weekly frequency, available time, Gym Equipment and Weight increments, and necessary Exercise limitations or preferences required to guide training.
+- Recommend a proven Program suited to the user's goal and context and briefly explain why it was selected.
+- Let a user keep or configure an existing Workout when appropriate.
+- Keep the Program stable long enough to collect meaningful performance evidence.
 
-Detailed Exercise and Set support used to validate content compatibility belongs in [`product-details/training-support.md`](product-details/training-support.md).
+### Workout execution and records
+
+- Open on the next scheduled Workout and prioritize starting it over analysis, settings, or Program browsing.
+- Present planned Exercises, Sets, targets, prior performance, and recommended Weight, Reps, and RIR without unnecessary information.
+- Let the user record actual performance with minimal input and move directly to rest and the next action.
+- Preserve completed Workouts and use accumulated records as inputs to later recommendations and Program evaluation rather than as a statistics dashboard for its own sake.
+
+### Smart Progression and training direction
+
+- Use actual performance to recommend the next Weight and Reps and decide whether to Increase, Maintain, or Decrease.
+- Respect available equipment and Weight increments, feed user edits into later recommendations, and briefly explain unexpected recommendations.
+- Distinguish `Continue`, `Adjust`, and `Not enough data` using observable training information.
+- Connect short-term performance decisions to the current Program and goal.
+- Admit when the available information cannot support a confident judgment.
+
+The exact Program-review signals, review interval, and interface are not decided. Data-based progress interpretation, recommendation explanations, periodic reviews, and habit support remain solution hypotheses rather than current product claims.
+
+### Gym, account, and detailed training support
+
+- Store equipment and available Weight by Gym and avoid impossible Exercise or Weight recommendations.
+- Keep local records available without login, use SQLite as the local source of truth, and offer optional account backup and restore without using data safety as payment pressure.
+- Detailed Exercise, tracking, Set, Superset, and workout-tool support used to validate content compatibility belongs in [`product-details/training-support.md`](product-details/training-support.md).
 
 ## Difference from reference apps
 
@@ -53,15 +99,23 @@ LIFT CODE deliberately combines product mechanics already established by its pri
 
 The intended combination is MacroFactor Workouts- and Alpha Progression-style Program and progression judgment with Hevy-style execution friction. This describes the intended product composition rather than making a direct superiority claim. LIFT CODE does not adopt Hevy's social feed, follower competition, comments, or rankings.
 
+## Product principles
+
+- **Earn trust:** explain important decisions without overwhelming the user, expose missing data, and preserve user control.
+- **Keep execution simple:** prioritize the current Exercise, Weight, Reps, RIR, and next action; keep complexity behind the execution surface.
+- **Preserve a stable direction:** do not change the Program merely to make the product appear personalized.
+- **Use records to decide:** history and statistics should support a recommendation or Program decision rather than only describe the past.
+- **Do not manufacture certainty:** never imply scientific precision or reliable progress when the evidence does not support it.
+
 ## Product boundaries
 
-LIFT CODE is planned to assist Program selection, Workout execution, recording, and progression decisions. It is not planned to:
+LIFT CODE is not planned to:
 
-- provide real-time form correction;
-- diagnose injury, pain, illness, or rehabilitation needs;
-- act as a medical professional or personal trainer observing the user in real time;
-- provide a social feed, follower competition, comments, or rankings;
+- guarantee muscle growth, strength gains, injury prevention, or any particular result;
+- provide real-time form correction or diagnose injury, pain, illness, or rehabilitation needs;
+- act as a medical professional or a personal trainer observing the user in real time;
+- manage nutrition, sleep, or every cause of adherence and recovery;
+- provide a social feed, follower competition, comments, rankings, or a generic motivational content feed;
 - provide general cardio or sport tracking;
 - operate as a general-purpose AI chat coach;
-- recreate the entire Workout each day from a claimed recovery score;
-- guarantee muscle gain, strength gain, injury prevention, or a particular training result.
+- recreate the entire Workout randomly each day or from an unvalidated recovery or growth score.

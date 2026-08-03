@@ -3,9 +3,13 @@ import json
 import sqlite3
 import tempfile
 import unittest
+from contextlib import redirect_stderr, redirect_stdout
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
+import scripts.collect_due_content_results as collector
 from scripts.collect_due_content_results import (
     CollectorAlreadyRunning,
     collect_due_results,
@@ -195,6 +199,33 @@ class DueContentResultCollectorTests(unittest.TestCase):
             "SELECT content_id, target_hours FROM content_results ORDER BY content_id"
         ).fetchall()
         self.assertEqual(rows, [("C-002", 24)])
+
+    def test_json_cli_reports_committed_checkpoints_on_partial_failure(self):
+        self.add_content("C-001", "2026-07-19T11:00:00Z")
+        self.add_content("C-002", "2026-07-19T11:00:00Z")
+        self.connection.commit()
+
+        def fetch_with_one_failure(url):
+            if url.endswith("/1"):
+                raise RuntimeError("post unavailable")
+            return self.fetch_metrics(url)
+
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        args = SimpleNamespace(db=self.db_path, now="2026-07-20T12:00:00Z", json=True)
+        with (
+            patch.object(collector, "parse_args", return_value=args),
+            patch.object(collector, "fetch_with_retry", side_effect=fetch_with_one_failure),
+            redirect_stdout(stdout),
+            redirect_stderr(stderr),
+        ):
+            exit_code = collector.main()
+
+        payload = json.loads(stdout.getvalue())
+        self.assertEqual(exit_code, 1)
+        self.assertEqual(payload["inserted"], 1)
+        self.assertEqual(payload["checkpoints"][0]["content_id"], "C-002")
+        self.assertIn("C-001: post unavailable", payload["errors"])
 
     def test_one_invalid_publication_timestamp_does_not_block_other_due_content(self):
         self.add_content("C-001", "not-a-timestamp")

@@ -66,7 +66,7 @@ The current diagnosis is recomputed from normalized observations each production
 
 ## Phase-aware operation
 
-The product is pre-development, and current TikTok content does not mention or promote the app or planned capabilities. Bio-link clicks, App Store product-page views, and their conversion rates are therefore not yet applicable.
+The product is pre-development and unreleased. Current TikTok content does not mention or promote the app or its planned capabilities and contains no audience-facing call to action, including prompts to follow, visit the profile, comment, save, share, or take another next step. Each post must deliver standalone value without asking the audience to act. Bio-link clicks, App Store product-page views, and their conversion rates are therefore not yet applicable.
 
 Current event applicability is:
 

@@ -1,6 +1,6 @@
 # LIFT CODE marketing loop
 
-A local system for gathering a relevant U.S.-English TikTok audience and turning that reach into qualified App Store inflow for LIFT CODE. During prelaunch it does this without mentioning the unreleased app: it identifies audience needs and creates standalone value that is immediately understandable or experienceable. Value may be practical, explanatory, emotional, or entertaining; the system is not limited to tips.
+A local system for gathering a relevant U.S.-English TikTok audience and turning that reach into qualified App Store inflow for LIFT CODE. During prelaunch it does this without mentioning the unreleased app or asking the audience to take a next step: it identifies audience needs and creates standalone value that is immediately understandable or experienceable. Value may be practical, explanatory, emotional, or entertaining; the system is not limited to tips. `docs/marketing-funnel.md` owns the exact current launch-phase contract.
 
 The product problem defines the content territory: choosing a suitable strength-training Program, judging whether it is working, and reducing recurring progression decisions. Research volume, generic fitness information, and follower growth are inputs or diagnostics—not the final purpose.
 
@@ -55,12 +55,12 @@ For each content, the system:
 1. runs a content-preflight evidence check/research cycle, diagnoses the current bottleneck, and selects a hypothesis action;
 2. selects `slideshow` or `video` and one available format;
 3. reads product truth, accepted research, the selected message and copywriting version, format references, and a bounded set of prior same-format projects;
-4. drafts the final copy and obtains approval in interactive work;
+4. presents the hypothesis action for confirmation, then drafts the final copy and obtains separate approval;
 5. builds and validates a native editable project;
-6. records the publication-ready copy, project identity, medium, format, and hypothesis lineage;
+6. records the user-designated publication-ready copy, project identity, medium, format, and hypothesis lineage;
 7. delivers the final media to Telegram for manual TikTok publication.
 
-The user supplies the published TikTok URL. Publication time and later results are then attached to the existing content record. Content production keeps the hypothesis and copy approval gates and never publishes to TikTok.
+A recurring production job starts one continuable Telegram workflow two hours before each 01:00, 11:00, 14:00, and 22:00 KST publication slot. It allocates exactly one content to the slot but preserves every approval gate. The user publishes manually and supplies the TikTok URL; publication time and later results are then attached to the existing content record. Late or incomplete workflows skip their slot rather than creating catch-up posts.
 
 ### Performance collection
 
@@ -80,9 +80,9 @@ After each event run, Telegram shows only the key metrics, their plain-language 
 
 ### Autonomous system improvement
 
-The agent may improve this system's structure, schemas, workflows, methods, jobs, dependencies, and owner map while preserving MECE coverage, one owner per responsibility, logical consistency, and database storage for accumulating observations and history.
+Within the approved structure and operating model, the agent may improve internal policy, implementation, methods, and capabilities while preserving MECE coverage, one owner per responsibility, logical consistency, and database storage for accumulating observations and history.
 
-It escalates external credentials or permissions, paid spend, destructive or irreversible data changes, decisions outside this workspace, and consistency risks it cannot safely resolve.
+Structural or operating-model changes require prior Telegram approval. The agent also escalates external credentials or permissions, paid spend, destructive or irreversible data changes, decisions outside this workspace, and consistency risks it cannot safely resolve.
 
 ### Automated integrity checks
 
@@ -109,8 +109,9 @@ The Hermes scheduler record is the authority for exact timing. The current runti
 | Job | Schedule | Behavior |
 | --- | --- | --- |
 | Hourly due content results | Every hour at minute `05` | Run integrity checks; insert due 24h/48h/72h TikWM checkpoints; start result-review research only after a new insertion |
+| LIFT CODE scheduled content slot kickoff | `23:00`, `09:00`, `12:00`, `20:00` KST | Start one continuable approval workflow two hours before the `01:00`, `11:00`, `14:00`, `22:00` publication slots; never publish automatically or create catch-up posts |
 
-Content production is interactive. Private TikTok Studio observations follow the pending-request lifecycle above.
+Scheduled production remains conversational because the user retains hypothesis, copy, publication-ready, and manual-publication decisions. Private TikTok Studio observations follow the pending-request lifecycle above.
 
 ## Files and responsibilities
 

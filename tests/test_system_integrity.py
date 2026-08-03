@@ -39,6 +39,23 @@ class SystemIntegrityTests(unittest.TestCase):
                             "no_agent": True,
                             "deliver": "telegram",
                         },
+                        {
+                            "id": "production",
+                            "name": "LIFT CODE scheduled content slot kickoff",
+                            "enabled": True,
+                            "state": "scheduled",
+                            "prompt": (
+                                "Preserve the current prelaunch contract: no app/product promotion, "
+                                "no audience-facing CTA. Do not publish before the required user "
+                                "confirmation; manual publication remains the user's action."
+                            ),
+                            "script": None,
+                            "no_agent": False,
+                            "deliver": "origin",
+                            "origin": {"platform": "telegram", "chat_id": "test"},
+                            "schedule": {"kind": "cron", "expr": "0 9,12,20,23 * * *"},
+                            "workdir": str(REPO_ROOT),
+                        },
                     ]
                 }
             ),
@@ -57,33 +74,23 @@ class SystemIntegrityTests(unittest.TestCase):
             now=datetime(2026, 7, 29, 12, 0, tzinfo=timezone.utc),
         )
 
-    def test_accepts_metrics_only_scheduler_topology_and_healthy_databases(self):
+    def test_accepts_current_scheduler_topology_and_healthy_databases(self):
         report = self.inspect()
 
         self.assertTrue(report["ok"], report)
         self.assertEqual(report["issues"], [])
         self.assertEqual(report["warnings"], [])
 
-    def test_rejects_scheduled_content_production_job(self):
+    def test_rejects_content_production_job_with_wrong_schedule(self):
         payload = json.loads(self.jobs_path.read_text(encoding="utf-8"))
-        payload["jobs"].append(
-            {
-                "id": "production",
-                "name": "Daily publication-ready content",
-                "enabled": True,
-                "state": "scheduled",
-                "script": "run_scheduled_content_production.py",
-                "no_agent": True,
-                "deliver": "telegram",
-            }
-        )
+        payload["jobs"][1]["schedule"]["expr"] = "0 9 * * *"
         self.jobs_path.write_text(json.dumps(payload), encoding="utf-8")
 
         report = self.inspect()
 
         self.assertFalse(report["ok"], report)
         self.assertTrue(
-            any("scheduled content production" in issue for issue in report["issues"]),
+            any("four KST kickoff times" in issue for issue in report["issues"]),
             report,
         )
 

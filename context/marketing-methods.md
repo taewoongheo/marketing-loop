@@ -32,7 +32,7 @@ External success, popularity, or expert recommendation makes a method a candidat
 - Separate platform facts from causal marketing claims.
 - Do not infer effectiveness from one successful account or post.
 - Prefer a bounded test over a universal best-practice claim.
-- Route methods requiring a new project responsibility as `new_owner_proposal` rather than expanding this owner implicitly.
+- Route methods requiring a new project responsibility as `new_owner_proposal`; obtain the prior Telegram approval required by `AGENTS.md` before creating or changing that owner.
 
 ## Retrieval contract
 

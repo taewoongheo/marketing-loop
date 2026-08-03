@@ -166,14 +166,49 @@ def _inspect_jobs(jobs_path: Path, issues: list[str], warnings: list[str]):
     if standalone_research:
         issues.append("standalone research scheduler job is enabled")
 
-    production_jobs = [
+    legacy_production_jobs = [
         job
         for job in jobs
         if Path(str(job.get("script", ""))).name
         == "run_scheduled_content_production.py"
     ]
-    if production_jobs:
-        issues.append("scheduled content production job is enabled")
+    if legacy_production_jobs:
+        issues.append("legacy script-only content production job is enabled")
+
+    production_jobs = [
+        job
+        for job in jobs
+        if job.get("name") == "LIFT CODE scheduled content slot kickoff"
+    ]
+    if len(production_jobs) != 1:
+        issues.append(
+            "expected exactly one enabled scheduled content-slot kickoff job; "
+            f"found {len(production_jobs)}"
+        )
+    else:
+        production = production_jobs[0]
+        if production.get("no_agent", False) or production.get("script"):
+            issues.append("scheduled content-slot kickoff must remain an agent job")
+        if (production.get("schedule") or {}).get("expr") != "0 9,12,20,23 * * *":
+            issues.append("scheduled content-slot kickoff must use all four KST kickoff times")
+        if production.get("workdir") != str(REPO_ROOT):
+            issues.append("scheduled content-slot kickoff must use the repository workdir")
+        if (
+            production.get("deliver") != "origin"
+            or (production.get("origin") or {}).get("platform") != "telegram"
+        ):
+            issues.append("scheduled content-slot kickoff must deliver to its Telegram origin")
+        prompt = str(production.get("prompt", "")).lower()
+        required_prompt_fragments = (
+            "no app/product promotion",
+            "no audience-facing cta",
+            "publish before the required user confirmation",
+            "manual publication",
+        )
+        if any(fragment not in prompt for fragment in required_prompt_fragments):
+            issues.append(
+                "scheduled content-slot kickoff prompt must preserve prelaunch and manual-publication gates"
+            )
 
     expected = {
         "collect_due_content_results_watchdog.py": "due-content collector",
