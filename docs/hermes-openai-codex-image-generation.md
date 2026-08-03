@@ -1,5 +1,7 @@
 # Hermes에서 OpenAI Codex OAuth로 이미지 생성하기
 
+이 절차는 Hermes Agent `v0.17.0`에서 실제 생성으로 검증했다. [최신 Hermes 공식 이미지 생성 문서](https://hermes-agent.nousresearch.com/docs/user-guide/features/image-generation)와 현재 세션의 `image_generate` 도구 설명이 이 문서보다 우선하며, provider capability가 달라졌다면 현재 도구 스키마를 따른다.
+
 ## 목적
 
 Hermes 에이전트가 별도의 `OPENAI_API_KEY`나 `FAL_KEY` 없이, 기존 ChatGPT/OpenAI Codex OAuth 인증으로 이미지를 생성하는 방법이다.
@@ -46,9 +48,9 @@ Hermes 에이전트가 별도의 `OPENAI_API_KEY`나 `FAL_KEY` 없이, 기존 Ch
 
    새로 플러그인이나 도구를 활성화했다면 Hermes를 재시작하거나 새 세션을 시작한다.
 
-## 에이전트의 이미지 생성 호출
+## 호출 확인
 
-에이전트는 `image_generate` 도구를 호출한다.
+설정 확인을 위해 에이전트가 현재 세션에 노출된 `image_generate` 도구를 호출한다. 아래 payload는 설정 검증용 최소 예시이며, 프로젝트의 실제 후보 수·호출 예산·선택 기준은 `context/imagery.md`가 소유한다.
 
 ```json
 {
@@ -63,7 +65,7 @@ Hermes 에이전트가 별도의 `OPENAI_API_KEY`나 `FAL_KEY` 없이, 기존 Ch
 - `landscape`: 가로형, 요청 기준 1536×1024
 - `portrait`: 세로형, 요청 기준 1024×1536
 
-Provider가 반환한 실제 PNG 크기는 요청 기준 크기와 다를 수 있다. 생성 성공 여부는 결과 메타데이터만 믿지 말고 저장된 파일의 형식과 실제 픽셀 크기를 확인한다.
+Provider가 반환한 실제 PNG 크기는 요청 기준 크기와 다를 수 있다. 설정 검증 시에는 결과 메타데이터만 믿지 말고 저장된 파일의 형식과 실제 픽셀 크기를 확인한다. 콘텐츠 프로젝트의 최종 검증은 해당 renderer의 프로젝트 validator와 render path를 따른다.
 
 기본 모델은 `gpt-image-2-medium`이다. 필요하면 다음 중 하나를 설정할 수 있다.
 

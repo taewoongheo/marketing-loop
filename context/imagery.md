@@ -39,11 +39,11 @@ The account-wide visual identity is `restrained wildness`: masculine physical fo
 - Prefer grounded realism over glossy supplement advertising, superhero fantasy, luxury fitness campaigns, or generic motivational poster polish.
 - When people are present, prioritize adult male lifters consistent with the primary audience unless approved meaning requires otherwise. Show unposed concentration, strain, preparation, or recovery rather than performative flexing for the camera.
 - Do not require a face. Hands, forearms, back, torso, stance, equipment contact, and partial body crops can carry masculine physicality without turning every slide into a portrait.
-- Vary the primary carrier across a slideshow: person, loaded implement, plates and increments, training log, machine stack, empty rack after effort, or another copy-relevant scene.
-- Vary camera distance and angle across adjacent slides. Maintain account identity through physical stakes and restraint rather than forcing identical lighting, palette, surface treatment, or camera polish across unrelated source moments.
+- Vary the primary carrier across a slideshow when the selected format's evidence permits it: person, loaded implement, plates and increments, training log, machine stack, empty rack after effort, or another copy-relevant scene.
+- Vary camera distance and angle across adjacent slides unless the selected format's evidence depends on a coherent capture baseline. Even then, vary the content-specific action, framing, or background detail rather than repeating one exact composition. Maintain account identity through physical stakes and restraint rather than forcing identical lighting, palette, surface treatment, or camera polish across unrelated source moments.
 - Do not repeat one lifter, one rack, one object cluster, or one exact composition merely to manufacture consistency.
 
-Before provider requests, assign each generated slot a distinct primary carrier, Gym setting, camera distance or angle, and dominant light treatment.
+Before provider requests, assign each generated slot distinct copy-relevant scene content. Vary the primary carrier, Gym setting, camera distance or angle, and dominant light treatment only within the selected format's reference-derived envelope.
 
 ## Within-image composition
 
@@ -86,27 +86,28 @@ These exclusions guide provider requests and candidate selection. They do not au
 - Execution surface: the currently configured Hermes image-generation tool.
 - Backend, provider, model, and credential resolution belong to the active Hermes tool/profile configuration and are not duplicated here.
 - If the active tool does not expose a request parameter, do not pretend this file can select it.
-- For photographic formats calibrated from designated references, successful candidates per eligible slot: exactly `3`, whether or not the active tool can accept reference-image inputs.
-- For other generated imagery, successful candidates per eligible slot: exactly `1` unless a user explicitly changes the project scope.
+- For photographic formats calibrated from designated references, the required technically usable candidate set per eligible slot is exactly `3`, whether or not the active tool can accept reference-image inputs.
+- For other generated imagery, the required technically usable candidate set per eligible slot is exactly `1` unless a user explicitly changes the project scope.
 - Select exactly one final candidate per slot through the bounded photographic-authenticity gate below. Do not generate additional candidates merely because none is aesthetically ideal after the required candidate set succeeds.
-- Maximum technical attempts for a three-candidate slot: `6`; stop once three technically usable candidates exist.
-- Maximum technical attempts for a one-candidate slot: `4`; stop once one technically usable candidate exists.
+- Maximum assistant-level generation calls for a three-candidate slot: `6`; stop once three technically usable candidates exist.
+- Maximum assistant-level generation calls for a one-candidate slot: `4`; stop once one technically usable candidate exists.
+- Every assistant-level call consumes the slot's call budget. Provider-internal retries, transport handling, response decoding, and file storage belong to the active Hermes image tool and are not redefined here.
 - Final embedded format: PNG.
 - Source aspect ratio or size: choose one supported option after content-specific image geometry is selected.
 - Embed the selected provider PNG bytes as returned. Do not resize, downscale, recompress, or convert generated imagery merely to reduce Project JSON or storage size.
 
 ### Photographic-authenticity gate
 
-Evaluate the required candidate set in this order and retain the first candidate that passes every hard gate. When several pass, retain the one closest to the designated reference family's capture character and subject scale.
+After the complete required candidate set exists, evaluate every candidate against the hard gates below. Discard every candidate that fails any hard gate, then retain the passing candidate closest to the designated reference family's capture character and subject scale; use generation order only to break an otherwise equal choice.
 
 1. **Hard validity:** decodable provider PNG, correct usable dimensions, no readable generated text, logo, watermark, copied interface, or copied source identity.
 2. **Human and equipment plausibility:** no malformed hands, fused contact points, impossible anatomy, implausible muscle insertions, broken barbell/rack/machine geometry, unsafe physical relationship, or action that cannot be performed with the hands available under the stated camera setup.
 3. **Capture plausibility:** a credible camera holder and reason for the picture; context-normal subject behavior; an open participant viewpoint rather than covert observation when another person holds the camera; no synthetic plastic skin, uniformly painted sweat, excessive micro-contrast, impossible depth of field, contradictory light directions, implausibly clean edge separation, or showroom-perfect environment that conflicts with the reference.
 4. **Reference fit:** correct selected subject and media class, behavior and capture character consistent with the designated evidence, suitable copy space, and no repeated face, object cluster, environment, or exact composition carried across adjacent slides without evidence.
 
-Record no separate ranking artifact. Candidate files and transient contact sheets are execution intermediates; after the final project renders and verifies, remove unselected candidates unless another retained project references them.
+If the call budget ends before the required technically usable candidate set exists, or if no candidate in the complete set passes every hard gate, the slot is blocked: embed nothing, do not extend the budget, and report the smallest missing asset or user action needed to continue. A technically usable candidate counts toward the required set even when it later fails a hard gate.
 
-A technical failure means no usable image payload was returned because of transport or API failure, empty response, undecodable payload, or invalid output format or dimensions. Retry only such failures. A technically usable result counts toward the required successful-candidate total even when it later fails the photographic-authenticity gate; continue only until that bounded total is reached, then select without further generation.
+Record no separate ranking artifact. Candidate files and transient contact sheets are execution intermediates; after the final project renders and verifies, remove unselected candidates unless another retained project references them.
 
 ## Rationale
 

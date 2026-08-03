@@ -15,9 +15,6 @@ __pycache__/
 .tmp/
 tmp/
 
-# Local ad-hoc render inspection outputs; canonical outputs stay under each renderer
-/renders/
-
 # Renderer dependencies and builds
 node_modules/
 dist/
