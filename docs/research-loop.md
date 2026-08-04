@@ -44,7 +44,7 @@ Research may examine adjacent evidence only when it informs a marketing-owned de
 
 - **Content preflight (`content_preflight`):** every interactive or scheduled content cycle checks accepted evidence before making the content decision. It may select zero questions; external search starts only when a credible answer could materially change the content or hypothesis action.
 - **Result review (`result_review`):** the shared collector starts research only after it inserts a new 24h, 48h, or 72h checkpoint. A no-op collector tick starts no agent. The run diagnoses what the observation can and cannot distinguish before researching the highest-value uncertainty.
-- **Manual (`manual`):** an explicit interactive request may investigate a current marketing decision through the same lifecycle.
+- **Manual (`manual`):** an explicit interactive request may investigate a current marketing decision through the same lifecycle. A message containing only one or more internet URLs implicitly requests evaluation of those URLs as candidate knowledge, with no trigger phrase required. When substantive text accompanies a URL, that text defines the task instead.
 
 `research_runs` owns a singleton lease across all triggers. A new trigger records `skipped` when an unexpired run is active, and an expired lease is failed before another run starts.
 
@@ -61,6 +61,14 @@ Result-review evidence is diagnostic, not automatic causal attribution. Evaluate
 - Preserve contradiction and context links rather than treating every source as support.
 - Public metrics, headlines, popularity, and one competitor example do not by themselves establish causality or generality.
 - Source records own provenance. Structured knowledge owners reference the finding instead of copying citations into a second store.
+
+### User-provided URL intake
+
+Treat each URL-only message as candidate knowledge, not an instruction to adopt, a designated format reference, or a production asset. Inspect the original URL first and preserve its canonical URL and access capture. Never substitute a search snippet, repost, session history, or a description of the link for the accessible original. If the original cannot be inspected, finish with a plain-language access limitation and make no adoption decision about unseen contents.
+
+After reading the original, split only its material reusable claims into bounded questions under the normal three-question limit. Actively investigate appropriate independent corroborating and contradicting sources before review; do not accept or reject a claim from the submitted URL alone. Judge source authority, directness, recency where material, scope, population or channel context, contradictions, and relevance to a valid LIFT CODE owner. User provision makes the material worth evaluating but does not establish truth, scientific support, prevalence, transferability, or practical safety.
+
+Finish every assessed claim through the normal lifecycle as an adopted finding, duplicate, or not-adopted result (`no_finding`, `outside_scope`, failed verification, or rejected review). Persist the user URL and all material corroborating or contradicting sources with the same provenance rules as autonomous research. Return a concise plain-language decision and reason; do not expose internal labels or require the user to know the trigger or routing model.
 
 ## Review and admission
 

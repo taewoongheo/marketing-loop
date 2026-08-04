@@ -74,9 +74,11 @@ TikTok Studio is the first-party source for profile views, watch quality, per-po
 
 ### Event-driven research
 
-Every content cycle performs `content_preflight`, each newly inserted 24h/48h/72h checkpoint triggers `result_review`, and an explicit request may use `manual`. A run asks what would most improve the current audience or content decision, reads accepted evidence and prior quality feedback, and investigates at most three independent bounded questions—or zero when current evidence is sufficient.
+Every content cycle performs `content_preflight`, each newly inserted 24h/48h/72h checkpoint triggers `result_review`, and an explicit request may use `manual`. A message containing only internet URL(s) automatically starts `manual` candidate-knowledge evaluation; no command phrase is required, while accompanying text overrides that default with its stated purpose. A run asks what would most improve the current audience or content decision, reads accepted evidence and prior quality feedback, and investigates at most three independent bounded questions—or zero when current evidence is sufficient.
 
 Each selected question is recorded before investigation and must end as a bounded finding, duplicate, no-finding result, outside-scope result, or failure. A result review treats one checkpoint as diagnostic evidence, not causal proof, and separates sample maturity, distribution noise, measurement gaps, message, copywriting, topic, and execution conditions. Supported findings update exactly one valid owner. Research evidence, reviews, adoptions, user quality feedback, and durable owner-change notifications are stored in `db/research.sqlite` through `scripts/research_store.py`.
+
+For a user-provided knowledge URL, the agent reads the original first, then actively investigates independent corroborating and contradicting sources before deciding. The submitted URL is never sufficient by itself. The agent reports whether each material claim was adopted, already known, or not adopted and why; inaccessible originals are left unassessed rather than inferred from snippets.
 
 After each event run, Telegram shows only the key metrics, their plain-language meaning, and what changes next. Internal IDs, routing, provenance, and feedback classification remain in SQLite.
 

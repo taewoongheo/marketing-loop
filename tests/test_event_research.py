@@ -37,6 +37,21 @@ class EventResearchPromptTests(unittest.TestCase):
         self.assertIn("not causal proof", prompt)
         self.assertIn("24h", prompt)
 
+    def test_manual_url_prompt_requires_source_first_correlated_admission(self):
+        prompt = build_research_prompt(
+            trigger_kind="manual",
+            objective="Evaluate user-provided knowledge.",
+            event_context={"user_urls": ["https://example.com/article"]},
+            attempt_token="interactive:run-3",
+        )
+
+        self.assertIn("user-provided URL", prompt)
+        self.assertIn("candidate knowledge", prompt)
+        self.assertIn("inspect the original URL first", prompt)
+        self.assertIn("Do not decide from that URL alone", prompt)
+        self.assertIn("independent corroborating or contradicting sources", prompt)
+        self.assertIn("adopted, duplicate, or not adopted", prompt)
+
 
 if __name__ == "__main__":
     unittest.main()

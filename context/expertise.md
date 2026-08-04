@@ -38,7 +38,7 @@ A domain fact belongs in one `expertise_entries` row even when it is first disco
 
 - Record a source or explicit provenance for every externally checkable factual claim.
 - Distinguish direct research, systematic review or position stand, professional guidance, practitioner consensus, product-design assumption, and explicitly user-provided practical material.
-- Explicit user provision can support practical working knowledge, but it does not turn that knowledge into verified scientific evidence.
+- A URL-only user message enters the candidate-knowledge workflow in `docs/research-loop.md`. Explicit user provision establishes relevance for review, but adoption still requires original-source inspection and active investigation of independent corroborating or contradicting evidence; it does not turn the material into verified scientific evidence.
 - Describe what the source supports, not what a headline or secondary summary implies.
 - Preserve material limitations, population, training status, exercise context, measurement uncertainty, and meaningful exceptions.
 - Do not use `science-backed`, `proven`, `optimal`, `safe`, or equivalent authority language unless the cited evidence supports that exact scope.
