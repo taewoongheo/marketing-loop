@@ -291,8 +291,18 @@ class ResearchStoreTests(unittest.TestCase):
                 "SELECT COUNT(*) FROM research_finding_sources WHERE finding_id = ?",
                 (first["finding_id"],),
             ).fetchone()[0]
+            question_sources = connection.execute(
+                """
+                SELECT source.canonical_url
+                FROM research_duplicate_question_sources AS question_source
+                JOIN research_sources AS source ON source.id = question_source.source_id
+                WHERE question_source.question_id = ?
+                """,
+                (duplicate["question_id"],),
+            ).fetchall()
         self.assertEqual(duplicate["status"], "duplicate")
         self.assertEqual(links, 1)
+        self.assertEqual(question_sources, [("https://example.com/new-evidence",)])
 
     def test_proposals_stop_at_review_and_cannot_be_adopted(self):
         payload = self.payload()

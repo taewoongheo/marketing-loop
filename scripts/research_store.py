@@ -15,7 +15,7 @@ from urllib.parse import parse_qsl, urlencode, urlsplit, urlunsplit
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_DB_PATH = REPO_ROOT / "db" / "research.sqlite"
 DEFAULT_SCHEMA_PATH = REPO_ROOT / "db" / "research-schema.sql"
-SCHEMA_VERSION = 7
+SCHEMA_VERSION = 8
 TRACKING_QUERY_KEYS = {
     "fbclid",
     "gclid",
@@ -131,6 +131,9 @@ class ResearchStore:
             if version == 6:
                 self._migrate_v6_to_v7(connection)
                 version = connection.execute("PRAGMA user_version").fetchone()[0]
+            if version == 7:
+                self._migrate_v7_to_v8(connection)
+                version = connection.execute("PRAGMA user_version").fetchone()[0]
             if version != SCHEMA_VERSION:
                 raise RuntimeError(f"unsupported research schema version: {version}")
             integrity = connection.execute("PRAGMA integrity_check").fetchone()[0]
@@ -191,6 +194,47 @@ class ResearchStore:
             ALTER TABLE research_runs ADD COLUMN event_context_json TEXT NOT NULL DEFAULT '{}'
                 CHECK (json_valid(event_context_json) AND json_type(event_context_json) = 'object');
             PRAGMA user_version = 7;
+            COMMIT;
+            """
+        )
+
+    @staticmethod
+    def _migrate_v7_to_v8(connection):
+        connection.executescript(
+            """
+            BEGIN IMMEDIATE;
+            CREATE TABLE research_duplicate_question_sources (
+                question_id TEXT NOT NULL
+                    REFERENCES research_questions(id) ON DELETE RESTRICT,
+                source_id TEXT NOT NULL
+                    REFERENCES research_sources(id) ON DELETE RESTRICT,
+                relation TEXT NOT NULL
+                    CHECK (relation IN ('supports', 'contradicts', 'context')),
+                evidence_note TEXT NOT NULL
+                    CHECK (length(trim(evidence_note)) BETWEEN 1 AND 2000),
+                PRIMARY KEY (question_id, source_id)
+            );
+            CREATE TRIGGER research_duplicate_question_sources_status_insert
+            BEFORE INSERT ON research_duplicate_question_sources
+            WHEN NOT EXISTS (
+                SELECT 1
+                FROM research_questions
+                WHERE id = NEW.question_id AND status = 'duplicate'
+            )
+            BEGIN
+                SELECT RAISE(ABORT, 'question source requires duplicate question');
+            END;
+            CREATE TRIGGER research_duplicate_question_sources_immutable_update
+            BEFORE UPDATE ON research_duplicate_question_sources
+            BEGIN
+                SELECT RAISE(ABORT, 'duplicate question sources are immutable');
+            END;
+            CREATE TRIGGER research_duplicate_question_sources_immutable_delete
+            BEFORE DELETE ON research_duplicate_question_sources
+            BEGIN
+                SELECT RAISE(ABORT, 'duplicate question sources are immutable');
+            END;
+            PRAGMA user_version = 8;
             COMMIT;
             """
         )
@@ -549,6 +593,17 @@ class ResearchStore:
                 ).fetchone()
                 for source in sources:
                     source_id = self._upsert_source(connection, source, recorded_at)
+                    relation = require_text(source, "relation")
+                    evidence_note = require_text(source, "evidence_note")
+                    connection.execute(
+                        """
+                        INSERT INTO research_duplicate_question_sources (
+                            question_id, source_id, relation, evidence_note
+                        ) VALUES (?, ?, ?, ?)
+                        ON CONFLICT(question_id, source_id) DO NOTHING
+                        """,
+                        (question_id, source_id, relation, evidence_note),
+                    )
                     if reviewed is not None:
                         continue
                     connection.execute(
@@ -561,8 +616,8 @@ class ResearchStore:
                         (
                             existing["id"],
                             source_id,
-                            require_text(source, "relation"),
-                            require_text(source, "evidence_note"),
+                            relation,
+                            evidence_note,
                         ),
                     )
                 return {

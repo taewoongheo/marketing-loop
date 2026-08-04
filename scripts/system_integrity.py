@@ -19,7 +19,7 @@ DEFAULT_PRODUCTION_FORMATS = REPO_ROOT / "context/production-formats.json"
 DEFAULT_JOBS_PATH = (
     Path.home() / ".hermes/profiles/marketing-liftcode/cron/jobs.json"
 )
-EXPECTED_SCHEMA_VERSIONS = {"research": 7, "hypothesis": 17}
+EXPECTED_SCHEMA_VERSIONS = {"research": 8, "hypothesis": 17}
 DEFAULT_REQUIRED_FILES = (
     "AGENTS.md",
     "README.md",

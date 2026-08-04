@@ -96,6 +96,7 @@ test("research schema separates lifecycle evidence from typed durable owners", a
       "research_source_captures",
       "research_findings",
       "research_finding_sources",
+      "research_duplicate_question_sources",
       "research_reviews",
       "research_adoptions",
       "research_notifications",
@@ -109,7 +110,7 @@ test("research schema separates lifecycle evidence from typed durable owners", a
       assert.ok(tables.includes(table), `missing ${table}`);
     }
 
-    assert.equal(query(databasePath, "PRAGMA user_version;")[0].user_version, 7);
+    assert.equal(query(databasePath, "PRAGMA user_version;")[0].user_version, 8);
     assert.ok(!tables.includes("research_settings"));
   });
 });

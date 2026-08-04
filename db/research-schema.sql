@@ -182,6 +182,39 @@ CREATE TABLE research_finding_sources (
     PRIMARY KEY (finding_id, source_id)
 );
 
+CREATE TABLE research_duplicate_question_sources (
+    question_id TEXT NOT NULL REFERENCES research_questions(id) ON DELETE RESTRICT,
+    source_id TEXT NOT NULL REFERENCES research_sources(id) ON DELETE RESTRICT,
+    relation TEXT NOT NULL
+        CHECK (relation IN ('supports', 'contradicts', 'context')),
+    evidence_note TEXT NOT NULL
+        CHECK (length(trim(evidence_note)) BETWEEN 1 AND 2000),
+    PRIMARY KEY (question_id, source_id)
+);
+
+CREATE TRIGGER research_duplicate_question_sources_status_insert
+BEFORE INSERT ON research_duplicate_question_sources
+WHEN NOT EXISTS (
+    SELECT 1
+    FROM research_questions
+    WHERE id = NEW.question_id AND status = 'duplicate'
+)
+BEGIN
+    SELECT RAISE(ABORT, 'question source requires duplicate question');
+END;
+
+CREATE TRIGGER research_duplicate_question_sources_immutable_update
+BEFORE UPDATE ON research_duplicate_question_sources
+BEGIN
+    SELECT RAISE(ABORT, 'duplicate question sources are immutable');
+END;
+
+CREATE TRIGGER research_duplicate_question_sources_immutable_delete
+BEFORE DELETE ON research_duplicate_question_sources
+BEGIN
+    SELECT RAISE(ABORT, 'duplicate question sources are immutable');
+END;
+
 CREATE TABLE research_reviews (
     finding_id TEXT NOT NULL REFERENCES research_findings(id) ON DELETE RESTRICT,
     revision INTEGER NOT NULL CHECK (revision > 0),
@@ -876,6 +909,6 @@ BEGIN
     SELECT RAISE(ABORT, 'research adoptions are immutable');
 END;
 
-PRAGMA user_version = 7;
+PRAGMA user_version = 8;
 
 COMMIT;
