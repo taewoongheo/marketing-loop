@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sqlite3
 import sys
 from datetime import datetime, timezone
@@ -14,6 +15,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_RESEARCH_DB = REPO_ROOT / "db/research.sqlite"
 DEFAULT_HYPOTHESIS_DB = REPO_ROOT / "db/hypothesis-loop.sqlite"
+DEFAULT_PRODUCTION_FORMATS = REPO_ROOT / "context/production-formats.json"
 DEFAULT_JOBS_PATH = (
     Path.home() / ".hermes/profiles/marketing-liftcode/cron/jobs.json"
 )
@@ -152,6 +154,116 @@ def _active_jobs(jobs_path: Path, issues: list[str]):
     ]
 
 
+def _inspect_production_formats(
+    owner_path: Path,
+    hypothesis_db: Path,
+    issues: list[str],
+    selected_format: tuple[str, str] | None = None,
+):
+    if not owner_path.is_file():
+        issues.append(f"production-format owner is missing: {owner_path}")
+        return
+    try:
+        payload = json.loads(owner_path.read_text(encoding="utf-8"))
+    except Exception as error:
+        issues.append(f"production-format owner is invalid JSON: {error}")
+        return
+
+    if not isinstance(payload, dict) or set(payload) != {
+        "schema_version",
+        "allowed_formats",
+    }:
+        issues.append(
+            "production-format owner must contain only schema_version and allowed_formats"
+        )
+        return
+    if payload["schema_version"] != 1:
+        issues.append("production-format owner schema_version must be 1")
+    entries = payload["allowed_formats"]
+    if not isinstance(entries, list):
+        issues.append("production-format owner allowed_formats must be a list")
+        return
+
+    allowed: set[tuple[str, str]] = set()
+    entries_valid = True
+    for index, entry in enumerate(entries):
+        label = f"production-format entry {index}"
+        if not isinstance(entry, dict) or set(entry) != {"medium", "format_id"}:
+            issues.append(f"{label} must contain only medium and format_id")
+            entries_valid = False
+            continue
+        medium = entry["medium"]
+        format_id = entry["format_id"]
+        if medium not in {"slideshow", "video"}:
+            issues.append(f"{label} has unsupported medium: {medium}")
+            entries_valid = False
+            continue
+        if not isinstance(format_id, str) or re.fullmatch(
+            r"[a-z0-9]+(?:-[a-z0-9]+)*", format_id
+        ) is None:
+            issues.append(f"{label} has unsafe format_id: {format_id}")
+            entries_valid = False
+            continue
+        identity = (medium, format_id)
+        if identity in allowed:
+            issues.append(f"production-format owner duplicates {medium}/{format_id}")
+            entries_valid = False
+            continue
+        allowed.add(identity)
+
+        format_root = REPO_ROOT / "renderer" / medium / "formats" / format_id
+        copywriting_root = format_root / "copywriting"
+        references_root = format_root / "references"
+        if not format_root.is_dir():
+            issues.append(
+                f"production-format entry does not resolve to a format namespace: {medium}/{format_id}"
+            )
+            entries_valid = False
+        if not copywriting_root.is_dir() or not any(
+            path.is_file() and re.fullmatch(r"v[1-9][0-9]*\.md", path.name)
+            for path in copywriting_root.glob("v*.md")
+        ):
+            issues.append(
+                f"production-format entry has no valid copywriting version: {medium}/{format_id}"
+            )
+            entries_valid = False
+        if not references_root.is_dir() or not any(
+            path.is_file() for path in references_root.rglob("*")
+        ):
+            issues.append(
+                f"production-format entry has no designated reference evidence: {medium}/{format_id}"
+            )
+            entries_valid = False
+
+    if entries_valid and selected_format is not None and selected_format not in allowed:
+        issues.append(
+            "selected production format is not allowed: "
+            f"{selected_format[0]}/{selected_format[1]}"
+        )
+
+    if not entries_valid or not hypothesis_db.is_file():
+        return
+    try:
+        with sqlite3.connect(hypothesis_db) as connection:
+            pending = connection.execute(
+                """
+                SELECT id, medium, format_id
+                FROM contents
+                WHERE tiktok_url IS NULL
+                ORDER BY id
+                """
+            ).fetchall()
+    except Exception as error:
+        issues.append(f"production-format content inspection failed: {error}")
+        return
+    for content_id, medium, format_id in pending:
+        if (medium, format_id) not in allowed:
+            issues.append(
+                "publication-ready content uses a non-allowed production format: "
+                f"{content_id} ({medium}/{format_id})"
+            )
+
+
 def _inspect_jobs(jobs_path: Path, issues: list[str], warnings: list[str]):
     jobs = _active_jobs(jobs_path, issues)
     standalone_research = [
@@ -178,36 +290,39 @@ def _inspect_jobs(jobs_path: Path, issues: list[str], warnings: list[str]):
     production_jobs = [
         job
         for job in jobs
-        if job.get("name") == "LIFT CODE scheduled content slot kickoff"
+        if job.get("name") == "LIFT CODE scheduled content production"
     ]
     if len(production_jobs) != 1:
         issues.append(
-            "expected exactly one enabled scheduled content-slot kickoff job; "
+            "expected exactly one enabled scheduled content-production job; "
             f"found {len(production_jobs)}"
         )
     else:
         production = production_jobs[0]
         if production.get("no_agent", False) or production.get("script"):
-            issues.append("scheduled content-slot kickoff must remain an agent job")
+            issues.append("scheduled content production must remain an agent job")
         if (production.get("schedule") or {}).get("expr") != "0 9,12,20,23 * * *":
-            issues.append("scheduled content-slot kickoff must use all four KST kickoff times")
+            issues.append("scheduled content production must use all four KST kickoff times")
         if production.get("workdir") != str(REPO_ROOT):
-            issues.append("scheduled content-slot kickoff must use the repository workdir")
+            issues.append("scheduled content production must use the repository workdir")
         if (
             production.get("deliver") != "origin"
             or (production.get("origin") or {}).get("platform") != "telegram"
         ):
-            issues.append("scheduled content-slot kickoff must deliver to its Telegram origin")
+            issues.append("scheduled content production must deliver to its Telegram origin")
         prompt = str(production.get("prompt", "")).lower()
         required_prompt_fragments = (
             "no app/product promotion",
             "no audience-facing cta",
-            "publish before the required user confirmation",
+            "deliver the exact final media",
+            "do not ask for approval",
             "manual publication",
+            "context/production-formats.json",
+            "closed allowlist",
         )
         if any(fragment not in prompt for fragment in required_prompt_fragments):
             issues.append(
-                "scheduled content-slot kickoff prompt must preserve prelaunch and manual-publication gates"
+                "scheduled content-production prompt must preserve autonomous delivery, prelaunch, and manual-publication gates"
             )
 
     expected = {
@@ -386,6 +501,9 @@ def inspect_system(
     *,
     research_db: Path = DEFAULT_RESEARCH_DB,
     hypothesis_db: Path = DEFAULT_HYPOTHESIS_DB,
+    production_formats: Path = DEFAULT_PRODUCTION_FORMATS,
+    selected_medium: str | None = None,
+    selected_format_id: str | None = None,
     jobs_path: Path = DEFAULT_JOBS_PATH,
     required_files=None,
     now=None,
@@ -402,6 +520,16 @@ def inspect_system(
         "hypothesis",
         EXPECTED_SCHEMA_VERSIONS["hypothesis"],
         issues,
+    )
+    selected_format = None
+    if (selected_medium is None) != (selected_format_id is None):
+        issues.append(
+            "selected production format check requires both medium and format_id"
+        )
+    elif selected_medium is not None and selected_format_id is not None:
+        selected_format = (selected_medium, selected_format_id)
+    _inspect_production_formats(
+        Path(production_formats), Path(hypothesis_db), issues, selected_format
     )
     _inspect_jobs(Path(jobs_path), issues, warnings)
     if not issues:
@@ -429,6 +557,11 @@ def parse_args():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--research-db", type=Path, default=DEFAULT_RESEARCH_DB)
     parser.add_argument("--hypothesis-db", type=Path, default=DEFAULT_HYPOTHESIS_DB)
+    parser.add_argument(
+        "--production-formats", type=Path, default=DEFAULT_PRODUCTION_FORMATS
+    )
+    parser.add_argument("--selected-medium")
+    parser.add_argument("--selected-format-id")
     parser.add_argument("--jobs", type=Path, default=DEFAULT_JOBS_PATH)
     return parser.parse_args()
 
@@ -438,6 +571,9 @@ def main():
     report = inspect_system(
         research_db=args.research_db,
         hypothesis_db=args.hypothesis_db,
+        production_formats=args.production_formats,
+        selected_medium=args.selected_medium,
+        selected_format_id=args.selected_format_id,
         jobs_path=args.jobs,
     )
     print(json.dumps(report, ensure_ascii=False, separators=(",", ":")))

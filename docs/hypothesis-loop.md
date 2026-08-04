@@ -96,8 +96,9 @@ Do not repeat the 24-hour, 48-hour, and 72-hour workflow in every statement. The
 
 Every content selects exactly one `medium` (`slideshow` or `video`) and one format within that medium. Medium and format are content-specific execution choices, not hypothesis axes.
 
-- Select medium and format operationally from the content's communication needs, available references and assets, recent execution diversity, and relevant DB observations.
-- Design each project from the designated references, approved copy, current imagery guidance, and up to three retained same-medium same-format execution examples.
+- Select medium and format only from valid entries in `context/production-formats.json`, then decide operationally from the content's communication needs, available references and assets, recent execution diversity, and relevant DB observations. Before project or content-record creation, require `python3 scripts/system_integrity.py --selected-medium <medium> --selected-format-id <format-id>` to return `ok: true` for the selected pair.
+- The file is a closed production allowlist. An unlisted format may be analyzed, edited, validated, or test-rendered, but it cannot create a new publication-ready content record or delivery. Published historical content remains valid evidence after later allowlist removal.
+- Design each project from the designated references, final copy, current imagery guidance, and up to three retained same-medium same-format execution examples.
 - References are the primary execution-grammar evidence; retained prior projects are secondary renderer-feasibility and composition evidence and never become hidden templates.
 - While a local project and its required assets are retained, they preserve the exact content-specific execution. The recorded path and hash remain provenance after local pruning but do not preserve deleted bytes.
 - Do not treat medium, format, imagery, layout, crop, motion, timing, or audio differences as hypothesis evidence or as a reason to weaken or defer a message/copywriting decision. User feedback changes those execution owners directly.
@@ -145,7 +146,7 @@ H-012 → 4 contents
 
 ## Actions after reviewing content results
 
-After reviewing a content result that is at least 24 hours old, the assistant recommends one of the following actions for the hypothesis that generated it. The recommendation is not applied until the user confirms the daily hypothesis-action proposal.
+After reviewing a content result that is at least 24 hours old, the assistant autonomously applies one of the following actions for the hypothesis that generated it.
 
 ### 1. Generate more content from the same hypothesis
 
@@ -192,11 +193,11 @@ H-001 → closed
 
 Do not delete the record.
 
-## Daily hypothesis confirmation gate
+## Autonomous daily hypothesis decision
 
-Every content run uses the confirmation gate below. The recurring production job initiates one continuable Telegram workflow two hours before each fixed publication slot and proposes exactly one content for that slot; it does not apply interpretation-driven actions or create content before confirmation.
+Every content run uses the decision procedure below. The recurring production job completes one workflow two hours before each fixed publication slot and allocates exactly one content to that slot without waiting for user approval.
 
-Before generating the current run's content, the assistant presents a concise proposal covering every active leaf affected by newly reviewed evidence:
+Before generating the current run's content, the assistant records a concise decision covering every active leaf affected by newly reviewed evidence:
 
 - the current funnel bottleneck, supporting observations, proxies, missing measurements, and limitations;
 - continue the same hypothesis, close the leaf, or create one or more root or child hypotheses;
@@ -205,9 +206,7 @@ Before generating the current run's content, the assistant presents a concise pr
 - the proposed allocation of the requested contents across active leaves; a scheduled slot allocates exactly one content;
 - any hypothesis judged operationally supported and the one durable owner that would be updated.
 
-The user confirms or revises this proposal. Only then may the assistant create or close hypothesis nodes, update a durable owner from performance evidence, allocate new content, and proceed to the refined copy proposal. “Remove” means close a branch while preserving its full history; never delete the node, content, or results.
-
-Result collection and factual observation storage do not require confirmation. The gate applies to interpretation-driven hypothesis actions and durable promotion, not to recording due metrics.
+The assistant then creates or closes hypothesis nodes, updates a durable owner from performance evidence, allocates new content, and proceeds through copy and production. “Remove” means close a branch while preserving its full history; never delete the node, content, or results. Result collection and factual observation storage remain separate from interpretation-driven hypothesis actions.
 
 ## Node creation rule
 
@@ -287,7 +286,7 @@ This distinction prevents the same ancestor result from being counted as indepen
 
 ## Autonomous hypothesis adoption and owner updates
 
-The assistant autonomously judges when direct evidence operationally supports a controllable output hypothesis. This is a reversible operating judgment about the tested message or copywriting change, not proof that the hypothesis is universally true or that the whole funnel bottleneck is solved. The assistant chooses the criteria and recommendation, then includes operational adoption in the daily funnel-diagnosis and hypothesis-action proposal for user confirmation before applying it.
+The assistant autonomously judges when direct evidence operationally supports a controllable output hypothesis and applies that decision. This is a reversible operating judgment about the tested message or copywriting change, not proof that the hypothesis is universally true or that the whole funnel bottleneck is solved.
 
 Two or more contents generated directly by the hypothesis showing a consistent relevant signal are a useful default indication that a reusable rule may be adopted. Do not treat two results as an automatic pass. Judge the evidence in context:
 
@@ -301,7 +300,7 @@ Two or more contents generated directly by the hypothesis showing a consistent r
 
 One result may justify repetition, branching, redirection, or closure, but normally should not create a broad reusable performance rule by itself. Explicit user correction is different from performance validation: apply it immediately at the narrowest appropriate scope under the project feedback rules.
 
-After the user confirms that a hypothesis should be operationally adopted:
+After the assistant decides that a hypothesis should be operationally adopted:
 
 1. Keep its source observations, interpretations, evidence links, and lineage in SQLite.
 2. Update exactly one final owner directly; do not create a separate pending-learning file.
@@ -516,7 +515,7 @@ Do not add:
 
 ## Evidence-dependent choices
 
-The assistant resolves the following case by case from the current lineage and evidence and presents the resulting action for confirmation. The user is not required to design these taxonomies or thresholds, and they should not become fixed without repeated need:
+The assistant resolves the following case by case from the current lineage and evidence. The user is not required to design or approve these taxonomies or thresholds, and they should not become fixed without repeated need:
 
 1. A rule that makes parent-child differences explicit in each full `statement`.
 2. How daily content slots are allocated across active leaves.

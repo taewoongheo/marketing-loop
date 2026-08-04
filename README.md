@@ -46,21 +46,23 @@ Each content belongs to one testable hypothesis on exactly one axis:
 - **Message:** what audience perception or belief should change.
 - **Copywriting:** how that message is expressed.
 
-The system evaluates active hypothesis leaves against delayed evidence, proposes whether to continue, close, branch, or adopt a supported rule, and records the confirmed lineage in SQLite. Funnel stages, metrics, medium, format, and visual execution are not hypothesis axes.
+The system evaluates active hypothesis leaves against delayed evidence, autonomously decides whether to continue, close, branch, or adopt a supported rule, and records the lineage in SQLite. Funnel stages, metrics, medium, format, and visual execution are not hypothesis axes.
 
 ### Content production
 
 For each content, the system:
 
 1. runs a content-preflight evidence check/research cycle, diagnoses the current bottleneck, and selects a hypothesis action;
-2. selects `slideshow` or `video` and one available format;
+2. reads the closed production-format allowlist and selects one valid allowed medium/format pair;
 3. reads product truth, accepted research, the selected message and copywriting version, format references, and a bounded set of prior same-format projects;
-4. presents the hypothesis action for confirmation, then drafts the final copy and obtains separate approval;
-5. builds and validates a native editable project;
-6. records the user-designated publication-ready copy, project identity, medium, format, and hypothesis lineage;
+4. autonomously applies the hypothesis action and finalizes the copy;
+5. builds, renders, inspects, and validates a native editable project;
+6. records the agent-designated publication-ready copy, project identity, medium, format, and hypothesis lineage;
 7. delivers the final media to Telegram for manual TikTok publication.
 
-A recurring production job starts one continuable Telegram workflow two hours before each 01:00, 11:00, 14:00, and 22:00 KST publication slot. It allocates exactly one content to the slot but preserves every approval gate. The user publishes manually and supplies the TikTok URL; publication time and later results are then attached to the existing content record. Late or incomplete workflows skip their slot rather than creating catch-up posts.
+A recurring production job completes one autonomous workflow two hours before each 01:00, 11:00, 14:00, and 22:00 KST publication slot. It allocates exactly one content, delivers verified publication-ready media and caption, and asks only for the TikTok URL after manual publication. Publication time and later results are then attached to the existing content record. Late or incomplete workflows skip their slot rather than creating catch-up posts.
+
+`context/production-formats.json` is the sole owner of which renderer formats may create new publication-ready content. Before project or content-record creation, the selected pair must pass `python3 scripts/system_integrity.py --selected-medium <medium> --selected-format-id <format-id>`. Format namespaces outside that closed allowlist remain available only for analysis, editing, validation, and test rendering. The initial allowed format is `slideshow/trainmystyle`; changing the allowlist requires explicit user direction.
 
 ### Performance collection
 
@@ -80,13 +82,13 @@ After each event run, Telegram shows only the key metrics, their plain-language 
 
 ### Autonomous system improvement
 
-Within the approved structure and operating model, the agent may improve internal policy, implementation, methods, and capabilities while preserving MECE coverage, one owner per responsibility, logical consistency, and database storage for accumulating observations and history.
+The agent may autonomously improve internal policy, implementation, methods, capabilities, structure, and operating model while preserving MECE coverage, one owner per responsibility, logical consistency, and database storage for accumulating observations and history. Verified internal changes are reported afterward.
 
-Structural or operating-model changes require prior Telegram approval. The agent also escalates external credentials or permissions, paid spend, destructive or irreversible data changes, decisions outside this workspace, and consistency risks it cannot safely resolve.
+The agent escalates only user-exclusive boundaries such as external credentials or permissions, paid spend, destructive or irreversible data changes, decisions outside this workspace, and account-trust or consistency risks it cannot safely resolve.
 
 ### Automated integrity checks
 
-Before collection or production mutates state, `scripts/system_integrity.py` checks SQLite integrity, lifecycle states, leases, required owners, scheduler topology, job outcomes, and Telegram delivery. It also reports operational-health warnings: hypothesis stagnation, checkpoints without result review, stale TikTok Studio requests, repeated low-yield research outcomes, and unexplained concentration in finding owners or source classes. These are diagnostic warnings rather than mechanical quotas; the agent checks live context before correcting or escalating them.
+Before collection or production mutates state, `scripts/system_integrity.py` checks SQLite integrity, lifecycle states, leases, required owners, the production-format allowlist and pending content eligibility, scheduler topology, job outcomes, and Telegram delivery. It also reports operational-health warnings: hypothesis stagnation, checkpoints without result review, stale TikTok Studio requests, repeated low-yield research outcomes, and unexplained concentration in finding owners or source classes. These are diagnostic warnings rather than mechanical quotas; the agent checks live context before correcting or escalating them.
 
 Event research checks semantic ownership, consistency, transition, and capability defects. The checks run inside existing Hermes Scheduler jobs and therefore cover executions that start, not the availability of the scheduler process itself.
 
@@ -109,9 +111,9 @@ The Hermes scheduler record is the authority for exact timing. The current runti
 | Job | Schedule | Behavior |
 | --- | --- | --- |
 | Hourly due content results | Every hour at minute `05` | Run integrity checks; insert due 24h/48h/72h TikWM checkpoints; start result-review research only after a new insertion |
-| LIFT CODE scheduled content slot kickoff | `23:00`, `09:00`, `12:00`, `20:00` KST | Start one continuable approval workflow two hours before the `01:00`, `11:00`, `14:00`, `22:00` publication slots; never publish automatically or create catch-up posts |
+| LIFT CODE scheduled content production | `23:00`, `09:00`, `12:00`, `20:00` KST | Complete and deliver one verified publication-ready content two hours before the `01:00`, `11:00`, `14:00`, `22:00` publication slots; never publish automatically or create catch-up posts |
 
-Scheduled production remains conversational because the user retains hypothesis, copy, publication-ready, and manual-publication decisions. Private TikTok Studio observations follow the pending-request lifecycle above.
+Scheduled production is autonomous through final-media delivery. The user retains only manual TikTok publication and returns the published URL. Private TikTok Studio observations follow the pending-request lifecycle above.
 
 ## Files and responsibilities
 
@@ -120,6 +122,7 @@ Scheduled production remains conversational because the user retains hypothesis,
 | `AGENTS.md` | Operating rules, authority boundaries, owner map, content workflow, and scheduled autonomy |
 | `context/product.md` | Marketing-facing product truth, target audience, delegated decisions, value, and claim boundaries |
 | `context/imagery.md` | Current account-wide imagery and image-generation policy |
+| `context/production-formats.json` | Closed allowlist of medium/format pairs eligible for new publication-ready production |
 | `context/expertise.md`, `context/user-language.md`, `context/marketing-methods.md` | Retrieval and use policy for accepted research knowledge |
 | `docs/marketing-funnel.md` | Funnel stages, measurement contract, responsibility boundary, and bottleneck selection |
 | `docs/hypothesis-loop.md` | Message/copywriting hypothesis lineage and delayed-evidence decisions |

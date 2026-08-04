@@ -25,6 +25,18 @@ class SystemIntegrityTests(unittest.TestCase):
             connection.executescript(
                 (REPO_ROOT / "db/schema.sql").read_text(encoding="utf-8")
             )
+        self.production_formats = self.root / "production-formats.json"
+        self.production_formats.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "allowed_formats": [
+                        {"medium": "slideshow", "format_id": "trainmystyle"}
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
         self.jobs_path = self.root / "jobs.json"
         self.jobs_path.write_text(
             json.dumps(
@@ -41,13 +53,14 @@ class SystemIntegrityTests(unittest.TestCase):
                         },
                         {
                             "id": "production",
-                            "name": "LIFT CODE scheduled content slot kickoff",
+                            "name": "LIFT CODE scheduled content production",
                             "enabled": True,
                             "state": "scheduled",
                             "prompt": (
                                 "Preserve the current prelaunch contract: no app/product promotion, "
-                                "no audience-facing CTA. Do not publish before the required user "
-                                "confirmation; manual publication remains the user's action."
+                                "no audience-facing CTA. Deliver the exact final media and do not ask "
+                                "for approval; manual publication remains the user's action. Read "
+                                "context/production-formats.json as the closed allowlist."
                             ),
                             "script": None,
                             "no_agent": False,
@@ -65,14 +78,17 @@ class SystemIntegrityTests(unittest.TestCase):
     def tearDown(self):
         self.temp_dir.cleanup()
 
-    def inspect(self):
-        return inspect_system(
-            research_db=self.research_db,
-            hypothesis_db=self.hypothesis_db,
-            jobs_path=self.jobs_path,
-            required_files=[],
-            now=datetime(2026, 7, 29, 12, 0, tzinfo=timezone.utc),
-        )
+    def inspect(self, **overrides):
+        arguments = {
+            "research_db": self.research_db,
+            "hypothesis_db": self.hypothesis_db,
+            "production_formats": self.production_formats,
+            "jobs_path": self.jobs_path,
+            "required_files": [],
+            "now": datetime(2026, 7, 29, 12, 0, tzinfo=timezone.utc),
+        }
+        arguments.update(overrides)
+        return inspect_system(**arguments)
 
     def test_accepts_current_scheduler_topology_and_healthy_databases(self):
         report = self.inspect()
@@ -80,6 +96,117 @@ class SystemIntegrityTests(unittest.TestCase):
         self.assertTrue(report["ok"], report)
         self.assertEqual(report["issues"], [])
         self.assertEqual(report["warnings"], [])
+
+    def test_selected_production_format_check_uses_closed_allowlist(self):
+        allowed = self.inspect(
+            selected_medium="slideshow", selected_format_id="trainmystyle"
+        )
+        blocked = self.inspect(
+            selected_medium="slideshow", selected_format_id="nomtzzz"
+        )
+
+        self.assertTrue(allowed["ok"], allowed)
+        self.assertFalse(blocked["ok"], blocked)
+        self.assertTrue(
+            any("selected production format is not allowed" in issue for issue in blocked["issues"]),
+            blocked,
+        )
+
+    def test_rejects_missing_production_format_owner(self):
+        self.production_formats.unlink()
+
+        report = self.inspect()
+
+        self.assertFalse(report["ok"], report)
+        self.assertTrue(
+            any("production-format owner is missing" in issue for issue in report["issues"]),
+            report,
+        )
+
+    def test_rejects_invalid_or_duplicate_production_format_entries(self):
+        self.production_formats.write_text(
+            json.dumps(
+                {
+                    "schema_version": 1,
+                    "allowed_formats": [
+                        {"medium": "slideshow", "format_id": "missing-format"},
+                        {"medium": "slideshow", "format_id": "missing-format"},
+                    ],
+                }
+            ),
+            encoding="utf-8",
+        )
+
+        report = self.inspect()
+
+        self.assertFalse(report["ok"], report)
+        self.assertTrue(
+            any("does not resolve" in issue for issue in report["issues"]), report
+        )
+        self.assertTrue(any("duplicates" in issue for issue in report["issues"]), report)
+
+    def test_rejects_pending_content_from_a_non_allowed_format(self):
+        with sqlite3.connect(self.hypothesis_db) as connection:
+            connection.execute(
+                """
+                INSERT INTO hypotheses (id, statement, decision_reason, created_at)
+                VALUES ('hyp-1', 'Test message', 'Test the first message.', '2026-07-29T00:00:00Z')
+                """
+            )
+            connection.execute(
+                """
+                INSERT INTO contents (
+                    id, hypothesis_id, medium, format_id, message_id, message_version,
+                    copywriting_version, caption, copy_snapshot_json,
+                    final_project_path, final_project_sha256
+                ) VALUES (
+                    'content-1', 'hyp-1', 'slideshow', 'nomtzzz', 'msg-test', 1,
+                    1, 'caption', '{"slides":[["text"]]}',
+                    'renderer/slideshow/formats/nomtzzz/contents/content-1.json',
+                    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+                )
+                """
+            )
+
+        report = self.inspect()
+
+        self.assertFalse(report["ok"], report)
+        self.assertTrue(
+            any("non-allowed production format" in issue for issue in report["issues"]),
+            report,
+        )
+
+    def test_allows_published_historical_content_after_format_removal(self):
+        with sqlite3.connect(self.hypothesis_db) as connection:
+            connection.execute(
+                """
+                INSERT INTO hypotheses (id, statement, decision_reason, created_at)
+                VALUES ('hyp-1', 'Test message', 'Test the first message.', '2026-07-29T00:00:00Z')
+                """
+            )
+            connection.execute(
+                """
+                INSERT INTO contents (
+                    id, hypothesis_id, medium, format_id, message_id, message_version,
+                    copywriting_version, caption, copy_snapshot_json,
+                    final_project_path, final_project_sha256, tiktok_url, published_at
+                ) VALUES (
+                    'content-1', 'hyp-1', 'slideshow', 'nomtzzz', 'msg-test', 1,
+                    1, 'caption', '{"slides":[["text"]]}',
+                    'renderer/slideshow/formats/nomtzzz/contents/content-1.json',
+                    'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+                    'https://www.tiktok.com/@liftcode/video/1', '2026-07-29T01:00:00Z'
+                )
+                """
+            )
+
+        report = self.inspect()
+
+        self.assertTrue(report["ok"], report)
+        self.assertFalse(
+            any("non-allowed production format" in issue for issue in report["issues"]),
+            report,
+        )
 
     def test_rejects_content_production_job_with_wrong_schedule(self):
         payload = json.loads(self.jobs_path.read_text(encoding="utf-8"))
